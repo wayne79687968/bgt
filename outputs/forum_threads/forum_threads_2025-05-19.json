@@ -1,0 +1,1329 @@
+{
+  "425549": {
+    "name": "Moon Colony Bloodbath",
+    "threads": [
+      {
+        "title": "Hows the 2 player experience?",
+        "url": "https://boardgamegeek.com/thread/3513457",
+        "postdate": "2025-05-17 13:48:14",
+        "posts": [
+          {
+            "author": "KingOfKabob",
+            "postdate": "2025-05-17T13:48:14-05:00",
+            "body": "Curious how this game holds up at 2 player? I saw a few play throughs at 3p and it looked really fun - but curious how 2 player is?"
+          },
+          {
+            "author": "balley40",
+            "postdate": "2025-05-17T13:50:09-05:00",
+            "body": "Honestly, about the same as with more players. There might be a few more cards that get added to the central deck, but otherwise the game plays the same. I have enjoyed it at 2, 3, and 4p so far."
+          },
+          {
+            "author": "LemonyFresh",
+            "postdate": "2025-05-17T13:54:08-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>KingOfKabob wrote:</b></p></div><div class='quotebody'><i>Curious how this game holds up at 2 player? I saw a few play throughs at 3p and it looked really fun - but curious how 2 player is?</i></div></div></font><br/>Great."
+          },
+          {
+            "author": "SaltyHorse",
+            "postdate": "2025-05-17T14:14:31-05:00",
+            "body": "There are several playthroughs with 2 players:<br/><a href=\"https://www.youtube.com/watch?v=M-VhBmCp2N8\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">GameNight Live</a><br/><a href='/video/541411/moon-colony-bloodbath/playthrough-moon-colony-bloodbath'><img style=\"height:60px;width:80px\"  src='<a target='_blank' href=\"https://i.ytimg.com/vi/pPai_VSHwtc/default.jpg\" rel=\"nofollow noreferrer noopener\">https://i.ytimg.com/vi/pPai_VSHwtc/default.jpg</a>' alt='video'></a><br/><br/>As mentioned, the nature of the simultaneous play and very little direct interaction means it's similar at all multiplayer player counts."
+          },
+          {
+            "author": "King Bing",
+            "postdate": "2025-05-17T15:48:16-05:00",
+            "body": "It’s also great solo."
+          },
+          {
+            "author": "EX3LO",
+            "postdate": "2025-05-18T17:41:50-05:00",
+            "body": "I've only played Moon Colony at 2 players. It's really fun."
+          }
+        ]
+      },
+      {
+        "title": "Quick Clarification: Do you need to destroy a building when at 0 People?",
+        "url": "https://boardgamegeek.com/thread/3513086",
+        "postdate": "2025-05-16 19:08:41",
+        "posts": [
+          {
+            "author": "werefish",
+            "postdate": "2025-05-16T19:08:41-05:00",
+            "body": "The game ends when you have have negative people and can't destroy any buildings to bring you back up to the positives, or when you have no people and no buildings left; I get that. Do you have to destroy a building when you hit 0 though, or are you good at 'full employment' so long as nothing puts your people count into the negative? <br/><br/>I presume you don't since I didn't see anything in the rules saying you did, but thought it worth double checking here.<br/><br/>Thanks!"
+          },
+          {
+            "author": "Ditocoaf",
+            "postdate": "2025-05-16T19:19:12-05:00",
+            "body": "EDIT: I misunderstood the question, see posts below. I don't think my post here is incorrect, it's just not answering the right question.<br/><br/><strike>The rules instruct you to keep losing buildings until you have enough people tokens to lose what you're supposed to. It's <i>after</i> that section that it says \"if you have to lose more people than you can, your moon colony has failed. The game is over.\"  I'd say that you have to lose all your buildings on your way to that loss state. <br/><br/>The intention seems pretty clear to me that the player triggering the end of the game has zero people left, and shouldn't have leftover people (via tokens <i>or</i> buildings) to potentially win over someone who paid their losses in full. You don't get to say \"I don't have that many to lose, so the game ends before I lose anything\". Though I do see how you could interpret the rules that way.</strike>"
+          },
+          {
+            "author": "nahtaivel",
+            "postdate": "2025-05-16T19:20:24-05:00",
+            "body": "You only destroy a building when you need to spend the population and you don't have it.  Keep going with 0 people and 1 or more buildings until you encounter the next card requiring them."
+          },
+          {
+            "author": "Ditocoaf",
+            "postdate": "2025-05-16T19:26:53-05:00",
+            "body": "On reread, I think Alan understood Benjamin's question and I didn't.<br/><br/>Benjamin, it's helpful to think of your \"people\" as including both tokens and buildings. It's just that, if you would have to lose any people in a building, you lose the building first."
+          },
+          {
+            "author": "werefish",
+            "postdate": "2025-05-16T23:17:46-05:00",
+            "body": "No problem. Thanks for the answers guys!"
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-17T11:34:11-05:00",
+            "body": "You lose the game at zero people, not at negative people. Even zero people with a Flag loses. This seems clear in the rulebook.<br/>"
+          },
+          {
+            "author": "Ditocoaf",
+            "postdate": "2025-05-17T13:27:51-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>You lose the game at zero people, not at negative people. Even zero people with a Flag loses. This seems clear in the rulebook.<br/></i></div></div></font><br/>Here's what I think the OP's question actually is: <br/><br/>\"Say I have three people on my playmat and also some buildings. A card makes me lose three people. Do I need to destroy a building to gain some people on my playmat, since otherwise I would have zero of them.\"  <br/><br/>And I'm sure the answer to <i>that</i> is \"no, not yet, it's fine to have zero people <i>tokens</i>, as long as you still have people in buildings and don't have to lose more yet.\""
+          },
+          {
+            "author": "werefish",
+            "postdate": "2025-05-17T16:32:47-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Ditocoaf wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>You lose the game at zero people, not at negative people. Even zero people with a Flag loses. This seems clear in the rulebook.<br/></i></div></div></font><br/>Here's what I think the OP's question actually is: <br/><br/>\"Say I have three people on my playmat and also some buildings. A card makes me lose three people. Do I need to destroy a building to gain some people on my playmat, since otherwise I would have zero of them.\"  <br/><br/>And I'm sure the answer to <i>that</i> is \"no, not yet, it's fine to have zero people <i>tokens</i>, as long as you still have people in buildings and don't have to lose more yet.\"</i></div></div></font><br/>That was my question, yeah."
+          },
+          {
+            "author": "TwentySides",
+            "postdate": "2025-05-18T01:13:07-05:00",
+            "body": "You can have zero people tokens on your board as long as you have people employed in intact buildings."
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-18T11:16:31-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Ditocoaf wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>You lose the game at zero people, not at negative people. Even zero people with a Flag loses. This seems clear in the rulebook.<br/></i></div></div></font><br/>Here's what I think the OP's question actually is: <br/><br/>\"Say I have three people on my playmat and also some buildings. A card makes me lose three people. Do I need to destroy a building to gain some people on my playmat, since otherwise I would have zero of them.\"  <br/><br/>And I'm sure the answer to <i>that</i> is \"no, not yet, it's fine to have zero people <i>tokens</i>, as long as you still have people in buildings and don't have to lose more yet.\"</i></div></div></font><br/>Correct, it's fine to have zero people on your mat, as long as you have people in buildings.<br/>"
+          }
+        ]
+      },
+      {
+        "title": "Why are new twists or robots added to the draw pile rather than revealed immediately?",
+        "url": "https://boardgamegeek.com/thread/3512545",
+        "postdate": "2025-05-15 16:10:50",
+        "posts": [
+          {
+            "author": "rhi_zome",
+            "postdate": "2025-05-15T16:10:50-05:00",
+            "body": "I'm sure there's some case where it matters, but I haven't run into one yet."
+          },
+          {
+            "author": "Ah_Pook",
+            "postdate": "2025-05-15T16:20:52-05:00",
+            "body": "If multiple things are added to the draw pile simultaneously you shuffle them and resolve them in random order. It can matter sometimes."
+          },
+          {
+            "author": "Ditocoaf",
+            "postdate": "2025-05-15T16:31:48-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>rhi_zome wrote:</b></p></div><div class='quotebody'><i>I'm sure there's some case where it matters, but I haven't run into one yet.</i></div></div></font><br/>Partly, because if multiple cards are added during the same Work turn, you want to shuffle them together to randomize the order they happen in. Three players might each build something that adds a Robot, a Perk, and a Development all at the same time, and you need to shuffle those together on the top of the deck.<br/><br/>So then, it's simpler to use the same procedure every time, instead of writing the rules differently for different card types or situations."
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-16T03:50:56-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Ditocoaf wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>rhi_zome wrote:</b></p></div><div class='quotebody'><i>I'm sure there's some case where it matters, but I haven't run into one yet.</i></div></div></font><br/>Partly, because if multiple cards are added during the same Work turn, you want to shuffle them together to randomize the order they happen in. Three players might each build something that adds a Robot, a Perk, and a Development all at the same time, and you need to shuffle those together on the top of the deck.<br/><br/>So then, it's simpler to use the same procedure every time, instead of writing the rules differently for different card types or situations.</i></div></div></font><br/>Correct. It's simplest to have one rule that always applies; and usually multiple cards can be added at once, and they need an ordering.<br/>"
+          }
+        ]
+      },
+      {
+        "title": "[WIP] Fallout Vault-Tec retheme of Moon Colony Bloodbath [30% done]",
+        "url": "https://boardgamegeek.com/thread/3512010",
+        "postdate": "2025-05-14 12:46:00",
+        "posts": [
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-14T12:46:00-05:00",
+            "body": "<b>Retheme #33</b><br/><br/>My retheme geeklist: <a  href=\"https://boardgamegeek.com/geeklist/273725/martin-has-fallen-down-the-retheme-rabbit-hole\"   >Martin Has Fallen Down The Retheme Rabbit Hole</a><br/><br/>Blame this one on <a  href=\"https://boardgamegeek.com/geeklist/273725/martin-has-fallen-down-the-retheme-rabbit-hole?commentid=12804991#comment12804991\"   >Nathan Flickner</a>. This one wasn't even on my radar until he put the idea in my head.<br/><br/>There's a long backstory to this retheme project involving 3-4 different games, and 2-3 different theme topics, that is too weird and winding and convoluted for me to get into here. Suffice to say, this is where I've landed: this game, but in the retro-futuristic, overly optimistic world of Vault-Tec propaganda, with Vault Boy and other vault dwellers playing a starring role in the inevitable demise of their vaults, their air supplies, their resources, and ultimately, their lives.<br/><br/>First up, we need some Vault Overseer Player Boards, in the classic PiPBoy style. My thinking here was to use 4 cubes to keep track of actions, instead of the action tokens in the original game. Place the cube on the action you wish to take, then after performing the action, move the cube to its spot on the track.<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8884582\"><img src=\"https://cf.geekdo-images.com/F-um6wOzAsPVE4WkERbCUw__small/img/GZpEfLHw19g3mQn9rM4luHasujQ=/fit-in/200x150/filters:strip_icc()/pic8884582.png\" border=0></a></div><br/><br/>Then I worked on the 20 Robot cards. Just an opportunity to have some fun with the Overseer typeface, the card image, and using <a href=\"https://www.semicolon.com/multideck/multideck.html\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">Multideck</a> to embed inline images into the card effect text. Much better now that <a  href=\"https://boardgamegeek.com/boardgamedesigner/39311/rick-holzgrafe\"   >Rick Holzgrafe</a> has added the ability to adjust the size of the inline images.<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8884586\"><img src=\"https://cf.geekdo-images.com/elXJl5abWiDQcfyKA6RKwA__small/img/VuOo_s4OKs8MZoZVeNlPXbLMk3E=/fit-in/200x150/filters:strip_icc()/pic8884586.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8884588\"><img src=\"https://cf.geekdo-images.com/ZMDfUr8rYAVD4lQnXAOGZg__small/img/P0qxXgVPp7PhuZz_eb6DyVF54_Y=/fit-in/200x150/filters:strip_icc()/pic8884588.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8884589\"><img src=\"https://cf.geekdo-images.com/aETy_SCGjkUr9DOQ1yIOZg__small/img/_erDyfC9eM__ul0QlK4VevtA17s=/fit-in/200x150/filters:strip_icc()/pic8884589.png\" border=0></a></div><br/><br/>The plan is to keep the art style clean and cartoonish, with brightly colored foreground characters and elements, with darker, more drab vault backgrounds. Keeping the optimistic Vault-Tec propaganda vibe in the card titles and flavor text (reminiscent as well of Lumon's CorpSpeak in Severance).<br/><br/>Hunger card = Rationing Opportunity<br/>Leak = Radiation Integrity Drill<br/>Accident = Spontaneous Workplace Adventure (SWA)<br/>Power Failure = Energy Conservation Challenge<br/><br/>Etcetera.<br/>"
+          },
+          {
+            "author": "phunkysai",
+            "postdate": "2025-05-14T17:00:23-05:00",
+            "body": "Amazing. "
+          },
+          {
+            "author": "FaintlyMacabre66",
+            "postdate": "2025-05-14T19:01:34-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><br/>Hunger card = Rationing Opportunity<br/>Leak = Radiation Integrity Drill<br/>Accident = Spontaneous Workplace Adventure (SWA)<br/>Power Failure = Energy Conservation Challenge<br/></i></div></div></font><br/>I love these names!! <br/>"
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-14T23:30:03-05:00",
+            "body": "Looks cool."
+          },
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-15T00:13:06-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>Looks cool.</i></div></div></font><br/>Thank you! It’s an honor to have you notice and comment upon this project. I am hoping that when it is complete, you will grant permission for me to share this as a free, fan-made, PnP retheme. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "Finegame",
+            "postdate": "2025-05-15T02:27:26-05:00",
+            "body": "Looks really really cool. Hopefully Donald will give it a go. Then I would like to translate it into German.<br/>Provided the pnp files are editable."
+          },
+          {
+            "author": "darthnice",
+            "postdate": "2025-05-15T12:58:49-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>Looks cool.</i></div></div></font><br/>Thank you! It’s an honor to have you notice and comment upon this project. I am hoping that when it is complete, you will grant permission for me to share this as a free, fan-made, PnP retheme. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" /></i></div></div></font><br/>I doubt DXV can speak on behalf of Bethesda."
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-15T15:07:37-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>darthnice wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><font color=#6F0C0C><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>Looks cool.</i></div></div></font><br/>Thank you! It’s an honor to have you notice and comment upon this project. I am hoping that when it is complete, you will grant permission for me to share this as a free, fan-made, PnP retheme. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" /></i></div></div></font><br/>I doubt DXV can speak on behalf of Bethesda.</i></div></div></font><br/>Correct!<br/><br/>I can't grant permissions for anything on behalf of Rio Grande Games or Bethesda; I don't speak for those entities, and won't even argue with them on your behalf (DrHenryArmitage). It's no fun getting involved in any of that. I also won't grant you a permission that could be construed as granting you permission on behalf of those entities. I just that much don't want to be involved in any legal nonsense.<br/><br/>I'm already not complaining about your thing, and you can look up on BGG all the homemade Dominion things that I haven't complained about, that have files posted. You can even note RGG not complaining about those things either. And then can do similar research for Fallout mods. None of that amounts to any kind of legal protection for you though.<br/><br/>I'm the only one with rights to the long-out-of-print Gauntlet of Fools, not counting the art or specific rulebook text; if you want to make a retheme of that, again using none of the original art, well you have my permission. No joke, you really do.  I'm not suggesting that you want to do any such thing; I'm just pointing out what I can actually personally offer you.<br/>"
+          },
+          {
+            "author": "tilouboy",
+            "postdate": "2025-05-15T15:11:28-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>darthnice wrote:</b></p></div><div class='quotebody'><i><font color=#6F0C0C><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><font color=#6F4C0C><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>Looks cool.</i></div></div></font><br/>Thank you! It’s an honor to have you notice and comment upon this project. I am hoping that when it is complete, you will grant permission for me to share this as a free, fan-made, PnP retheme. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" /></i></div></div></font><br/>I doubt DXV can speak on behalf of Bethesda.</i></div></div></font><br/>Correct!<br/><br/>I can't grant permissions for anything on behalf of Rio Grande Games or Bethesda; I don't speak for those entities, and won't even argue with them on your behalf (DrHenryArmitage). It's no fun getting involved in any of that. I also won't grant you a permission that could be construed as granting you permission on behalf of those entities. I just that much don't want to be involved in any legal nonsense.<br/><br/>I'm already not complaining about your thing, and you can look up on BGG all the homemade Dominion things that I haven't complained about, that have files posted. You can even note RGG not complaining about those things either. And then can do similar research for Fallout mods. None of that amounts to any kind of legal protection for you though.<br/><br/><b>I'm the only one with rights to the long-out-of-print Gauntlet of Fools, not counting the art or specific rulebook text; if you want to make a retheme of that, again using none of the original art, well you have my permission. </b>No joke, you really do.  I'm not suggesting that you want to do any such thing; I'm just pointing out what I can actually personally offer you.<br/></i></div></div></font><br/>I actually like that game as it is <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/meeple.gif\" alt=\"meeple\" /> I would be curious to see what OP would come up with though."
+          },
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-17T12:19:51-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>darthnice wrote:</b></p></div><div class='quotebody'><i><font color=#6F0C0C><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><font color=#6F4C0C><div class='quote'><div class='quotetitle'><p><b>donaldx wrote:</b></p></div><div class='quotebody'><i>Looks cool.</i></div></div></font><br/>Thank you! It’s an honor to have you notice and comment upon this project. I am hoping that when it is complete, you will grant permission for me to share this as a free, fan-made, PnP retheme. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" /></i></div></div></font><br/>I doubt DXV can speak on behalf of Bethesda.</i></div></div></font><br/>Correct!<br/><br/>I can't grant permissions for anything on behalf of Rio Grande Games or Bethesda; I don't speak for those entities, and won't even argue with them on your behalf (DrHenryArmitage). It's no fun getting involved in any of that. I also won't grant you a permission that could be construed as granting you permission on behalf of those entities. I just that much don't want to be involved in any legal nonsense.<br/><br/>I'm already not complaining about your thing, and you can look up on BGG all the homemade Dominion things that I haven't complained about, that have files posted. You can even note RGG not complaining about those things either. And then can do similar research for Fallout mods. None of that amounts to any kind of legal protection for you though.<br/><br/>I'm the only one with rights to the long-out-of-print Gauntlet of Fools, not counting the art or specific rulebook text; if you want to make a retheme of that, again using none of the original art, well you have my permission. No joke, you really do.  I'm not suggesting that you want to do any such thing; I'm just pointing out what I can actually personally offer you.<br/></i></div></div></font><br/>Understood, thanks for your consideration. I will respect your wishes. This will remain a personal retheme only."
+          },
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-17T15:50:27-05:00",
+            "body": "Card backs<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891675\"><img src=\"https://cf.geekdo-images.com/TXTmscjgkV0mLY03Zj5F3w__small/img/oj--ahXthS5ZnODSQYknwQPaKDc=/fit-in/200x150/filters:strip_icc()/pic8891675.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891600\"><img src=\"https://cf.geekdo-images.com/Pzjax-c6NMByD7pPWIxxhw__small/img/CT3NlxqZ6m0JJKfFlVc2baZy6Co=/fit-in/200x150/filters:strip_icc()/pic8891600.png\" border=0></a></div><br/><br/>Player boards<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8890377\"><img src=\"https://cf.geekdo-images.com/Bo2JGs3zi_fp9S9LszWD1A__small/img/xwVNoFyA7vhN9sOQcbz2ioykdN0=/fit-in/200x150/filters:strip_icc()/pic8890377.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8890378\"><img src=\"https://cf.geekdo-images.com/a4JyUYzyOi3YQ3IMKXGixQ__small/img/nmNbkwQiIvaJQ-fy50HhuhUjXOI=/fit-in/200x150/filters:strip_icc()/pic8890378.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8890379\"><img src=\"https://cf.geekdo-images.com/pGFRQ8g0ddAkNJI80UYtVw__small/img/-vYif1J-2ObHpBoOgEybp71eWpk=/fit-in/200x150/filters:strip_icc()/pic8890379.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8890380\"><img src=\"https://cf.geekdo-images.com/PHZ3nXJ2sDaUE5ZvkymuKw__small/img/ka1xJECl-FsIGWI2UDi1RCaoGGs=/fit-in/200x150/filters:strip_icc()/pic8890380.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8890381\"><img src=\"https://cf.geekdo-images.com/ULiT6wru_I28aEZppRnHXA__small/img/8lG6Y1R8t4og24imZLIr9foLvr4=/fit-in/200x150/filters:strip_icc()/pic8890381.png\" border=0></a></div><br/><br/>Robot cards (20)<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889943\"><img src=\"https://cf.geekdo-images.com/a6SvDouaKiLgQ3iqsnVk1Q__small/img/iNDJGl8qBtS3oRdxIaa1Qf2vTOE=/fit-in/200x150/filters:strip_icc()/pic8889943.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889944\"><img src=\"https://cf.geekdo-images.com/Uw24KVaZmJctg8EbDHsMdA__small/img/MmWqHqZPU9Vyz6G9DvXqJzcjfpU=/fit-in/200x150/filters:strip_icc()/pic8889944.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889945\"><img src=\"https://cf.geekdo-images.com/zTs8CmcK9Pa99BMK5AlRdQ__small/img/PIcvBYVlRNfRYLCL8LAo3OtYtgo=/fit-in/200x150/filters:strip_icc()/pic8889945.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889946\"><img src=\"https://cf.geekdo-images.com/lEqYH470dY9ZsXIPUsxl3Q__small/img/wXcEuT48Dv7LWuOj11wzKQ8FJTg=/fit-in/200x150/filters:strip_icc()/pic8889946.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889947\"><img src=\"https://cf.geekdo-images.com/emrV-a4GAy3cPTHh-H9Z7w__small/img/at82S3jAtwRgTIpnEAKcVJy7w08=/fit-in/200x150/filters:strip_icc()/pic8889947.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889948\"><img src=\"https://cf.geekdo-images.com/2Y32DVFaggWd-dUyAfh7rg__small/img/bKhL89BPw1_b-YTERec65athuSw=/fit-in/200x150/filters:strip_icc()/pic8889948.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889949\"><img src=\"https://cf.geekdo-images.com/xXLLQgaa0WjoWo0cvtBY0A__small/img/ett1VkWE5xaDiwMjOzT8ccHc8Uk=/fit-in/200x150/filters:strip_icc()/pic8889949.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889950\"><img src=\"https://cf.geekdo-images.com/tDdMC5rE1ZWCRWTupRuE6w__small/img/PYWj_nnz33itD6NA1R-BksNUPqo=/fit-in/200x150/filters:strip_icc()/pic8889950.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889951\"><img src=\"https://cf.geekdo-images.com/fEaptM1E4b2V9rB_XoPzrw__small/img/vpxYourFKwbOXIeDNFIPFLNJG60=/fit-in/200x150/filters:strip_icc()/pic8889951.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889952\"><img src=\"https://cf.geekdo-images.com/wFUmVdOSoCbb9M1Gx9OMgw__small/img/gTCk-TTpNrXBpT2yfC-hBjvt4tE=/fit-in/200x150/filters:strip_icc()/pic8889952.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889953\"><img src=\"https://cf.geekdo-images.com/pZpAuxFrFNkT-JL8zRN27A__small/img/98XsC8mZSPUOr09ThJuXR6wYGH8=/fit-in/200x150/filters:strip_icc()/pic8889953.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889954\"><img src=\"https://cf.geekdo-images.com/E_OUHnAwLp7LczQHWv-vSw__small/img/sFPEyXZSl0YPAhc4eDcyWePBQhg=/fit-in/200x150/filters:strip_icc()/pic8889954.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889955\"><img src=\"https://cf.geekdo-images.com/nCl16XPLAgSzmSN54Znutg__small/img/IxtlBwzKH8Xdl4ow3HFyGNpivZ8=/fit-in/200x150/filters:strip_icc()/pic8889955.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889956\"><img src=\"https://cf.geekdo-images.com/PRQeCT1xX5gIkpM-hNOxag__small/img/65wyZV2BMTu4TM4WvrMbgcUlsfQ=/fit-in/200x150/filters:strip_icc()/pic8889956.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889957\"><img src=\"https://cf.geekdo-images.com/FjK4wbST9fcURu4nE-hFVw__small/img/h5g7nkM4vfwMwS07xKJz4Xye_cI=/fit-in/200x150/filters:strip_icc()/pic8889957.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889958\"><img src=\"https://cf.geekdo-images.com/iLpTsiCxEjemP-IsNy6K_w__small/img/iyBiafwplM7PXkJM3Nuy5UytkWw=/fit-in/200x150/filters:strip_icc()/pic8889958.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889959\"><img src=\"https://cf.geekdo-images.com/EsZyWBW_v2Eu2WhKrJq-Lg__small/img/Gf7FtBwpyRdviDfP2qIMBcBqMy0=/fit-in/200x150/filters:strip_icc()/pic8889959.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889961\"><img src=\"https://cf.geekdo-images.com/WtdCnCuZh7uyzAPKbLhzhA__small/img/NaIv7bzvPEsndGPfPskcIhKHfDs=/fit-in/200x150/filters:strip_icc()/pic8889961.png\" border=0></a></div><div style='display:inline;'>&nbsp;</div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889963\"><img src=\"https://cf.geekdo-images.com/LVdUHlKpcgdCTCSagwB0Rg__small/img/Ozu2GDtnvFigSMZ84NTYWo_bfaU=/fit-in/200x150/filters:strip_icc()/pic8889963.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889964\"><img src=\"https://cf.geekdo-images.com/XDxKXdaBQMPJJj7jpAQWxg__small/img/jDEFwhZKDSoTELrknursfp0B5wE=/fit-in/200x150/filters:strip_icc()/pic8889964.png\" border=0></a></div><br/><br/>Event cards (13)<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889979\"><img src=\"https://cf.geekdo-images.com/dUwpXKQgRUySyuu98nbKow__small/img/Qc-6u6i4btrdGYpMbYzu6ziX40I=/fit-in/200x150/filters:strip_icc()/pic8889979.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889980\"><img src=\"https://cf.geekdo-images.com/HUCQPyy6bgMp3BdicBykJA__small/img/AuAWvolf4SaQOTZgb6snJPy3m3o=/fit-in/200x150/filters:strip_icc()/pic8889980.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889981\"><img src=\"https://cf.geekdo-images.com/M76YSmjNFaMAUPi7x--Qog__small/img/UlxqX2Dorj6IBUX0629LUK1wh9Y=/fit-in/200x150/filters:strip_icc()/pic8889981.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889982\"><img src=\"https://cf.geekdo-images.com/HPwN1gTN5NjL9TrrJWpTLw__small/img/SaLUQjF9RuI_AFtK2WDxOKpP1lM=/fit-in/200x150/filters:strip_icc()/pic8889982.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889983\"><img src=\"https://cf.geekdo-images.com/AKcwXNT1enNAF5INWCZpVw__small/img/kWsdvZinyo8FpE8otRUOr-DvKkg=/fit-in/200x150/filters:strip_icc()/pic8889983.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889984\"><img src=\"https://cf.geekdo-images.com/Q4Sqe7ZsIEfDbYeTmV7_rA__small/img/JRlmNDyX8Fk5Ch2ItE8cbZyrl74=/fit-in/200x150/filters:strip_icc()/pic8889984.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889985\"><img src=\"https://cf.geekdo-images.com/lzTVUZtaI8zgv6melmGmEA__small/img/6H0xr-f1lzwwwAlRxgbku_NtNI8=/fit-in/200x150/filters:strip_icc()/pic8889985.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889986\"><img src=\"https://cf.geekdo-images.com/c9HVnEFKA_ZOQ7sYShR93A__small/img/AeQ0qdY37Tpr4A4gCSwOIomTOOc=/fit-in/200x150/filters:strip_icc()/pic8889986.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889987\"><img src=\"https://cf.geekdo-images.com/drSwCDqNTTpLBcO_6jElaw__small/img/g19ag4oDugZ6IpU7IXt86PHyL3o=/fit-in/200x150/filters:strip_icc()/pic8889987.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889988\"><img src=\"https://cf.geekdo-images.com/ts3GQoGKYbXPT0qtn7Gcww__small/img/0OcmPWFqwHrptLm2UEzdlRtPsMM=/fit-in/200x150/filters:strip_icc()/pic8889988.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889989\"><img src=\"https://cf.geekdo-images.com/OHeBtM_xQDetUTJ3UI1T5A__small/img/IJbQ5HKWaOyQjCTYo3TKwhtFYTM=/fit-in/200x150/filters:strip_icc()/pic8889989.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889990\"><img src=\"https://cf.geekdo-images.com/z3UvXPUMY-0kr1eLf7p5cQ__small/img/dt07tw1sxvhCLhMxB4Tv15a7k4c=/fit-in/200x150/filters:strip_icc()/pic8889990.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8889991\"><img src=\"https://cf.geekdo-images.com/mI6l8wFD7xp0RIY-Fx8hBQ__small/img/0zOaKqXlEbGAdCX6Cgv3JzQsmHM=/fit-in/200x150/filters:strip_icc()/pic8889991.png\" border=0></a></div><br/><br/>Development cards (10)<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891763\"><img src=\"https://cf.geekdo-images.com/sIO1I6z7MlVT6R3FsWiNEg__small/img/CYSi0jZXCd6KI4OlGypSJ4h6OeU=/fit-in/200x150/filters:strip_icc()/pic8891763.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891764\"><img src=\"https://cf.geekdo-images.com/jGlsR2I1dW0WKs9WPfSMmw__small/img/gmteDzQiBlGaiw3CD2e36m3MXQg=/fit-in/200x150/filters:strip_icc()/pic8891764.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891766\"><img src=\"https://cf.geekdo-images.com/HQTN_CLOUJf9EAFsKRnw-A__small/img/q8peNv5xpoeL_5eX_Wo6Q4OsAIE=/fit-in/200x150/filters:strip_icc()/pic8891766.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891767\"><img src=\"https://cf.geekdo-images.com/2ErzFsxOtI5WQI9I3Hz7HQ__small/img/esxswWRDLY2If9Tyo-ZTdCH2SdY=/fit-in/200x150/filters:strip_icc()/pic8891767.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891768\"><img src=\"https://cf.geekdo-images.com/wXs4EsvnBmt72HOo8N80AQ__small/img/GaWKnPIo1eKSgeiPXGXAvrT6qsU=/fit-in/200x150/filters:strip_icc()/pic8891768.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891769\"><img src=\"https://cf.geekdo-images.com/1pbdtdr3lkTN1Z5Z9qky9w__small/img/e1J9XHXd8nmIEwNaXz_Kdb1Nt_w=/fit-in/200x150/filters:strip_icc()/pic8891769.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891771\"><img src=\"https://cf.geekdo-images.com/mc88exovW9J5CtjkGu-REg__small/img/jOeY5ee9-xtRs3bySlrRzNl2w6s=/fit-in/200x150/filters:strip_icc()/pic8891771.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891772\"><img src=\"https://cf.geekdo-images.com/jM4Sx-9MvHeIf0IMKMcqxA__small/img/HG4HIagocaOutP53qJVDQFnd-Tc=/fit-in/200x150/filters:strip_icc()/pic8891772.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891773\"><img src=\"https://cf.geekdo-images.com/fSOjEgyinPiyG_g_Ffi8RA__small/img/dQun9zhIiTPiKvpekenxCWr9qyY=/fit-in/200x150/filters:strip_icc()/pic8891773.png\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8891774\"><img src=\"https://cf.geekdo-images.com/cBxGIYLp-eODYo_S3hwXHQ__small/img/Zzs0jlRuwYzJyP2dSxUmlUsF5HQ=/fit-in/200x150/filters:strip_icc()/pic8891774.png\" border=0></a></div>"
+          },
+          {
+            "author": "FaintlyMacabre66",
+            "postdate": "2025-05-17T16:22:15-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><br/>Understood, thanks for your consideration. I will respect your wishes. This will remain a personal retheme only.</i></div></div></font><br/>😭😭😭"
+          },
+          {
+            "author": "Nflickner",
+            "postdate": "2025-05-18T07:36:36-05:00",
+            "body": "These look beautiful"
+          },
+          {
+            "author": "Finegame",
+            "postdate": "2025-05-18T11:03:40-05:00",
+            "body": "😂🤣So sad. <br/>May I copy the maps and then translate them for my private use?"
+          },
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-18T11:34:56-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Finegame wrote:</b></p></div><div class='quotebody'><i>😂🤣So sad. <br/>May I copy the maps and then translate them for my private use?</i></div></div></font><br/>To be clear, \"personal retheme\" means that I will not be sharing or distributing any PDF file of this retheme. Any print and play PDF that I produce will be exclusively for my personal production and personal entertainment use."
+          },
+          {
+            "author": "zaubereistee",
+            "postdate": "2025-05-18T12:06:53-05:00",
+            "body": "Hm. I really like this retheme, i'm a Fallout fan myself and highly appreciate such effort. It looks amazing.<br/><br/>As I'm reading Donald's reply he only said that you could see that neither he himself, Rio Grande Games or Bethesda ever complained about modding, fan-art, etc. And I would second that. Of course, there is legal nonsense everywhere in this world, but I truly don't think anyone would legally chase a Fallout retheme for Moon Colony Bloodbath.<br/><br/>So what I'm asking is, what was unterstood and what wishes do you respect? Why is this going to be just a personal retheme?"
+          },
+          {
+            "author": "DrHenryArmitage",
+            "postdate": "2025-05-18T12:28:26-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>zaubereistee wrote:</b></p></div><div class='quotebody'><i>Hm. I really like this retheme, i'm a Fallout fan myself and highly appreciate such effort. It looks amazing.<br/><br/>As I'm reading Donald's reply he only said that you could see that neither he himself, Rio Grande Games or Bethesda ever complained about modding, fan-art, etc. And I would second that. Of course, there is legal nonsense everywhere in this world, but I truly don't think anyone would legally chase a Fallout retheme for Moon Colony Bloodbath.<br/><br/>So what I'm asking is, what was unterstood and what wishes do you respect? Why is this going to be just a personal retheme?</i></div></div></font><br/><br/>I asked for permission to share my retheme as a free PnP. Permission was not given, for reasons stated. Thus, I am honoring that lack of permission by stating that I am not going to share any PnP PDF of my retheme of this game.<br/><br/>If you check my other retheme WIP threads, you will see other designers have granted me permission to share my free PnP rethemes, such as Jamey Stegmaier in the case of my <a  href=\"https://boardgamegeek.com/thread/3015793/shelfie-showdown-a-board-game-retheme-of-wingspan\"   >Wingspan retheme</a>, Jacob Fryxelius in the case of my <a  href=\"https://boardgamegeek.com/thread/3064291/after-the-empire-a-mandalorian-retheme-of-after-th\"   >After The Virus retheme</a>, Todd Sanders in the case of my <a  href=\"https://boardgamegeek.com/geeklist/273725/martin-has-fallen-down-the-retheme-rabbit-hole?itemid=10866056#10866056\"   >Mr. Cabbagehead's Garden retheme</a>, Ryan Laukat in the case of my <a  href=\"https://boardgamegeek.com/thread/3466212/wip-wasteland-convoy-a-post-apocalyptic-retheme-of\"   >Creature Caravan retheme</a>, among others.<br/><br/>No permission, no sharing."
+          },
+          {
+            "author": "zaubereistee",
+            "postdate": "2025-05-18T12:55:16-05:00",
+            "body": "I see. Thank you for the clarification!"
+          },
+          {
+            "author": "Finegame",
+            "postdate": "2025-05-18T13:41:37-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>DrHenryArmitage wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>Finegame wrote:</b></p></div><div class='quotebody'><i>😂🤣So sad. <br/>May I copy the maps and then translate them for my private use?</i></div></div></font><br/>To be clear, \"personal retheme\" means that I will not be sharing or distributing any PDF file of this retheme. Any print and play PDF that I produce will be exclusively for my personal production and personal entertainment use.</i></div></div></font><br/><br/>everything is ok, I didn't expect you to share the files either.<br/>For me it would also just be a personal project.<br/>"
+          }
+        ]
+      },
+      {
+        "title": "Dice Tower review?",
+        "url": "https://boardgamegeek.com/thread/3511673",
+        "postdate": "2025-05-13 21:23:08",
+        "posts": [
+          {
+            "author": "Goemon12677",
+            "postdate": "2025-05-13T21:23:08-05:00",
+            "body": "I figured the Dice Tower would get a kick out of this one, did I miss a review for it? They usually hit all of the popular ones and I'm surprised they haven't done this one yet."
+          },
+          {
+            "author": "teacherboy",
+            "postdate": "2025-05-13T22:00:08-05:00",
+            "body": "Tom mentioned it in his recent \"45 games in 13 minutes\" video(my numbers might be off). He didn't like it very much. He gave it a 5 or 6, I think. "
+          },
+          {
+            "author": "SaltyHorse",
+            "postdate": "2025-05-13T22:00:19-05:00",
+            "body": "Link:<br/><a target='_blank' href=\"https://www.youtube.com/watch?v=DxnDe0Kyq90&t=496\" rel=\"nofollow noreferrer noopener\">https://www.youtube.com/watch?v=DxnDe0Kyq90&t=496</a><br/><br/>Maybe there will be a bigger review, too."
+          },
+          {
+            "author": "teacherboy",
+            "postdate": "2025-05-13T22:01:37-05:00",
+            "body": "Just checked again, he gave it a 5. <br/>"
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-13T23:37:29-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>SaltyHorse wrote:</b></p></div><div class='quotebody'><i>Link:<br/><a target='_blank' href=\"https://www.youtube.com/watch?v=DxnDe0Kyq90&t=496\" rel=\"nofollow noreferrer noopener\">https://www.youtube.com/watch?v=DxnDe0Kyq90&t=496</a><br/><br/>Maybe there will be a bigger review, too.</i></div></div></font><br/><br/>Yeah I suspect if some of the other staff jumps on it and enjoys it that there will be a full review."
+          },
+          {
+            "author": "cagriggs",
+            "postdate": "2025-05-14T00:01:47-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>teacherboy wrote:</b></p></div><div class='quotebody'><i>Tom mentioned it in his recent \"45 games in 13 minutes\" video(my numbers might be off). He didn't like it very much. He gave it a 5 or 6, I think. </i></div></div></font><br/>Sounds like he didn’t give it a chance. Likely one play and his evaluation of it is really just a first impression. One of the biggest issues I have with Tom and the Dice Tower in general. <br/>"
+          },
+          {
+            "author": "Valcurdra",
+            "postdate": "2025-05-14T04:20:46-05:00",
+            "body": "After the Deep Regrets review, I have officially given up on DT, couldn't care less what they think."
+          },
+          {
+            "author": "Therayofhope",
+            "postdate": "2025-05-14T07:17:30-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Valcurdra wrote:</b></p></div><div class='quotebody'><i>After the Deep Regrets review, I have officially given up on DT, couldn't care less what they think.</i></div></div></font><br/><br/>I feel they missed the mark. The whole point of deep regrets is to manipulate the regret between players and also gain understanding what’s everyone holding. And also the split of port and sea makes the game tighter because your number of actions are limited by the other players. So somehow I feel their review missed the mark"
+          },
+          {
+            "author": "Shassica",
+            "postdate": "2025-05-14T08:34:01-05:00",
+            "body": "I dont usually, but in this case I 100% agree with their review, I played a prototype with the designer teaching that had more control with an item market + choice of colour dice to purchase which was better and why I originally backed. The game as released is very lucky and swingy imo, theme and artwork great but not enough to carry it. Also very long at 4 and 5 players which makes the luck worse. I sold mine. "
+          },
+          {
+            "author": "colmustard21",
+            "postdate": "2025-05-14T11:59:10-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>cagriggs wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>teacherboy wrote:</b></p></div><div class='quotebody'><i>Tom mentioned it in his recent \"45 games in 13 minutes\" video(my numbers might be off). He didn't like it very much. He gave it a 5 or 6, I think. </i></div></div></font><br/>Sounds like he didn’t give it a chance. Likely one play and his evaluation of it is really just a first impression. One of the biggest issues I have with Tom and the Dice Tower in general. <br/></i></div></div></font><br/>I was surprised at Tom's score of a 5 for Moon Colony Bloodbath. To me, MCB feels like a streamlined variation on Galaxy Trucker, which Tom gives an 8.5. Maybe he just didn't know what the game was like going in, or maybe he was in the wrong headspace for MCB when he played it."
+          },
+          {
+            "author": "donaldx",
+            "postdate": "2025-05-14T23:27:17-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>colmustard21 wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>cagriggs wrote:</b></p></div><div class='quotebody'><i><font color=#6F0C0C><div class='quote'><div class='quotetitle'><p><b>teacherboy wrote:</b></p></div><div class='quotebody'><i>Tom mentioned it in his recent \"45 games in 13 minutes\" video(my numbers might be off). He didn't like it very much. He gave it a 5 or 6, I think. </i></div></div></font><br/>Sounds like he didn’t give it a chance. Likely one play and his evaluation of it is really just a first impression. One of the biggest issues I have with Tom and the Dice Tower in general. <br/></i></div></div></font><br/>I was surprised at Tom's score of a 5 for Moon Colony Bloodbath. To me, MCB feels like a streamlined variation on Galaxy Trucker, which Tom gives an 8.5. Maybe he just didn't know what the game was like going in, or maybe he was in the wrong headspace for MCB when he played it.</i></div></div></font><br/>Maybe it's because people die? That's how it sounded to me from the 15-second review.<br/><br/>People were gonna die; the title is Moon Colony Bloodbath. I see how that's not for everyone.<br/>"
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-15T00:58:34-05:00",
+            "body": "To be fair, I have yet to watch the Dice Tower video (it's in the queue and I've been quite busy of recent), but it has been documented (see various writings from Geoff Engelstein, among others) that the setting and implementation of certain mechanisms can have a large impact on how one perceives a game. Perhaps that is the case for this game and how Tom feels about it.<br/><br/>As a simple example: We tend to feel quite differently about a game that requires you to spend resources each round or lose points versus one that requites us to spend a number of resources each round to gain points. Same effect, completely different feel, but one might implement either one depending upon the setting (or as some say 'theme') of the game."
+          },
+          {
+            "author": "Jion",
+            "postdate": "2025-05-15T06:24:09-05:00",
+            "body": "can never understand why some like to brush off others' opinions or are quick to judge that not enuff plays for given when the reviewer don't hold the game to the same high regard that they do<br/><br/>games just aren't the same for everyone<br/>some find certain things fun, others find it lucky or a drab. <br/>while I don't entirely agree with most of Tom's taste for euros, it really does help to steer me towards what I think I may like (mainly cos he doesn't quite like it)<br/><br/>don't think it's wrong nor do I feel the need to claim (without knowing for a fact) that maybe he only played it once/twice<br/>maybe it's just me, I just find it weird and unnecessary "
+          },
+          {
+            "author": "Ghorro",
+            "postdate": "2025-05-16T09:36:32-05:00",
+            "body": "Seems as though Tom greatly disliked the deck-destruction part of the game, which is fair.v Lots of folks don't like building something up just to have the game tear it down. For me, the game is a 9. It'll be a 10 with expansions and longer play. I felt there wasn't enough build-up time."
+          },
+          {
+            "author": "SnoeL",
+            "postdate": "2025-05-18T13:58:51-05:00",
+            "body": "They've posted a longer review and the scores are 5 from Chris, 5 from Tom and 5.5 from Joey. <br/><br/><a target='_blank' href=\"https://youtu.be/9LTrMcOaugc?si=BJLnCIXINL1ppnVN\" rel=\"nofollow noreferrer noopener\">https://youtu.be/9LTrMcOaugc?si=BJLnCIXINL1ppnVN</a>"
+          },
+          {
+            "author": "Therayofhope",
+            "postdate": "2025-05-18T14:01:30-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>SnoeL wrote:</b></p></div><div class='quotebody'><i>They've posted a longer review and the scores are 5 from Chris, 5 from Tom and 5.5 from Joey. <br/><br/><a target='_blank' href=\"https://youtu.be/9LTrMcOaugc?si=BJLnCIXINL1ppnVN\" rel=\"nofollow noreferrer noopener\">https://youtu.be/9LTrMcOaugc?si=BJLnCIXINL1ppnVN</a></i></div></div></font><br/><br/>lol yeah I just watched it. Almost straight 5s with 3 of them giving it an ok rating<br/>"
+          }
+        ]
+      }
+    ],
+    "reason": "根據討論串內容，近期《Moon Colony Bloodbath》上榜的主要原因可能是因為遊戲的玩家互動和策略性引起了廣泛的關注，尤其是針對兩人遊玩的體驗討論，以及對遊戲機制的深入探討。此外，遊戲在社群中也引發了關於重設主題的創意討論，顯示出玩家對其內容的熱情和參與度。這些因素共同促成了遊戲的話題性，推動其上榜。"
+  },
+  "446493": {
+    "name": "Recall",
+    "threads": [
+      {
+        "title": "Solo mode ",
+        "url": "https://boardgamegeek.com/thread/3513977",
+        "postdate": "2025-05-18 15:29:45",
+        "posts": [
+          {
+            "author": "FaintlyMacabre66",
+            "postdate": "2025-05-18T15:29:45-05:00",
+            "body": "Is there anything you're able to tell us at this time about the solo mode? <br/><br/>Super excited for this to come out (hopefully I can get it in the US!) as I love Revive and several  other games y'all have made."
+          },
+          {
+            "author": "JupiterJonesJJ",
+            "postdate": "2025-05-18T16:16:03-05:00",
+            "body": "I am also curious about the solo mode. I absolutely love Revive and mostly play it solo. But I was not so happy with the solo mode. The base game solo rules made it much too easy to max out everything pretty soon once you found the trick with the card combos. This was improved slightly by rule modifications and challenges in the expansion. But what really made a huge difference for me were the fan-made automa variants \"Mautoma\" and \"The Automatons\". They give you some competition on the board, while keeping the administrative effort to a minimum. This allows for s pretty good simulation of two or even multi player game. <br/>My big wish for Recall would be to include a really very good solo mode or even such an automa right from the beginning. Are there any plans going in this direction? <br/>Looking forward to hearing more details on the game and its solo mode! "
+          },
+          {
+            "author": "FaintlyMacabre66",
+            "postdate": "2025-05-18T16:19:27-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>JupiterJonesJJ wrote:</b></p></div><div class='quotebody'><i>I am also curious about the solo mode. I absolutely love Revive and mostly play it solo. But I was not so happy with the solo mode. The base game solo rules made it much too easy to max out everything pretty soon once you found the trick with the card combos. This was improved slightly by rule modifications and challenges in the expansion. But what really made a huge difference for me were the fan-made automa variants \"Mautoma\" and \"The Automatons\". They give you some competition on the board, while keeping the administrative effort to a minimum. This allows for s pretty good simulation of two or even multi player game. <br/>My big wish for Recall would be to include a really very good solo mode or even such an automa right from the beginning. Are there any plans going in this direction? <br/>Looking forward to hearing more details on the game and its solo mode! </i></div></div></font><br/>Agree 100% and my thoughts exactly. Thanks for adding this!"
+          }
+        ]
+      },
+      {
+        "title": "Hoping this plays great at 2 players just like Revive!",
+        "url": "https://boardgamegeek.com/thread/3513175",
+        "postdate": "2025-05-16 23:46:29",
+        "posts": [
+          {
+            "author": "eggxact",
+            "postdate": "2025-05-16T23:46:29-05:00",
+            "body": "This is now my most anticipated game this year and I am really hoping this plays really well at 2 players just like Revive does, please! Absolutely love Revive."
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-17T01:04:21-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>eggxact wrote:</b></p></div><div class='quotebody'><i>This is now my most anticipated game this year and I am really hoping this plays really well at 2 players just like Revive does, please! Absolutely love Revive.</i></div></div></font><br/><br/>Interesting. While I enjoyed my one play of the game at two player, it was my least enjoyable player count. Without others, <i>the world just felt like such a lonely place</i>. Have you played the game at other player counts? Did you enjoy those as well? Or is 2 player for your favourite player count for Revive?<br/><br/>By the way, Recall is also my most anticipated game of the year 😀"
+          },
+          {
+            "author": "oriad",
+            "postdate": "2025-05-17T03:09:22-05:00",
+            "body": "I have played at 2 and 3. While you explore more the world at 3p, for me the gameflow didn't changed drastically between 2p and 3p as it is mostly a puzzle how you can sync your machine  with competitive token  your tribe and the goal setting . Of course map and goal are more accessible at 3p with maybe higher points as you might easy reach 3 end location ( but at 2p you can still do it) but a part of that, revive is not an auction game.  Say i enjoy even age of steam a 2p . Powergrid less at 2p  but they have different shared map incentives as central mechanisms.. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-17T03:17:41-05:00",
+            "body": "We have made sure this game plays well with 2 😊 There is more player interaction on the map (than Revive), even with fewer players. "
+          },
+          {
+            "author": "Gamer_Dog",
+            "postdate": "2025-05-17T08:19:31-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>thecorsetmaker wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>eggxact wrote:</b></p></div><div class='quotebody'><i>This is now my most anticipated game this year and I am really hoping this plays really well at 2 players just like Revive does, please! Absolutely love Revive.</i></div></div></font><br/><br/>Interesting. While I enjoyed my one play of the game at two player, it was my least enjoyable player count. Without others, <i>the world just felt like such a lonely place</i>. Have you played the game at other player counts? Did you enjoy those as well? Or is 2 player for your favourite player count for Revive?<br/><br/>By the way, Recall is also my most anticipated game of the year 😀</i></div></div></font><br/><br/>One thing I think is amazing about Revive is how modular it is. 2p can be low interaction, but it's easy enough to take out a portion of the map (e.g. along a diagonal) to make it more interactive. I've played mostly at 4p, but have multiple games at all counts.<br/><br/>Also very much looking forward to this one."
+          }
+        ]
+      },
+      {
+        "title": "Curious, will some of these tribes be familiar? Are we once again playing in the thematic world of Revive?",
+        "url": "https://boardgamegeek.com/thread/3512858",
+        "postdate": "2025-05-16 09:42:46",
+        "posts": [
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-16T09:42:46-05:00",
+            "body": "In the description of the game we are playing as a tribe, something this game shares with Revive (along with the same four designers). For those of us who know (and adore) Revive, will some of these tribes be <i>familiar</i> to us? Are we playing in the same world?<br/><br/>As much as I hate to admit it, it took my 9-year-old daughter looking at my screen to point out that both Revive and Recall start with 'Re' and have the same number of letters."
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-16T12:43:58-05:00",
+            "body": "There are 14 tribes in Recall. All new. <br/>Each tribe has one signature ability, and you also begin the game with a gadget. Both your tribe and gadget provides powerful abilities that influences you strategy. During the game you may acquire up to three more gadgets. You do this by gathering knowledge about three ancient civilizations, copying their gadgets, and possibly also their tribe ability. This way you build a unique combination of one tribe + four gadgets. <br/><br/>And then we have this optional feature: At the end of the game, you can register your tribe in the online archive, so that other players can discover your unique build as an ancient civilization in their own game. "
+          },
+          {
+            "author": "wombat929",
+            "postdate": "2025-05-17T06:31:06-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Anaesthetic wrote:</b></p></div><div class='quotebody'><i>And then we have this optional feature: At the end of the game, you can register your tribe in the online archive, so that other players can discover your unique build as an ancient civilization in their own game. </i></div></div></font><br/><br/>What a great idea!"
+          },
+          {
+            "author": "Wolfspider3",
+            "postdate": "2025-05-18T10:52:24-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Anaesthetic wrote:</b></p></div><div class='quotebody'><i>There are 14 tribes in Recall. All new. <br/>Each tribe has one signature ability, and you also begin the game with a gadget. Both your tribe and gadget provides powerful abilities that influences you strategy. During the game you may acquire up to three more gadgets. You do this by gathering knowledge about three ancient civilizations, copying their gadgets, and possibly also their tribe ability. This way you build a unique combination of one tribe + four gadgets. <br/><br/>And then we have this optional feature: At the end of the game, you can register your tribe in the online archive, so that other players can discover your unique build as an ancient civilization in their own game. </i></div></div></font><br/><br/>So, there are 14 different tribes and 18 different gadgets. I ran the numbers through google AI (I haven't done the math myself but I assume it's correct) and the possible combinations of tribes with 4 gadgets comes to 42,840. This does not include combinations of tribes with fewer than 4 gadgets.<br/><br/>That is a lot of possible combinations. The online archive will be useful resource and a good crowd sourcing tool. Do you know if the online archive will eliminate duplicate entries? (I don't assume it will.)<br/><br/>My goal is to try them all!... just kidding. 😅"
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-18T15:10:19-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Wolfspider3 wrote:</b></p></div><div class='quotebody'><i>So, there are 14 different tribes and 18 different gadgets. I ran the numbers through google AI (I haven't done the math myself but I assume it's correct) and the possible combinations of tribes with 4 gadgets comes to 42,840. This does not include combinations of tribes with fewer than 4 gadgets.<br/><br/>My goal is to try them all!... just kidding. 😅</i></div></div></font><br/><br/>If you play it 6 times per day, it will only take you about 20 years. However, it's a little more challenging than that. The tribe and gadget sets you can choose from in the setup are random. And the gadgets you can get from the ancient tribes are also random – and at the start of the game you don't even know what they will be. And unless you're the one who gets enough knowledge in a specific tribe first, someone else might pick the gadget you want. So expect to play a lot more times to try them all 😅<br/><br/>… and then there are 64 different ways that you can upgrade your main actions<br/>"
+          },
+          {
+            "author": "ManolisKK",
+            "postdate": "2025-05-18T16:47:25-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Chetil wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>Wolfspider3 wrote:</b></p></div><div class='quotebody'><i>So, there are 14 different tribes and 18 different gadgets. I ran the numbers through google AI (I haven't done the math myself but I assume it's correct) and the possible combinations of tribes with 4 gadgets comes to 42,840. This does not include combinations of tribes with fewer than 4 gadgets.<br/><br/>My goal is to try them all!... just kidding. 😅</i></div></div></font><br/><br/>If you play it 6 times per day, it will only take you about 20 years. However, it's a little more challenging than that. The tribe and gadget sets you can choose from in the setup are random. And the gadgets you can get from the ancient tribes are also random – and at the start of the game you don't even know what they will be. And unless you're the one who gets enough knowledge in a specific tribe first, someone else might pick the gadget you want. So expect to play a lot more times to try them all 😅<br/><br/>… and then there are 64 different ways that you can upgrade your main actions<br/></i></div></div></font><br/>Wow that's insane! 64 ways?  "
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-18T17:00:26-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>ManolisKK wrote:</b></p></div><div class='quotebody'><i>Wow that's insane! 64 ways?  </i></div></div></font><br/><br/>That sounded more impressive than it is 😅<br/><br/>There are 6 main actions in the game, and during a play you'll be able to upgrade them. When yo upgrade a action, you choose 1 of 2 options (2^6)."
+          }
+        ]
+      },
+      {
+        "title": "more information??",
+        "url": "https://boardgamegeek.com/thread/3512799",
+        "postdate": "2025-05-16 07:54:52",
+        "posts": [
+          {
+            "author": "ManolisKK",
+            "postdate": "2025-05-16T07:54:52-05:00",
+            "body": "I saw this today and i am super excited for this game. Can we have more information? I cannot find anything."
+          }
+        ]
+      },
+      {
+        "title": "When and where…",
+        "url": "https://boardgamegeek.com/thread/3512772",
+        "postdate": "2025-05-16 06:29:57",
+        "posts": [
+          {
+            "author": "MAJBrown22",
+            "postdate": "2025-05-16T06:29:57-05:00",
+            "body": "… can we get this? Sounds great, stunning box cover."
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-16T06:52:38-05:00",
+            "body": "Thanks! You can get this at 10:00 am on the 23rd of October at the Matagot store at SPIEL, Essen.<br/><br/>I have no idea when it might be available in US, especially in this current situation with so much uncertainty regarding the tariffs. "
+          },
+          {
+            "author": "MAJBrown22",
+            "postdate": "2025-05-16T08:06:26-05:00",
+            "body": "Awesome, see you there! I’ll add it to my Spiel tracking list 😊"
+          },
+          {
+            "author": "NemesisWhip",
+            "postdate": "2025-05-16T08:55:16-05:00",
+            "body": "Will there be reservations with pickup on other days than Thursday?"
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-16T09:16:11-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>NemesisWhip wrote:</b></p></div><div class='quotebody'><i>Will there be reservations with pickup on other days than Thursday?</i></div></div></font><br/><br/>Thursday is just the first day it will be for sale. It will (hopefully) be available several days of SPIEL. And it will be possible to preorder it. "
+          },
+          {
+            "author": "PlanBee",
+            "postdate": "2025-05-16T16:09:52-05:00",
+            "body": "Far too early to make Essen lists..... But this will be on mine! <br/><br/>Love Revive"
+          },
+          {
+            "author": "ogeert",
+            "postdate": "2025-05-16T17:41:18-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Chetil wrote:</b></p></div><div class='quotebody'><i>And it will be possible to preorder it. </i></div></div></font><br/>Do you have a newsletter or social media channel on which we can stay informed on this? Or do you post an update here once a preorder is available? I'm very interested and don't want to miss it! :-)<br/>"
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-16T17:51:51-05:00",
+            "body": "Thanks for your interest in Recall. You can follow us on <a href=\"https://facebook.com/aliongames\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">Facebook </a> and Instagram (@alion_games). I will also make sure to post here when the preorder goes live. "
+          },
+          {
+            "author": "Neo1984",
+            "postdate": "2025-05-17T06:17:29-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Chetil wrote:</b></p></div><div class='quotebody'><i>Thanks! You can get this at 10:00 am on the 23rd of October at the Matagot store at SPIEL, Essen.<br/><br/>I have no idea when it might be available in US, especially in this current situation with so much uncertainty regarding the tariffs. </i></div></div></font><br/>If you make this available to U.S. gamers, I don't see how the tariff situation would impact you selling here. <br/>Assuming you are not based in China, and that  the games would presumably ship from the E.U. the tariff rate with the EU is 10% which would be what, ten extra dollars added to the cost? Most gamers would still buy if it meant getting a quality game."
+          },
+          {
+            "author": "Chetil",
+            "postdate": "2025-05-17T06:22:57-05:00",
+            "body": "The games are made in China. The tariffs are based on country of origin. "
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-18T00:57:33-05:00",
+            "body": "The tariffs have changed a lot over the past months, so it's very hard to foresee what they will be in October. And of course we will do what we can to get the game available in the US. <br/><br/>But even if the tariffs will be lowered, US distributors are hesitant to place large orders now because of the perceived risk. And publishers' print runs will therefore also be smaller. <br/>"
+          },
+          {
+            "author": "Tino_nanoxgames",
+            "postdate": "2025-05-18T01:41:00-05:00",
+            "body": "No brainer pick up for me =)"
+          },
+          {
+            "author": "FaintlyMacabre66",
+            "postdate": "2025-05-18T15:07:25-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>MAJBrown22 wrote:</b></p></div><div class='quotebody'><i>Awesome, see you there! I’ll add it to my Spiel tracking list 😊</i></div></div></font><br/>Any chance you might be willing to bring back extra copies? "
+          },
+          {
+            "author": "LordFejjie",
+            "postdate": "2025-05-18T21:43:21-05:00",
+            "body": "I would order this and pay the tariffs / shipping to me direct in US if thats an option."
+          }
+        ]
+      }
+    ],
+    "reason": "根據討論串內容，遊戲《Recall》近期上榜的主要原因可能是因為其即將推出的新版本，特別是玩家對於單人模式的期待以及遊戲中全新部落的設計引發了廣泛的關注和興趣。此外，遊戲的美術風格和包裝也受到了讚譽，進一步提升了玩家的期待感。這些因素結合，使得《Recall》在市場上獲得了顯著的關注和討論，推動其人氣上升。"
+  },
+  "295947": {
+    "name": "Cascadia",
+    "threads": [
+      {
+        "title": "Cascadia in 2025",
+        "url": "https://boardgamegeek.com/thread/3512283",
+        "postdate": "2025-05-15 04:11:02",
+        "posts": [
+          {
+            "author": "O_Gama",
+            "postdate": "2025-05-15T04:11:03-05:00",
+            "body": "It’s rare to find a game that does exactly what it promises—and Cascadia nails it. From the moment you see that cover art whispering “harmony with nature,” you know you’re in for a calm, satisfying experience.<br/><br/>When you sit down to play, you find a serene puzzle… until that perfect combo of salmon tokens lands on the board. You know it isn’t actually the optimal play for your wife, but somehow she snags that salmon first and you realize even indirect competition can sting. Ten seconds later the frustation disappears as you realize there’s always another tile waiting. The game is smart enough to steer you clear of truly dead-end draws, so you never feel hopelessly stuck.<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8885762\"><img src=\"https://cf.geekdo-images.com/2W10qcyIQSKmbk6_zeY78A__small/img/DcxNzWaRFpTq47PqvCZ5BIcJoMo=/fit-in/200x150/filters:strip_icc()/pic8885762.jpg\" border=0></a></div><br/><br/><br/>Components get top marks from the tarot-sized cards, the high quality habitat tiles to the chunky animal tokens.  My only nitpick? The insert is terrible. I still can’t figure out the “correct” way to pack it all away—strangely ironic for a game where everything else fits so perfectly.<br/><br/>The gameplay is every bit as satisfying as expected. Matching terrain types and placing animals feels intuitive, yet there’s enough depth in planning your cascades to keep you hooked for hours. It’s not going to replace your all-time favorite, but it’s the perfect Sunday-afternoon pick-up-and-play that never overstays its welcome.<br/><br/>What really surprised me, though, is the replayability. You’d think a family-oriented puzzle would go stale fast, but the ever-shifting scoring cards for each animal ensure you’re always chasing a fresh goal. No two games ever feel the same.<br/><br/><br/>---<br/><br/>Presentation - 10<br/>Engagement - 7<br/>Gameplay - 9<br/>Value - 8<br/><br/>&gt; Final Score: 8.5 / 10<br/><br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8885756\"><img src=\"https://cf.geekdo-images.com/AAp-xREN-LX5vpo7JkTL-A__small/img/loud1RQprWxQy2s7U2g_zF4SLSg=/fit-in/200x150/filters:strip_icc()/pic8885756.jpg\" border=0></a></div><br/><br/>---<br/><br/>Wrap-Up:<br/>Cascadia isn’t an earth-shattering epic, but it’s the ideal mood-maker—perfect for a rainy Sunday or dialing down the tension after a cut-throat session. It’s elegant, approachable and cleverly designed to keep you coming back for another game.<br/><br/>"
+          },
+          {
+            "author": "elTigreCHino",
+            "postdate": "2025-05-16T04:26:35-05:00",
+            "body": "It took me two plays for this game to shoot to the top of my want list. It is just an all-round nice time. "
+          }
+        ]
+      },
+      {
+        "title": "Rules for valid salmon shapes; why doesn't shape matter?",
+        "url": "https://boardgamegeek.com/thread/3509431",
+        "postdate": "2025-05-09 11:19:57",
+        "posts": [
+          {
+            "author": "wbothfeld",
+            "postdate": "2025-05-09T11:19:58-05:00",
+            "body": "A lot of posts indicate that salmon can be in any shape in a run, as long as touching only two other salmon.<br/><br/>My question is, if shape doesn't matter, why do other cards (like bear and elk) indicate that any shape can be used, but the salmon cards don't?  Wouldn't that mean that the salmon need to be in the run shape depicted on each card?<br/><br/>Secondly,  CARD E is literally titled Zig-Zag run, so wouldn't that indicate that it has to be in a zig-zag shape?<br/><br/>Thanks for clarifications."
+          },
+          {
+            "author": "ColtsFan76",
+            "postdate": "2025-05-09T11:33:14-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>wbothfeld wrote:</b></p></div><div class='quotebody'><i>A lot of posts indicate that salmon can be in any shape in a run, as long as touching only two other salmon.<br/><br/>My question is, if shape doesn't matter, why do other cards (like bear and elk) indicate that any shape can be used, but the salmon cards don't?  Wouldn't that mean that the salmon need to be in the run shape depicted on each card?</i></div></div></font><br/>Because each animal has different scoring conditions. Sometimes shape matters, sometimes it doesn't. Salmon is already restricted in that the runs only count as long as each doesn't connect to more than 2 others. Hawks are even more \"goofy\" in how they have to sight each other and be so far away. It is just what gives variety to the scoring and how you have to plan for multiple things to maximize placement for scoring. <br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>Secondly,  CARD E is literally titled Zig-Zag run, so wouldn't that indicate that it has to be in a zig-zag shape?</i></div></div></font><br/>Typically names are just thematic. What is important is the clarifications which for this card says must match exact shape - or the mirror of. So yes, it does need to be in a zig-zag shape."
+          }
+        ]
+      },
+      {
+        "title": "Cascadia (with/without Landmarks) solo challenge May 2025",
+        "url": "https://boardgamegeek.com/thread/3506426",
+        "postdate": "2025-05-03 12:40:25",
+        "posts": [
+          {
+            "author": "zoinks",
+            "postdate": "2025-05-03T12:40:26-05:00",
+            "body": "This challenge is randomized, not using the rulebook scenarios.  There is a separate one with and one without the Landmarks expansion. <br/><br/>Top scorer for either challenge will get 30GG.<br/><br/>When posting your score, include your username, the challenge type, and a photo of your landscape and scoreboard.  For the Landmarks challenge also include the Landscape scoring cards you collected.<br/><br/><b>Base Cascadia solo challenge:</b><br/><br/>Bears: B<br/>Elk: B<br/>Salmon: A<br/>Hawks: A<br/>Foxes: C<br/><br/>Use this starting tile: <br/><div style=''><a href=\"https://boardgamegeek.com/image/8346803\"><img src=\"https://cf.geekdo-images.com/Ubd4PAMe8F2ik-D7EmDqBw__small/img/hUr-66LgnUx-q14Tqy4E8VqNY2o=/fit-in/200x150/filters:strip_icc()/pic8346803.jpg\" border=0></a></div><br/><br/>If you have the Landmarks expansion, you CAN use the expansion land tiles (no need to remove or skip them).<br/><br/><br/><b>Landscapes Cascadia solo challenge:</b><br/><br/>Bears: E<br/>Elk: C<br/>Salmon: F<br/>Hawks: G<br/>Foxes: G<br/><br/>Mountain: A/B<br/>Forest: C/D<br/>Prairies: I/K<br/>Wetland: J/I<br/>Rivers: B/L<br/><br/>Use this starting tile: <br/><div style=''><a href=\"https://boardgamegeek.com/image/8511929\"><img src=\"https://cf.geekdo-images.com/O95lcWx64lHhj7F9OaB6-g__small/img/3crHyr5XG_uFKbl54iVo8o04Wt8=/fit-in/200x150/filters:strip_icc()/pic8511929.jpg\" border=0></a></div><br/><br/>For the additional starting keystone tile: Bear on River: <div style=''><a href=\"https://boardgamegeek.com/image/8863450\"><img src=\"https://cf.geekdo-images.com/DKu8km7YgXegtcugB45WxQ__small/img/VCcxi__exb-GLv4MEUIMd9Z-PbI=/fit-in/200x150/filters:strip_icc()/pic8863450.jpg\" border=0></a></div> .  You choose the placement position.<br/><br/><br/>Previous challenges:<br/>August 2024: <a  href=\"https://boardgamegeek.com/thread/3344383/cascadia-withwithout-landmarks-solo-challenge-augu\"   >Cascadia (with/without Landmarks) solo challenge August 2024</a> - 🏆 [user=eucliwood][/user]and [user=irwinlai][/user]<br/>September 2024: <a  href=\"https://boardgamegeek.com/thread/3360527/cascadia-withwithout-landmarks-solo-challenge-sept\"   >Cascadia (with/without Landmarks) solo challenge September 2024</a> - 🏆 [user=wildmoon][/user] and [user=cmpunk17][/user]<br/>October 2024: <a  href=\"https://boardgamegeek.com/thread/3378647/cascadia-withwithout-landmarks-solo-challenge-octo\"   >Cascadia (with/without Landmarks) solo challenge October 2024</a> - 🏆 [user=frakkintoaster][/user] and [user=AlexvW][/user]<br/>November 2024: <a  href=\"https://boardgamegeek.com/thread/3398103/cascadia-withwithout-landmarks-solo-challenge-nove\"   >Cascadia (with/without Landmarks) solo challenge November 2024</a> - 🏆 [user=frakkintoaster][/user] and [user=richy81][/user]<br/>December 2024: <a  href=\"https://boardgamegeek.com/thread/3415322/cascadia-withwithout-landmarks-solo-challenge-dece\"   >Cascadia (with/without Landmarks) solo challenge December 2024</a> - 🏆 [user=Ginwolf][/user] and [user=richy81][/user]<br/>January 2025: <a  href=\"https://boardgamegeek.com/thread/3432139/cascadia-withwithout-landmarks-solo-challenge-janu\"   >Cascadia (with/without Landmarks) solo challenge January 2025</a> - 🏆[user=brazwhazz][/user] and [user=Ginwolf][/user]<br/>February 2025:<a  href=\"https://boardgamegeek.com/thread/3452619/cascadia-withwithout-landmarks-solo-challenge-febr\"   >Cascadia (with/without Landmarks) solo challenge February 2025</a> - 🏆[user=richy81][/user] and [user=Ginwolf][/user]<br/>March 2025: <a  href=\"https://boardgamegeek.com/thread/3471341/cascadia-withwithout-landmarks-solo-challenge-marc\"   >Cascadia (with/without Landmarks) solo challenge March 2025</a> - 🏆[user=rainbowflight][/user] and [user=richy81][/user], [user=Ginwolf][/user], [user=AlexvW][/user]<br/>April 2025: <a  href=\"https://boardgamegeek.com/thread/3488601/cascadia-withwithout-landmarks-solo-challenge-apri\"   >Cascadia (with/without Landmarks) solo challenge April 2025</a> - 🏆 [user=Tiford88][/user] and [user=richy81][/user]"
+          },
+          {
+            "author": "zoinks",
+            "postdate": "2025-05-03T12:40:57-05:00",
+            "body": "Last updated: -<br/><br/><b>Base challenge</b><br/><br/><br/><b>Landmarks challenge</b><br/>"
+          },
+          {
+            "author": "AlexvW",
+            "postdate": "2025-05-04T09:12:27-05:00",
+            "body": "<b><u>Basegame</u></b><br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8864851\"><img src=\"https://cf.geekdo-images.com/7tpNZprjtqM3JqFOE4wA2A__small/img/siuqX7LTrHQUBJmntiqo2pvOxvM=/fit-in/200x150/filters:strip_icc()/pic8864851.png\" border=0></a></div><br/><div style=''><a href=\"https://boardgamegeek.com/image/8864852\"><img src=\"https://cf.geekdo-images.com/B_gF2SfMFta8wmiZfmcwVg__small/img/Lo3hXagsebFOT6rMvkY6LcFkmh4=/fit-in/200x150/filters:strip_icc()/pic8864852.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "FateTriarrii",
+            "postdate": "2025-05-04T20:11:43-05:00",
+            "body": "<div style=''><a href=\"https://boardgamegeek.com/image/8865729\"><img src=\"https://cf.geekdo-images.com/7swqEgocZqfqm-13b9ZYNg__small/img/0ng3NjF4eERFEA6nR5rY9GN8CTI=/fit-in/200x150/filters:strip_icc()/pic8865729.jpg\" border=0></a></div><br/><br/>92 points.<br/><br/>Set up the elk region early, but never drew the elks. Spent too many nature tokens trying to fix bad animal draws. Probably had too much fun getting that 6 point fox."
+          },
+          {
+            "author": "Bet04",
+            "postdate": "2025-05-06T10:04:34-05:00",
+            "body": "Username: Bet04<br/>Type: Base<br/>Total Score: 91<br/><div style=''><a href=\"https://boardgamegeek.com/image/8868621\"><img src=\"https://cf.geekdo-images.com/23vL02t7yO2Ku6XnLy6xMg__small/img/mRGB963QrnZD7KeU2iwgM5ZVlZc=/fit-in/200x150/filters:strip_icc()/pic8868621.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "brazwhazz",
+            "postdate": "2025-05-08T19:23:58-05:00",
+            "body": "<u>Base game</u><br/>Wildlife: 62 (Bear 0, Elk 13, Salmon 25, Hawk 14, Fox 10)<br/>Habitat: 34 (Mountains 5, Forests 9, Prairies 9, Wetlands 9, Rivers 2)<br/>Wildlife tokens: 2<br/>TOTAL: 98<br/><div style=''><a href=\"https://boardgamegeek.com/image/8873008\"><img src=\"https://cf.geekdo-images.com/DiScsu6DecYC2u0vo-dL0A__small/img/tfv734tifMEIskQslCUCNbnREWs=/fit-in/200x150/filters:strip_icc()/pic8873008.jpg\" border=0></a></div><br/><br/><u>Landmarks expansion</u><br/>Wildlife: 56 (Bear 12, Elk 10, Salmon 14, Hawk 14, Fox 6)<br/>Habitat: 41 (Mountains 6, Forests 5, Prairies 9, Wetlands 10, Rivers 11)<br/>Wildlife tokens: 5<br/>Landmarks: 4<br/>TOTAL: 106<br/><div style=''><a href=\"https://boardgamegeek.com/image/8873009\"><img src=\"https://cf.geekdo-images.com/s_YoaOLLElB5e0j_KLwnsw__small/img/cS6yOicnseG7Qd0ovnrmh8JhFKw=/fit-in/200x150/filters:strip_icc()/pic8873009.jpg\" border=0></a></div><br/><br/>Thank you again for this month's challenges!"
+          },
+          {
+            "author": "rushj90",
+            "postdate": "2025-05-09T10:59:35-05:00",
+            "body": "Username: rushj90<br/>Type: Base<br/>Total Score: 108<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8874097\"><img src=\"https://cf.geekdo-images.com/649It0QQdOYVjWg6DYmYHw__small/img/Fzj-ezKm8vq1WoeTQMiMzpIqFXg=/fit-in/200x150/filters:strip_icc()/pic8874097.jpg\" border=0></a></div><br/><div style=''><a href=\"https://boardgamegeek.com/image/8874098\"><img src=\"https://cf.geekdo-images.com/VUKuIW4zM_W846OcZj_ZpA__small/img/JHeicDcVSOl7v-Gf6mjU4CJORwM=/fit-in/200x150/filters:strip_icc()/pic8874098.png\" border=0></a></div><br/><br/>Thanks for the challenge!"
+          },
+          {
+            "author": "kharman",
+            "postdate": "2025-05-10T15:27:08-05:00",
+            "body": "<b>Base game - 104</b><br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8876109\"><img src=\"https://cf.geekdo-images.com/ktrJsgtBFBd_34oDe37Hew__small/img/Kqmbqnf6w-HxMotuP0fyS1MRCIY=/fit-in/200x150/filters:strip_icc()/pic8876109.jpg\" border=0></a></div><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8876110\"><img src=\"https://cf.geekdo-images.com/3xuvO68oN4zCYq7XQsd_1g__small/img/qcScLikTnj4-ANEWWCsr5ZkZPxU=/fit-in/200x150/filters:strip_icc()/pic8876110.png\" border=0></a></div>"
+          },
+          {
+            "author": "dreaddormammu",
+            "postdate": "2025-05-12T20:21:08-05:00",
+            "body": "BGG Name: dreaddormammu<br/>Challenge: Base<br/>Score: 94<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8881170\"><img src=\"https://cf.geekdo-images.com/3XKW7fLh0m0OhxyLSgmIfg__small/img/5x8tqjg1psB99WV2XvVGhC8LELQ=/fit-in/200x150/filters:strip_icc()/pic8881170.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "AlexvW",
+            "postdate": "2025-05-15T08:19:10-05:00",
+            "body": "<b><u>Basegame and Landmarks</u></b><br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8886061\"><img src=\"https://cf.geekdo-images.com/1ZXX3v0pr2Pk_FkeVkmkPA__small/img/QU2b826KVvNn51_sB52Vf9-vTGY=/fit-in/200x150/filters:strip_icc()/pic8886061.jpg\" border=0></a></div><br/><div style=''><a href=\"https://boardgamegeek.com/image/8886062\"><img src=\"https://cf.geekdo-images.com/rzX7u40kL_vhuG-DLXCZig__small/img/a9ltFpot4LLxzz-aW4otTawhMwg=/fit-in/200x150/filters:strip_icc()/pic8886062.png\" border=0></a></div>"
+          },
+          {
+            "author": "Excal001",
+            "postdate": "2025-05-17T09:00:25-05:00",
+            "body": "Username: Excal001<br/>Challenge: Base<br/>Score: 96<div style=''><a href=\"https://boardgamegeek.com/image/8889517\"><img src=\"https://cf.geekdo-images.com/kWqgl8Szzr-_1GLiQk5_FA__small/img/zkrIC0ISdVeNe5zIy0WUolOZej8=/fit-in/200x150/filters:strip_icc()/pic8889517.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "mcmartian",
+            "postdate": "2025-05-18T18:46:30-05:00",
+            "body": "mcmartian<br/>base<br/>score 94<br/><div style=''><a href=\"https://boardgamegeek.com/image/8892120\"><img src=\"https://cf.geekdo-images.com/KgW8HtgNKANFswjVw4HuGQ__small/img/RZzR9E8t2-vYZBGfghk69oJEIlY=/fit-in/200x150/filters:strip_icc()/pic8892120.jpg\" border=0></a></div>"
+          }
+        ]
+      },
+      {
+        "title": "How do you score Salmon Gathering card?",
+        "url": "https://boardgamegeek.com/thread/3501855",
+        "postdate": "2025-04-24 17:29:56",
+        "posts": [
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T17:29:56-05:00",
+            "body": "In the example shown on the card is the player going to score 12 points (1+3+3+5)?<br/>And then in the example I have set up is the score: 5 (fox) + 5 (bear) + 5 (bear) + 3 hawk) + 5 (elk) = 23 points?<br/>It seems like using too many salmon becomes wasteful. The three salmon do not score any points?<br/><div style=''><a href=\"https://boardgamegeek.com/image/8847517\"><img src=\"https://cf.geekdo-images.com/mI7cDWySMEKGtOhalsaU1A__small/img/VhzbVOmK2M2jEEsxQpX_e7FAQ64=/fit-in/200x150/filters:strip_icc()/pic8847517.jpg\" border=0></a></div><div style=''><a href=\"https://boardgamegeek.com/image/8847519\"><img src=\"https://cf.geekdo-images.com/K0PHT_2YpHm_W2HTvSMtNw__small/img/jdn3UYDiIlT7IwE_zZG-PA31gUM=/fit-in/200x150/filters:strip_icc()/pic8847519.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "Ouduk",
+            "postdate": "2025-04-24T17:40:20-05:00",
+            "body": "You are correct for both. A longer than 3 salmon run just gives you more opportunities to have other adjacent animals."
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T17:50:12-05:00",
+            "body": "Great, thanks for the help!"
+          },
+          {
+            "author": "TK_422",
+            "postdate": "2025-04-24T18:49:53-05:00",
+            "body": "I have it at 18 pts.<br/>Score card has group size 3+.<br/>The 6 bears would be 1 group. "
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T18:58:13-05:00",
+            "body": "Yes, I see that now. I would have needed a gap between a group of 3. Thanks."
+          },
+          {
+            "author": "g_chahowskoi",
+            "postdate": "2025-05-09T05:44:29-05:00",
+            "body": "My interpretation is that the Salmon do not score, only the SIZE of each group that is adjacent. In the above case 14 (6 Bear + 3 Fox + 3 Elk + 2 Hawks). Maybe I'm wrong, but this is my understanding of that \"Gathering\" card."
+          },
+          {
+            "author": "CavemanLogic",
+            "postdate": "2025-05-11T07:17:44-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>g_chahowskoi wrote:</b></p></div><div class='quotebody'><i>My interpretation is that the Salmon do not score, only the SIZE of each group that is adjacent.</i></div></div></font><br/><br/>Yes, that's correct. The salmon themselves *don't* score. You only score the adjacent groups of other animals *surrounding* the salmon.<br/><br/><font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>g_chahowskoi wrote:</b></p></div><div class='quotebody'><i>In the above case 14 (6 Bear + 3 Fox + 3 Elk + 2 Hawks). Maybe I'm wrong, but this is my understanding of that \"Gathering\" card.</i></div></div></font><br/><br/>The example shown scores 18 points. The example shows a group of 2 Hawks, 3 Elk, 3 Foxes, and 6 Bears. According to the chart on the card, the Hawks will score 3 points for having a group size of \"2\", while the other three groups will score 5 points each for having a group size of \"3+\". Note that the group of 6 Bears falls into the category of \"group size of 3+ scores 5 Points\" so the Bears will only score 5 points even though there are 6 of them in the group.<br/><br/>As noted in a previous reply above, if the Bears had been separated into two different non-adjacent groups of 3 Bears each, then *both* of those groups would have scored 5 points each.<br/><br/>The correct answer is 18.<br/><br/>Cheers!"
+          }
+        ]
+      },
+      {
+        "title": "Elk Oriented Pairs do they all have to be oriented the same way?",
+        "url": "https://boardgamegeek.com/thread/3501849",
+        "postdate": "2025-04-24 17:10:54",
+        "posts": [
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T17:10:55-05:00",
+            "body": "Getting back into playing Cascadia and for this card, our group decided that if you went for the bottom horizontal orientation then all your elk had to be horizontal throughout the entire game. Is that correct? I'm starting to think that for an oriented pair (4 elk total) those have to be in the same orientation. But future pairs (4 more elk) could be diagonal. What's the right way to play this card?<br/><div style=''><a href=\"https://boardgamegeek.com/image/8847512\"><img src=\"https://cf.geekdo-images.com/2gEn6E3pkftgl18LyO7Law__small/img/kAftTk9YbLLqL8U-xxE0HCFV3CQ=/fit-in/200x150/filters:strip_icc()/pic8847512.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "giantmike",
+            "postdate": "2025-04-24T17:50:27-05:00",
+            "body": "All same orientation. Any pairs of elk not in that orientation would not score. So in your example you would only get 12 points each set, for 24.<br/><br/><a  href=\"https://boardgamegeek.com/thread/3035253/elk-kickstarter-promo-card\"   >Elk kickstarter promo card?</a>"
+          },
+          {
+            "author": "iklinck",
+            "postdate": "2025-04-24T17:51:16-05:00",
+            "body": "Is that a promo card? I don't have it in my base game or Landmarks.<br/><br/>However, I believe that each group of similar-oriented pairs of elk would score separately. So, if you had 2 right-angled, 2 left-angled, and 1 horizontal, that would score 12 + 12 + 5 = 29."
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T17:58:41-05:00",
+            "body": "It's from the Kickstarter Promo Cards mini expansion that has five wildlife cards one for each animal."
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T18:00:00-05:00",
+            "body": "Thanks for the help."
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-24T18:00:06-05:00",
+            "body": "Thanks!"
+          },
+          {
+            "author": "randyflynn",
+            "postdate": "2025-04-25T15:10:10-05:00",
+            "body": "Thanks for the question! You must choose a single orientation to score. Perhaps a more complete wording for the parentheses would be \"all scored pairs must share the same orientation\"."
+          },
+          {
+            "author": "hellodendy",
+            "postdate": "2025-04-25T16:48:01-05:00",
+            "body": "Thanks for clarifying, Randy. I love this game!"
+          }
+        ]
+      }
+    ],
+    "reason": "Cascadia近期上榜的主要原因可能是因為遊戲在玩家間的口碑迅速提升，許多討論串中提到其遊戲機制的平衡性與樂趣，顯示出遊戲的潛力。此外，玩家們在討論中也提到了一些新的挑戰模式，這可能吸引了新玩家的關注並促進了重玩率，進一步推動了其人氣。這些因素共同促成了Cascadia在近期的上榜。"
+  },
+  "199792": {
+    "name": "Everdell",
+    "threads": [
+      {
+        "title": "Oversized cards usage",
+        "url": "https://boardgamegeek.com/thread/3512141",
+        "postdate": "2025-05-14 18:19:15",
+        "posts": [
+          {
+            "author": "KaPuTT_ScHiNo",
+            "postdate": "2025-05-14T18:19:15-05:00",
+            "body": "I'm new to Everdell and I have the big box from the Kickstarter. However I'm setting up the base game to play it with my wife and I wanted to use the oversized cards if even possible to use them with the basic board. I couldn't figure out how to place the critter and construction cards onto the meadow. It doesn't look right if I just place them like the og cards 😅.<br/><br/>So is there also a bigger main board or any other way to use the oversized cards properly in the game? Or are they just collectables and \"nice to have\" goodies?"
+          },
+          {
+            "author": "StormCrow42",
+            "postdate": "2025-05-15T09:33:15-05:00",
+            "body": "They include replacement cards for the Haven and Journey spaces to be placed elsewhere and you overlap the meadow cards with those spaces on the main board.<br/><br/><a target='_blank' href=\"https://www.tabletoptycoon.com/cdn/shop/files/OC_Everdell_CE-Watermarked-1200DPI-02.jpg?v=1724941493&width=800\" rel=\"nofollow noreferrer noopener\">https://www.tabletoptycoon.com/cdn/shop/files/OC_Everdell_CE...</a>"
+          },
+          {
+            "author": "KaPuTT_ScHiNo",
+            "postdate": "2025-05-15T16:05:29-05:00",
+            "body": "Ohhh ok that makes sense thanks for the reply. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" />"
+          }
+        ]
+      },
+      {
+        "title": "Haven use",
+        "url": "https://boardgamegeek.com/thread/3508740",
+        "postdate": "2025-05-08 05:20:11",
+        "posts": [
+          {
+            "author": "Starney",
+            "postdate": "2025-05-08T05:20:12-05:00",
+            "body": "Hello,<br/><br/>Can I use the haven for example to discard 5 cards <br/>and only take 2 ressources?<br/>Or have it to fit exactly discard 4 cards and take 2 ressources? "
+          },
+          {
+            "author": "giantmike",
+            "postdate": "2025-05-08T05:30:14-05:00",
+            "body": "Yes, you can do that."
+          },
+          {
+            "author": "Baragos",
+            "postdate": "2025-05-08T16:54:56-05:00",
+            "body": "Yes, 5 is a subset of the set “Any”, so you can discard 5 cards. That would normally only be advisable if you need space to draw new cards, though."
+          },
+          {
+            "author": "sergiobajoarias",
+            "postdate": "2025-05-08T17:02:36-05:00",
+            "body": "I usually use this option to discard an expensive card and play it with the cemetery action (\"Draw four cards from the draw or discard pile, pick one to play for free and discard the rest\")"
+          },
+          {
+            "author": "Ronaldo",
+            "postdate": "2025-05-08T19:48:34-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>sergiobajoarias wrote:</b></p></div><div class='quotebody'><i>I usually use this option to discard an expensive card and play it with the cemetery action (\"Draw four cards from the draw or discard pile, pick one to play for free and discard the rest\")</i></div></div></font><br/><br/>That or The Journey.<br/>"
+          },
+          {
+            "author": "sergiobajoarias",
+            "postdate": "2025-05-08T23:59:39-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Ronaldo wrote:</b></p></div><div class='quotebody'><i><br/>That or The Journey.<br/></i></div></div></font><br/>That's a good point 🙂"
+          }
+        ]
+      },
+      {
+        "title": "Buying Meeple Stickers",
+        "url": "https://boardgamegeek.com/thread/3508160",
+        "postdate": "2025-05-06 22:13:22",
+        "posts": [
+          {
+            "author": "Pawpy",
+            "postdate": "2025-05-06T22:13:23-05:00",
+            "body": "Hello, if anyone would like to sell their meeple stickers I am interested. I only really need for the core game and spire crest, but if you have all the sheets unused then I'll just buy em all if it's easier"
+          },
+          {
+            "author": "aaronacox",
+            "postdate": "2025-05-07T06:55:59-05:00",
+            "body": "I will part with mine.  GM me."
+          }
+        ]
+      },
+      {
+        "title": "Husband and wife cards",
+        "url": "https://boardgamegeek.com/thread/3507311",
+        "postdate": "2025-05-05 07:22:50",
+        "posts": [
+          {
+            "author": "Peacecat181",
+            "postdate": "2025-05-05T07:22:50-05:00",
+            "body": "The effort I had to go into editing my cards to match the husband and wife cards....printing, cutting and clear contacting to place the words/icons on top...<br/>I hope one day they make a pack with all the mistwood farms, romantic cruise special event etc with reference to husband and wife, as well as blank husband and wife cards etc. <br/>I know they can be interchanged but much prefer the originals for many different reasons and want it to match/make it easier for new players etc.<br/>Would you pay for a promo pack dedicated to the husband and wife cards??? Like this post if you agree 👍 <div style=''><a href=\"https://boardgamegeek.com/image/8866507\"><img src=\"https://cf.geekdo-images.com/Yb7oB5CtcOywdiffpsI8Zg__small/img/-ib1vJEmXKy3YMsc8nUx3SPyJyg=/fit-in/200x150/filters:strip_icc()/pic8866507.jpg\" border=0></a></div><div style=''><a href=\"https://boardgamegeek.com/image/8866509\"><img src=\"https://cf.geekdo-images.com/XPfTmHd2LCQbW-vUTxEeTQ__small/img/7ZNV51Ob2KiqsNpA2xhMjaGv46s=/fit-in/200x150/filters:strip_icc()/pic8866509.jpg\" border=0></a></div><div style=''><a href=\"https://boardgamegeek.com/image/8866511\"><img src=\"https://cf.geekdo-images.com/SaZEIbaNUM_BXBBCqE6WPg__small/img/LB0q1NlKvjM98Jck-Ktc5kr64pc=/fit-in/200x150/filters:strip_icc()/pic8866511.jpg\" border=0></a></div>"
+          },
+          {
+            "author": "Peacecat181",
+            "postdate": "2025-05-05T07:26:30-05:00",
+            "body": "Also how cute would it be to get blank kids cards to add your own kids names on as part of the promo pack?!! That would bring so much joy to kids who play with their families "
+          },
+          {
+            "author": "baurfamily",
+            "postdate": "2025-05-05T13:45:01-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Peacecat181 wrote:</b></p></div><div class='quotebody'><i>Also how cute would it be to get blank kids cards to add your own kids names on as part of the promo pack?!! That would bring so much joy to kids who play with their families </i></div></div></font><br/><br/>The Everdell for Everyone pack does have blank cards (12 of each), which you could write you own names and/or kids’ names in. "
+          },
+          {
+            "author": "Peacecat181",
+            "postdate": "2025-05-05T14:43:39-05:00",
+            "body": "Thanks but prefer the originals 😀"
+          },
+          {
+            "author": "Katzenkraft",
+            "postdate": "2025-05-05T15:51:43-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Peacecat181 wrote:</b></p></div><div class='quotebody'><i>Thanks but prefer the originals 😀</i></div></div></font><br/>Same here 👍"
+          },
+          {
+            "author": "Stealthmutant",
+            "postdate": "2025-05-08T07:36:19-05:00",
+            "body": "We play with hunter and gatherer cards but we play with extra extra, legends, Bellfaire and player powers every game.<br/>We have the complete collection which has both kinds of cards included (original husband and wife and some that you can put names on the cards)…..we just used the hunter gatherer and thought they looked awesome like the rest of the game😀.<br/>Cheers!"
+          }
+        ]
+      },
+      {
+        "title": "Can I play more than one card in a single action?",
+        "url": "https://boardgamegeek.com/thread/3506475",
+        "postdate": "2025-05-03 14:34:16",
+        "posts": [
+          {
+            "author": "PlayerDimg71",
+            "postdate": "2025-05-03T14:34:16-05:00",
+            "body": "Hello.<br/>I'm a new Everdell player and I want to ask you if I can play more than one card in a single action. Even if I have the necessary resources. I’m not talking about the free construction of critters."
+          },
+          {
+            "author": "vilnai",
+            "postdate": "2025-05-03T14:47:41-05:00",
+            "body": "No. Generally speaking, your turn is either placing a worker or playing a card. Even if it's playing a critter for free, you can't also play another card that turn by paying resources."
+          },
+          {
+            "author": "odie73",
+            "postdate": "2025-05-03T14:51:04-05:00",
+            "body": "In general? No. See pages 7 and 9 of the base game rulebook:<br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>Page 7: Play proceeds clockwise. You will take turns performing one of the following actions. These actions may be performed in any order, but only one action may be taken per turn.<br/>Place a Worker<br/>or Play a Card<br/>or Prepare for Season.<br/><br/>Page 9: You may play <b>one</b> card.</i></div></div></font><br/>The \"one\" is specifically bolded in the rules. "
+          },
+          {
+            "author": "masaokano",
+            "postdate": "2025-05-04T18:09:14-05:00",
+            "body": "I believe the only exceptions in the base game would be if you:<br/><br/>1. Play a Postal Pigeon, which allows you to play a card as the card ability<br/>2. You play a Ranger and move it to a location that allows you to play a card (draw two meadow cards and play 1 for -1 any resource)<br/><br/>But again, this isn’t taking a second “play a card” action, you are simply fulfilling the card ability of a played card. "
+          },
+          {
+            "author": "Stealthmutant",
+            "postdate": "2025-05-08T07:50:51-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>masaokano wrote:</b></p></div><div class='quotebody'><i>I believe the only exceptions in the base game would be if you:<br/><br/>1. Play a Postal Pigeon, which allows you to play a card as the card ability<br/>2. You play a Ranger and move it to a location that allows you to play a card (draw two meadow cards and play 1 for -1 any resource)<br/><br/>But again, this isn’t taking a second “play a card” action, you are simply fulfilling the card ability of a played card. </i></div></div></font><br/>There are many more examples, but you can only take<br/>One action regardless, but in that action, you could play another card, and then possibility play another card.  But it starts with one action of playing a card and when that action concludes your turn is over."
+          }
+        ]
+      }
+    ],
+    "reason": "Everdell近期上榜的主要原因可能是因為新版本的推出，尤其是Kickstarter的巨大盒裝版本，吸引了新玩家的關注與討論。討論串中提到的超大卡片使用、替換卡片的需求，以及玩家對於配件（如meeple貼紙）的興趣，都顯示出遊戲在社群中的活躍度和新鮮感。此外，玩家對於遊戲機制的疑問與互動也反映出新玩家的加入，進一步推動了該遊戲的熱度。"
+  },
+  "385761": {
+    "name": "Faraway",
+    "threads": [
+      {
+        "title": "Wooden Meeples",
+        "url": "https://boardgamegeek.com/thread/3510437",
+        "postdate": "2025-05-11 12:18:00",
+        "posts": [
+          {
+            "author": "whist75",
+            "postdate": "2025-05-11T12:18:00-05:00",
+            "body": "Just wanted to let the community know that the promo wood meeples are back in stock on the Pandasauris website. They probably won’t last long!"
+          },
+          {
+            "author": "inm8",
+            "postdate": "2025-05-11T12:20:52-05:00",
+            "body": "What are they for? "
+          },
+          {
+            "author": "BlackSheep",
+            "postdate": "2025-05-11T12:33:07-05:00",
+            "body": "No game function, purely aesthetic. You can move them along your territory cards as you place them, and back again as you return."
+          }
+        ]
+      },
+      {
+        "title": "Win rate with expansion",
+        "url": "https://boardgamegeek.com/thread/3507755",
+        "postdate": "2025-05-06 02:19:18",
+        "posts": [
+          {
+            "author": "barbi",
+            "postdate": "2025-05-06T02:19:18-05:00",
+            "body": "We played 7 times (2 to 4 players) this weekend with the expansion and not managed to win once while I was doing ok with the base game!<br/>The rewards are bigger but I really have tactical difficulties to allow myself to lower the card to ensure I pick the resource I need to score big, and when I do, I've lost too much points.<br/>I will find the balance, I will !!!<br/><br/>On another note, my wife manage to score 124 in a 3 player game ...<br/><br/>Is it only me?"
+          },
+          {
+            "author": "qwertymartin",
+            "postdate": "2025-05-06T08:34:57-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>barbi wrote:</b></p></div><div class='quotebody'><i>We played 7 times (2 to 4 players) this weekend with the expansion and not managed to win once while I was doing ok with the base game!<br/>The rewards are bigger but I really have tactical difficulties to allow myself to lower the card to ensure I pick the resource I need to score big, and when I do, I've lost too much points.<br/>I will find the balance, I will !!!<br/><br/>On another note, my wife manage to score 124 in a 3 player game ...<br/><br/>Is it only me?</i></div></div></font><br/>No, everyone is winning less with the expansion <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/wink.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-06T15:13:48-05:00",
+            "body": "Yeah, I'm confused. This is a competitive game. Someone has to win (unless everyone ties)."
+          }
+        ]
+      },
+      {
+        "title": "Kekseliäs korttipeli - a review in Finnish",
+        "url": "https://boardgamegeek.com/thread/3505653",
+        "postdate": "2025-05-02 02:45:12",
+        "posts": [
+          {
+            "author": "KeltainenNappula",
+            "postdate": "2025-05-02T02:45:13-05:00",
+            "body": "This review was first published on the Finnish bordgame site, Lautapeliopas, in May 2025. You can find the original post <a href=\"https://www.lautapeliopas.fi/peliarvostelut/faraway/\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">here</a>. I'm planning on translating my review to English but until I've done that, please enjoy this gibberish that is known as the Finnish language! ...or just use Google translator.<br/><br/>******<br/><br/><b>Faraway</b><br/><br/><i>Pelaajat tutkivat mystistä Alulan maanosaa, selvittävät sen salaisuuksia sekä keräävät mainetta tässä näpsäkässä ja kekseliäässä korttipelissä.</i><br/><br/>Sumujen meren takaa löytyy mystinen Alulan maanosa, jota 2-6 pelaajaa lähtee tutkimaan <i>Farawayssa</i>. Pelin sääntövihkossa on avattu pelin maailman taustatarinaa useamman sivun verran, vaan eipä pelaajien tarvitse sillä juuri päätään vaivata. <i>Farawayssa</i> nimittäin keskiössä ovat värikkäät, neliskanttiset aluekortit, niiden värit ja niissä näkyvät symbolit sekä järjestys, jossa pelaaja pelaa kortteja omalle tutkimusmatkalleen. Taustatarinalla tässä ei ole pelillisesti juuri ollenkaan merkitystä.<br/><br/>Pelin suunnittelijoiden <b><a  href=\"https://boardgamegeek.com/boardgamedesigner/113774/johannes-goupy\"   >Johannes Goupyn</a></b> ja <b><a  href=\"https://boardgamegeek.com/boardgamedesigner/60151/corentin-lebrat\"   >Corentin Lebratin</a></b> aiemmat tuotokset eivät ole minulle erityisen tuttuja, poislukien <i>Lebratin</i> osasuunnittelema <a  href=\"https://boardgamegeek.com/boardgame/264055/draftosaurus\"   >Draftosaurus</a>, joten <i>Faraway</i> on siinä mielessä kiehtova peli, että minulla ei ole verrokkikokemusta muista sen suunnittelijoiden peleistä. Joka tapauksessa <i>Faraway</i> osoittautuu omanlaisekseen moninpelipasianssiksi, jossa pelaajien välinen vuorovaikutus on hyvin vähäistä.<br/><br/><b>Mars matkaan!</b><br/><br/><i>Farawayssa</i> pelaajat pelaavat eteensä pöydälle kahdeksan korttia vasemmalta oikealta: nämä kortit kuvaavat kunkin pelaajan tutkimusmatkaa Alulan mantereella. Pelin alussa kukin pelaaja saa kolme korttia käteensä ja pelialueelle käännetään pakasta pelaajien lukumäärää vastaava määrä aluekortteja plus yksi.<br/><br/>Kortit on täytetty erilaisilla symboleilla, joilla on oma merkityksensä. Korteista löytyy ainakin väri (ja kuvio helpottamaan värisokeita pelaajia) ja jokin numero vasemmasta yläkulmasta. Värillä on lähinnä merkitystä joidenkin korttien pisteytykseen, kun taas numero puolestaan kuvastaa tarinallisesti tutkimusmatkan kestoa, mutta pelillisesti sillä on osittain vaikutusta vuorojärjestykseen sekä mahdollisten pyhäkköjen löytymiseen. Näistä kerron tarkemmin myöhemmin tässä arvostelussa. Lisäksi korteista voi löytyä erilaisia resurssisymboleita (kivet, kimairat ja ohdakkeet), vihjemerkkejä (karttakuvat) sekä pisteytyksiä.<br/><br/>Kullakin kierroksella pelaajat valitsevat käsikorteistaan yhden aluekortin ja pelaavat sen eteensä kuvapuoli alaspäin. Kun kaikki pelaajat ovat valinneet korttinsa, ne käännetään kuvapuoli ylöspäin, minkä jälkeen kierroksen pieninumeroisimman kortin pelannut pelaaja valitsee yhden pelialueen keskellä tarjolla olevista aluekorteista käteensä ja sitten toisiksi pienimmän kortin pelannut pelaaja ja niin edelleen. Kunhan kaikki pelaajat ovat valinneet uuden kortin käteensä, ylimääräinen kortti poistetaan pelistä ja pakasta käännetään uudet kortit pelialueen keskelle. Sitten pelataan uusi kierros samalla tavalla ja tätä jatketaan, kunnes pelaajat ovat pelanneet eteensä kahdeksan korttia.<br/><br/><b>Oikotie, oikotie, se uuteen pyhäkköön vie</b><br/><br/>Toisesta kierroksesta alkaen peliin tulee mukaan pieni lisä: pyhäköt. Aina kun pelaaja pelaa tutkimusmatkalleen aluekortin, jonka numero on isompi kuin hänen edellisessä kortissaan, pelaaja löytää pyhäkön eli nostaa erillisestä pyhäkkökorttipakasta kortin ja lisää sen oman tutkimusmatkansa yläpuolelle. Pyhäkkökortit ovat eräänlaisia ekstra- tai lisäkortteja, jotka voivat antaa pelaajalle lisäpisteytyksiä ja -resursseja tai muita hyötyjä.  <br/><br/>Pyhäkkökortit linkittyvät korttien numeroiden lisäksi niissä näkyviin vihjeisiin: nostaessaan pyhäkkökortteja pelaaja saa nostaa pyhäkkökorttipakasta yhden kortin sekä lisäksi yhden pyhäkkökortin jokaista tutkimusmatkallaan näkyvää vihjettä kohden. Nostetuista korteista pelaaja saa lisätä kuitenkin vain yhden pyhäkön tutkimusmatkansa yläpuolelle, mutta mitä enemmän pelaajalla on valinnanvaraa, sitä todennäköisimmin hän saa pyhäkön, joka hyödyttää häntä eniten.<br/><br/><b>Sinne ja takaisin - pisteillä tai ilman</b><br/><br/>Jos <i>Farawayssa</i> on jo tähän mennessä riittänyt pohdittavaa, niin erityisen maukkaan lisäsäväyksen antaa pelin pisteytys, jossa piileekin <i>Farawayn </i>kiehtovuus. Pelin lopussa pelaaja “palaa” rakentamaansa reittiä takaisin ja korteista saatavat pisteet lasketaan oikealta vasemmalle eli vastakkaisessa järjestyksessä kuin missä kortit pelattiin. Jotta paluumatka(kaan) ei olisi liian yksinkertainen, sisältyy siihenkin lisämauste: ennen paluumatkaa pelaajat kääntävät pelaamansa aluekortit ylösalaisin ja paluumatkalla kortit paljastetaan yksi kerrallaan oikealta vasemmalle. <br/><br/>Pelaaja saa pisteitä aluekorteista sen mukaan, miten on onnistunut täyttämään korttien ehdot niillä korteilla, jotka ovat näkyvillä korttia pisteyttäessä. Rakentaessaan tutkimusmatkaansa pelaajan pitää siis miettiä aluekorttiensa järjestystä päinvastaisessa järjestyksessä kuin missä pelaa ne maksimoidakseen pisteensä! Rakennusvaiheeseen sisältyy aimo annos pähkäiltävää myös sen puolesta, että pelaajien keräämät pyhäköt jäävät näkyville koko paluumatkan ajaksi - niitä ei käännetä ympäri missään vaiheessa. Siten <i>Faraway</i> tarjoilee oikein maukkaan pohdintahetken, kun rakennusvaiheessa pitää pohtia, pyrkiikö maksimoimaan pyhäkkökorttien määrään (ja samalla mahdollisesti riskeeraamaan tilanteensa, jos pyhäkkökorteissa ei olekaan toivottuja merkkejä) vai onko parempi pelata jokin “varmempi” aluekortti omalle tutkimusmatkalle.<br/><br/><i>Faraway</i> ei kuitenkaan muutu missään vaiheessa liian monimutkaiseksi tai haastavaksi - tähän vaikuttanee tiukaksi rajattu määrä käsikortteja, jolloin vaihtoehtoja ei ole tuhottomasti. Säännöt ovat myös loppujen lopuksi melko simppelit ja suoraviivaiset, ja pelin haastavuus tuleekin ennemmin siitä, että pelaajien pitää käytännössä nyrjäyttää aivonsa oikeaan asentoon. Ainakin minulla pari ensimmäistä pelikertaa meni täysin penkin alle, kun aivoni kieltäytyivät tajuamasta korttien pisteytystä päinvastaisessa järjestyksessä.<br/><br/><b>Näkymät ovat kauniit ja matkakin on näyttävä</b><br/><br/>Kuten aivan arvostelun alussa mainitsin, <i>Faraway</i> on käytännössä moninpelipasianssi: pelaajien välillä ei juurikaan ole vuorovaikutusta, eivätkä pelaajat esimerkiksi kilpaile toisiaan vastaan mistään enemmistöstä. Pelaajien välinen vuorovaikutus syntyy lähinnä välillisesti siitä, jos jokin toinen pelaaja sattuu valitsemaan toisen pelaajan haluaman kortin, jossa olisi tämän tarvitsema resurssi. Tietoinen kiusanteko on kuitenkin <i>Farawayssa</i> hyvin harvinaista, ja siten <i>Faraway</i> on melko harmiton peli. <br/><br/>Henkilökohtaisesti nautin vuorovaikutuksellisemmista peleistä enemmän, mutta <i>Farawayn</i> kaltaisessa pelissä vuorovaikutusta ei lopulta aivan mahdottomasti edes kaipaa. Pelissä on mukavasti pohdittavaa ja pelin luonteeseen sopii hyvin rauha rakentaa omaa tutkimusmatkaansa ilman, että muut pelaajat parhaansa mukaan koittaisivat häiritä sitä. <br/><br/>Korttituurilla on eittämättä oma vaikutuksena pelissä menestymiseen, sillä joskus sopivia tai “oikeita” kortteja ei vain ilmesty, jolloin esimerkiksi tiettyjä resursseja ei vain meinaa saada riittävästi korttien ehtojen täyttymiseksi. Siten pelaajien pistetulokset voivat vaihdella paljonkin, myös samalla pelaajalla eri pelikertojen välillä. <i>Farawayssa</i> se ei kuitenkaan ole ongelma, sillä sen pelaa varsin nopeasti: pelikerrat ovat kestäneet pääsääntöisesti 20-30 minuuttia pelaajamäärästä riippumatta, joten ajallisesti ei tule suurta menetystä, vaikka yksi pelikerta menisikin penkin alle.<br/><br/><i>Farawayn</i> kuvitus on kaunista ja kortteja katsellessa olo on kuin pienenä karkkikaupassa. Korteissa on kuvattuna Alulan hahmoja ja paikkoja, mikä tavallaan tukee teemaa, mutta ei tätä silti tule teeman vuoksi pelattua. Teemaa nyt noin muutenkaan ei juuri tule mietittyä pelin aikana, vaan huomio keskittyy lähinnä korttien numeroihin ja symboleihin. Tästä huolimatta pöydälle levitettyä Farawayta on mukavaa katsella, mikä varmasti vetoaa moneen muuhunkin kuin ainoastaan allekirjoittaneeseen.<br/><br/><b>Maanalaiset kansat: lisäosalla lisää kortteja</b><br/><br/><i>Farawaylle</i> on julkaistu jo myös lisäosa, <b><a  href=\"https://boardgamegeek.com/boardgameexpansion/425029/faraway-people-from-below\"   >People From Below</a></b>, joka tuo peliin lisää kortteja. Kokonaisuutena lisäosa on varsin pieni, sillä siinä tulee vain yhdeksän uutta aluekorttia ja kahdeksan uutta pyhäkkökorttia. Uudet kortit mahdollistavat <i>Farawayn</i> pelaamisen jopa seitsemällä pelaajalla sekä esittelevät muutamia uusia pisteytyksiä, kun peliin lisätään harmaat aluekortit.<br/><br/>Omistan myös lisäosan, mutta sen kanssa en ole ehtinyt peliä vielä pelaamaan. Siten en pysty tarkemmin arvioimaan lisäosan merkityksellisyyttä, mutta näin etukäteistuntumalla sanoisin, että lisäpisteytykset ja uudet kortit noin ylipäätänsä ovat varmasti hyvä lisä <i>Farawayhin</i>.<br/>"
+          }
+        ]
+      },
+      {
+        "title": "Review: Still fun after ten plays? My pros and cons",
+        "url": "https://boardgamegeek.com/thread/3504250",
+        "postdate": "2025-04-29 09:27:08",
+        "posts": [
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-04-29T09:27:08-05:00",
+            "body": "Even though long extensive reviews seem to be the most popular reviews on BGG, I myself just don't have the time or the patience to read those.<br/>I prefer quick overviews where I can get some insights into why this game may or may not be attractive to me.<br/>My reviews are targeted at a similar audience, and just consist of my pros and cons coming from:<br/>1) First impressions (before playing my first game)<br/>2) Impressions after the first game<br/>3) Current feelings (after at least 10 plays)<br/><br/><b>First impressions:</b><br/>+ This has been on BGG’s list of most played games for quite a while (11 months and counting, currently still in the top 10), any game that is that popular amongst BGG members has my attention<br/>+ One of my fellow guild members brought this to our first meet-up with members from our GCC Guild, I was more than happy to give this a try<br/>- There doesn’t seem to be much of a theme in this one – I do prefer games with a theme <br/>+/- The artwork is simple but colourful and effective<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8855513\"><img src=\"https://cf.geekdo-images.com/2EELnYon9XpNsSied59dkw__small/img/ikv7NG074kAsVDtOtWYG9a9UhT8=/fit-in/200x150/filters:strip_icc()/pic8855513.jpg\" border=0></a></div><br/><b>Impressions after the first game:</b><br/>+ The main mechanism is an interesting new find; play cards with scoring conditions in anticipation of the other cards you will be playing, this requires a combination of some realistic planning and a bit of push your luck (eg play a card that will score a number points if there are three thistles on the rest of the cards you will play, without knowing what cards will come up, but taking into account the odds of these showing up)<br/>+/- I like drafting, but am not big fan of set collection, so a bit of a mixed bag of mechanisms for my taste<br/>+ 15-30 minutes (as listed on the box) really means 15-30 minutes in this case, which makes it a good candidate for a filler or for a short game to end a gaming evening<br/><br/><b>Current feelings (10 plays into it):</b><br/>- There’s not much depth in this, after a couple of plays the basic approach is pretty clear and it becomes mostly a game of luck (with the decision space mainly being how hard you want to push your luck)<br/>+ This plays fine at all player counts, with quick snappy turns that prevent any significant down time. With more players it does feel like there’s a bit less luck, as there are more cards to choose from every turn, especially if you get to play early in the round, so a higher chance of getting what you are planning/hoping for.<br/>+ The tension that lies in hoping to draw what you need in those last cards is always fun<br/>+ As I was originally taught this game, I only saw the rulebook after I had already played it several times. I was positively surprised to find a quite long description of the theme, regarding the lands you walk through, the inhabitants and the wildlife. The theme doesn’t really shine through, I’m sorry to say, but I do appreciate the effort that was put into creating a bit of theme for the game. <br/><br/><b>End conclusion (well, for now):</b><br/>I enjoyed my plays of this, and I’ll happily play this when somebody suggests it, but I don’t feel a need to own this myself. It’s just not deep enough for a thinky game and not fun enough for a party game imho to beat some of the better games in my collection that this would be fighting with for table time.<br/><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_white.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_white.gif\" alt=\"\" border=\"0\" /><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_white.gif\" alt=\"\" border=\"0\" /><br/><br/><br/><br/><font color='#848484'><i>If you'd like to read more of my reviews, check out <a  href=\"https://boardgamegeek.com/geeklist/227867/still-fun-after-ten-plays-all-reviews\"   >Still fun after ten plays? - All reviews</a></i></font>"
+          },
+          {
+            "author": "astroglide",
+            "postdate": "2025-04-29T12:32:50-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Olafslomp wrote:</b></p></div><div class='quotebody'><i>There’s not much depth in this, after a couple of plays the basic approach is pretty clear and it becomes mostly a game of luck</i></div></div></font><br/>Try testing that feeling on BGA arena ranked play?"
+          },
+          {
+            "author": "AAbouzeid",
+            "postdate": "2025-04-29T13:47:13-05:00",
+            "body": "You had a GCC meetup? That's awesome 😎 <br/>I live to far away to be able to go to events like that but I'd love to meet IRL life some of the folks I've met on the GCC guild and the WHCBP Guild. <br/>I love Faraway. I think we got 10 plays within our first month of opening it. I learnt it originally on BGA. I agree about the theme but the art here, for me, really makes up for it. "
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-04-29T13:50:04-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>AAbouzeid wrote:</b></p></div><div class='quotebody'><i>You had a GCC meetup? That's awesome </i></div></div></font><br/><br/>It was! About a dozen people from Belgium and The Netherlands had a games day on Feb 1st. Loads of fun!<br/>Egypt is a bit of a drive <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/wink.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "gamesbook",
+            "postdate": "2025-05-01T06:17:08-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>AAbouzeid wrote:</b></p></div><div class='quotebody'><i> I agree about the theme but the art here, for me, really makes up for it. </i></div></div></font><br/>I think that for the OP to dismiss this game's artwork as \"simple\" is to really do it a disservice.  I do appreciate that art is 'in the eye of the beholder' but its not arguable that a significant effort went into the design and integration of the artwork and graphic components into the game. It also strikes me as being really original i.e. not just a rehash of common fantasy or even 'ancient civilisation' styles.  The designer diary - <a target='_blank' href=\"https://boardgamegeek.com/blog/1/blogpost/169018/artist-diary-faraway\" rel=\"nofollow noreferrer noopener\">https://boardgamegeek.com/blog/1/blogpost/169018/artist-diar...</a> - is well worth a read!<br/><br/><b>Disclaimer: </b>as someone who grew up playing boardgames in the 70's and 80's I am continuously amazed and appreciative of how much more of a presence of excellent art and graphic design there is in today's games.  Maybe I am not just cynical or critical enough..."
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-01T06:39:33-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>gamesbook wrote:</b></p></div><div class='quotebody'><i><br/>I think that for the OP to dismiss this game's artwork as \"simple\" is to really do it a disservice.  I do appreciate that art is 'in the eye of the beholder' but its not arguable that a significant effort went into the design and integration of the artwork and graphic components into the game. It also strikes me as being really original i.e. not just a rehash of common fantasy or even 'ancient civilisation' styles.  The designer diary - <a target='_blank' href=\"https://boardgamegeek.com/blog/1/blogpost/169018/artist-diary-faraway\" rel=\"nofollow noreferrer noopener\">https://boardgamegeek.com/blog/1/blogpost/169018/artist-diar...</a> - is well worth a read!...</i></div></div></font><br/><br/>Hmm... fair point. Maybe \"simple\" is not the right word. I struggle to find a better wording though... <br/>\"A bit too cartoony for my taste\" maybe?<br/>But I included a picture, which does more than trying to describe it I suppose."
+          },
+          {
+            "author": "nponcian",
+            "postdate": "2025-05-01T08:26:58-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>astroglide wrote:</b></p></div><div class='quotebody'><i><br/><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>Olaf Slomp @Olafslomp wrote:</b></p></div><div class='quotebody'><i><br/>There’s not much depth in this, after a couple of plays the basic approach is pretty clear and it becomes mostly a game of luck<br/></i></div></div></font><br/>Try testing that feeling on BGA arena ranked play?<br/></i></div></div></font><br/><br/>Exactly! You definitely should first try BGA arena ranked play... That way, with players who knows the \"basic approach\", you'd prove even further that the game is indeed max 20% strategy and 80% luck 😉 <br/><br/>Once you know that \"basic approach\", it's just a matter of who has a deeper connection with their god, so my advice is start praying before the game 🙂<br/><br/>I love this game by the way."
+          },
+          {
+            "author": "1qwerty",
+            "postdate": "2025-05-01T13:17:23-05:00",
+            "body": "I appreciate good graphic design. The graphic design in the game is great. The art obviously had a lot of thought put into it."
+          },
+          {
+            "author": "gamesbook",
+            "postdate": "2025-05-02T06:46:52-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Olafslomp wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>gamesbook wrote:</b></p></div><div class='quotebody'><i><br/>I think that for the OP to dismiss this game's artwork as \"simple\" is to really do it a disservice.  I do appreciate that art is 'in the eye of the beholder' but its not arguable that a significant effort went into the design and integration of the artwork and graphic components into the game. It also strikes me as being really original i.e. not just a rehash of common fantasy or even 'ancient civilisation' styles.  The designer diary - <a target='_blank' href=\"https://boardgamegeek.com/blog/1/blogpost/169018/artist-diary-faraway\" rel=\"nofollow noreferrer noopener\">https://boardgamegeek.com/blog/1/blogpost/169018/artist-diar...</a> - is well worth a read!...</i></div></div></font><br/><br/>Hmm... fair point. Maybe \"simple\" is not the right word. I struggle to find a better wording though... <br/>\"A bit too cartoony for my taste\" maybe?<br/>But I included a picture, which does more than trying to describe it I suppose.</i></div></div></font><br/>Hmm. I also disagree that is \"cartoony\".  <br/><br/>Its an imaginary world and I think the word that best fits might be \"comic-book\" like; which is not really praise or criticism as there is both bad and good comic-book art. I happen to think its good and well thought out ... but that is just my opinion.<br/><br/>\"Cartoony\" to me would something more like this:<br/><div style=''><a href=\"https://boardgamegeek.com/image/7672972\"><img src=\"https://cf.geekdo-images.com/BhIk_T-MNI_s9xCbxYXq9w__small/img/EaRhkka3P5sgZnQ9cfgvxXijZy4=/fit-in/200x150/filters:strip_icc()/pic7672972.jpg\" border=0></a></div><br/>Its more \"fun\", light-hearted and \"inspired by\" the source material (in this case, the Ancient Egypt culture) rather than trying to emulate it.<br/>"
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-02T07:34:08-05:00",
+            "body": "OK, I have no idea what the difference between \"cartoony\" and \"comic-book like\" is... to me those things are the same, but like I said, I included a picture, so people can see what the art is like, and decide themselves whether they like it or not.<br/>To me it's OK but not great, but can't argue taste."
+          },
+          {
+            "author": "Bigjoeyd",
+            "postdate": "2025-05-02T11:43:35-05:00",
+            "body": "This is by far my most played game. I think i just passed 100 plays the other day. I agree that, ultimately, it comes down to luck, but the push your luck aspects of the game are sooo addicting. There is still some strategy in knowing what cards exist in the deck and making sure what you're looking for hasn't already been snapped up."
+          },
+          {
+            "author": "gamesbook",
+            "postdate": "2025-05-03T04:39:39-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Olafslomp wrote:</b></p></div><div class='quotebody'><i>OK, I have no idea what the difference between \"cartoony\" and \"comic-book like\" is... to me those things are the same, but like I said, I included a picture, so people can see what the art is like, and decide themselves whether they like it or not..</i></div></div></font><br/>OK, I also tried to show an example so that you can contrast the two styles - if those look the same to you, then I can't think of another way to explain it.  To me, the amount of effort and care in the design of Faraway is clearly visible.  I appreciate you may not like the end result, but it cannot be said to be \"simple\" (in the way that this example I have shown is).<br/><br/><br/>"
+          },
+          {
+            "author": "GreenRock",
+            "postdate": "2025-05-05T19:03:44-05:00",
+            "body": "Saying this game has no depth and is luck based....is something. Highly disagree. The depth of this game became apparent to me only after about 30 games (which doesnt take long thb). There is way more going on with Faraway than you realize.  "
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-05T22:49:18-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>GreenRock wrote:</b></p></div><div class='quotebody'><i>Saying this game has no depth and is luck based....is something. Highly disagree. The depth of this game became apparent to me only after about 30 games (which doesnt take long thb). There is way more going on with Faraway than you realize.  </i></div></div></font><br/><br/>There’s a difference between no depth and not much depth.<br/>And with a 1.89 average weight the average BGG person seems to agree with me, but hey, YMMV, always.<br/>"
+          },
+          {
+            "author": "Bigjoeyd",
+            "postdate": "2025-05-06T19:44:34-05:00",
+            "body": "I don't think weight is a good proxy for depth at low weights. A very simple game could be deep or shallow. That said, I agree that the game isn't super deep."
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-06T21:29:40-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Bigjoeyd wrote:</b></p></div><div class='quotebody'><i>I don't think weight is a good proxy for depth at low weights. A very simple game could be deep or shallow. That said, I agree that the game isn't super deep.</i></div></div></font><br/><br/>The whole idea of the weight rating is that it’s an indication for the combination of depth and complexity.<br/>Eg Go is a very “simple” game when it comes to the amount of rules, but (rightfully so) has a weight rating of almost 4."
+          },
+          {
+            "author": "astroglide",
+            "postdate": "2025-05-06T21:35:42-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Olafslomp wrote:</b></p></div><div class='quotebody'><i>Eg Go is a very “simple” game when it comes to the amount of rules, but (rightfully so) has a weight rating of almost 4.</i></div></div></font><br/>Yet <a  href=\"https://boardgamegeek.com/boardgame/1115/poker\"   >Poker</a> is somehow only a 2.43. And the <a href=\"https://boardgamegeek.com/wiki/page/Weight\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">BGG definition of weight</a> leads with<br/><br/><i>\"Weight\" isn't clearly defined. (For a while game pages described it as a \"complexity rating\" with a brief mouseover explanation \"Community rating for how difficult a game is to understand. Lower rating (lighter weight) means easier.\")...</i><br/><br/>Perhaps best to not rely on it to prove or disprove very much."
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-06T21:52:03-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>astroglide wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>Olafslomp wrote:</b></p></div><div class='quotebody'><i>Eg Go is a very “simple” game when it comes to the amount of rules, but (rightfully so) has a weight rating of almost 4.</i></div></div></font><br/>Yet <a  href=\"https://boardgamegeek.com/boardgame/1115/poker\"   >Poker</a> is somehow only a 2.43. And the <a href=\"https://boardgamegeek.com/wiki/page/Weight\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">BGG definition of weight</a> leads with<br/><br/><i>\"Weight\" isn't clearly defined. (For a while game pages described it as a \"complexity rating\" with a brief mouseover explanation \"Community rating for how difficult a game is to understand. Lower rating (lighter weight) means easier.\")...</i><br/><br/>Perhaps best to not rely on it to prove or disprove very much.</i></div></div></font><br/><br/>Poker is an interesting example. Purely based on complexity and depth, I think 2.5-ish sounds right to me.<br/>But this does not really take into account the whole social interaction part, which is hard to include in the weight.<br/>But it’s always possible to find some exceptions to try to disprove a general rule.<br/><br/>Just because BGG doesn’t have a proper definition doesn’t mean that Weight is not well defined. There are plenty of places where Weight is well described, here for instance: <a target='_blank' href=\"https://chitsandgiggles.games/understanding-board-game-weights\" rel=\"nofollow noreferrer noopener\">https://chitsandgiggles.games/understanding-board-game-weigh...</a><br/>And in general, my experience is that the voice of the masses work pretty well on BGG, in that the average weight rating tends to give a pretty a good indication of what to expect. (Of course this does not work with games that only have received a small number of weight votes), while also showing that individual opinions will vary. <br/>What I’m saying is that my personal opinion - or that of the two people arguing that this game is much deeper, or of the couple of people that have commented that they agree with me - probably bears less weight than that of the BGG masses. In general, they give a pretty decent indication of weight via the BGG weight rating.<br/>But sure, if you don’t trust the BGG community to give you a proper indication of weight, then the weight rating becomes useless and takes away the one semi-neutral “fact” to use in a discussion between two people over whether a game is deep or not.<br/>Than we can only settle on agreeing to disagree."
+          },
+          {
+            "author": "BlackSheep",
+            "postdate": "2025-05-07T03:21:58-05:00",
+            "body": "The problem is that weight is a single number trying to represent two things which aren't necessarily connected - depth of strategy, and complexity of rules. Most people would say Hive is a deeper game than Arkham Horror, but has a much lower weight (2.31 vs 3.59) because of rules complexity. Heck, Betrayal at the House on the Hill has a higher weight than Hive, and that's purely a game of rolling dice and pulling cards and seeing what happens.<br/><br/>There's been some interesting analysis and discussion about separating out the two axes over the years. For example:<br/><a target='_blank' href=\"https://boardgamegeek.com/geeklist/200613/weight-depth-vs-complexity-results-and-analysis\" rel=\"nofollow noreferrer noopener\">https://boardgamegeek.com/geeklist/200613/weight-depth-vs-co...</a><br/><a target='_blank' href=\"https://boardgamegeek.com/geeklist/354554/rules-complexity-and-strategic-complexity\" rel=\"nofollow noreferrer noopener\">https://boardgamegeek.com/geeklist/354554/rules-complexity-a...</a>"
+          },
+          {
+            "author": "TheTroublewithForest",
+            "postdate": "2025-05-07T04:11:21-05:00",
+            "body": "A games weight has little to do with strategic depth. "
+          },
+          {
+            "author": "Olafslomp",
+            "postdate": "2025-05-07T04:16:48-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>TheTroublewithForest wrote:</b></p></div><div class='quotebody'><i>A games weight has little to do with strategic depth. </i></div></div></font><br/><br/>If you are talking about kilograms you are right 😄 otherwise see the link I posted in my previous comment."
+          },
+          {
+            "author": "grandad1982",
+            "postdate": "2025-05-17T07:30:02-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>TheTroublewithForest wrote:</b></p></div><div class='quotebody'><i>A games weight has little to do with strategic depth. </i></div></div></font><br/>Given that people vote on it for a variety of personal reasons, including strategic depth, this is just not a true statement. "
+          }
+        ]
+      },
+      {
+        "title": "Download (and print) the artist diary",
+        "url": "https://boardgamegeek.com/thread/3493807",
+        "postdate": "2025-04-10 09:16:34",
+        "posts": [
+          {
+            "author": "Mattintheweb",
+            "postdate": "2025-04-10T09:16:35-05:00",
+            "body": "The artist diary posted as a <a  href=\"https://boardgamegeek.com/blog/1/blogpost/169018/artist-diary-faraway\"   >BGG News blog post</a> earlier this year is now available (with translated images) as a pdf matching the size of the game box, to <a  href=\"https://boardgamegeek.com/filepage/298341/official-artist-diary-box-size\"   >download</a> and possibly print to store inside your copy of the game. 🙂 "
+          }
+        ]
+      }
+    ],
+    "reason": "根據討論串的內容，遊戲《Faraway》近期上榜的主要原因是推出了新版本擴展，並且社群對於擴展的遊玩體驗表現出高度的關注與討論，顯示出其持續的吸引力。此外，促銷的木製棋子也引起了玩家的興趣，進一步提升了遊戲的曝光率和參與度。這些因素共同促成了遊戲的熱度上升。"
+  },
+  "297486": {
+    "name": "Ride the Rails",
+    "threads": [
+      {
+        "title": "Yellow Railroad starting options, yet again",
+        "url": "https://boardgamegeek.com/thread/3513293",
+        "postdate": "2025-05-17 06:07:34",
+        "posts": [
+          {
+            "author": "cdunc123",
+            "postdate": "2025-05-17T06:07:34-05:00",
+            "body": "Here is the text from the Ride the Rails rulebook about placing the Yellow Railroad:<br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>In the third round of play, the Yellow Railroad becomes available.<br/>This Railroad must start in Chicago and/or in one of the three<br/>westernmost occupied cities. Prior to building, the westernmost<br/>city must have one, and only one, locomotive in the hex; Chicago,<br/>as usual, may hold any number. Which cities are westernmost is<br/>determined the moment the first Yellow locomotive would be<br/>placed on the game board.</i></div></div></font><br/><br/>Here is the text from the Winsome Games version (i.e. Rail USA): <br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>This railroad must start in one [of] the three westernmost cities that has a railroad and only one railroad in the hex, or Chicago. Which cities are westernmost is judged at the moment the first yellow cube is placed.</i></div></div></font><br/>There have been two helpful threads clarifying some questions about these rules, <a  href=\"https://boardgamegeek.com/thread/2477430/question-about-starting-the-yellow-railroad\"   >here</a>and  <a  href=\"https://boardgamegeek.com/thread/2570484/yellow-railway-start-location-again\"   >here</a>.  <br/><br/>But as I read things, we still lack an official ruling about the special case in which Chicago has exactly one train in it and moreover, Chicago is one of \"the three westernmost cities that has a railroad and only one railroad in the hex.\" How do we read the rule in that case? In particular, is it...<br/><br/><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /> <b>The stricter interpretation</b>: Your choices = [Chicago, westernmost 1-railroad city A, westernmost 1-railroad city B] OR [Chicago] -- so, just three cities to choose from.<br/><br/><img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/star_yellow.gif\" alt=\"\" border=\"0\" /> <b>The looser interpretation</b>: Your choices = [westernmost 1-railroad non-Chicago city A, westernmost 1-railroad non-Chicago city B, westernmost 1-railroad non-Chicago city C] OR [Chicago] <br/><br/>With the looser interpretation, a player has four cities to choose from for the starting position of the Yellow Railroad. With the stricter interpretation, a player can sometimes have just three cities to choose from, namely, in the special case where Chicago itself is one of \"the three westernmost cities that has a railroad and only one railroad in the hex.\"<br/><br/>It's not clear to me what the best interpretation is. I agree the stricter interpretation is the more literal interpretation. But I also find it easy to imagine that the designer/publisher always intended for there to be four choices of starting city and just didn't notice the possibility of a strictly literal interpretation. <br/><br/>Maybe we will get an official ruling on this. But in the mean time, below is a poll to take. (<i>Side note</i>: for purposes of this poll, let's ignore a case in which more than three cities are tied for \"westernmost.\")<br/><br/>[poll=2090314]<br/>If you choose \"something else,\" please let us know in a comment what that something else is."
+          },
+          {
+            "author": "branstonoriginal",
+            "postdate": "2025-05-17T07:14:08-05:00",
+            "body": "Hopefully, John will chime in here and let us know, but for now I favour the looser interpretation.<br/>In most cases, I'd usually vote for a stricter definition, but in this case I see Chicago as a kind of 'special city' and, as such, is removed from consideration when defining \"westernmost\"."
+          },
+          {
+            "author": "cdunc123",
+            "postdate": "2025-05-17T08:22:15-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>branstonoriginal wrote:</b></p></div><div class='quotebody'><i>Hopefully, John will chime in here and let us know, but for now I favour the looser interpretation.<br/>In most cases, I'd usually vote for a stricter definition, but in this case I see Chicago as a kind of 'special city' and, as such, is removed from consideration when defining \"westernmost\".</i></div></div></font><br/>FWIW this is my favorite interpretation and rationale too. "
+          },
+          {
+            "author": "WilbertK",
+            "postdate": "2025-05-17T10:43:07-05:00",
+            "body": "<a href=\"https://boardgamegeek.com/thread/2477430/article/35489511#35489511\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">This</a> is the post that settles it for me."
+          },
+          {
+            "author": "cdunc123",
+            "postdate": "2025-05-17T11:04:47-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>WilbertK wrote:</b></p></div><div class='quotebody'><i><a href=\"https://boardgamegeek.com/thread/2477430/article/35489511#35489511\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">This</a> is the post that settles it for me.</i></div></div></font><br/>The second half of that post clearly favors what I have called the “stricter” (i.e. literal) interpretation. <br/><br/>But since the poster is not (as far as I know) associated with Capstone Games, and since the argument there is essentially “this is what follows if you take the rule literally,” I personally don’t regard the post as a definitive answer to the question, “Does interpreting this rule literally reflect the designer’s true intent?”<br/><br/>However, it’s a subjective judgment call, so YMMV. <br/>"
+          },
+          {
+            "author": "bookermanpries",
+            "postdate": "2025-05-17T15:31:08-05:00",
+            "body": "So I strongly dislike the \"and/or\" phrasing in the RtR rules, since I don't think it creates a distinction, but why would it be there if not to signal that Chicago may be part of the 3 westernmost cities and should be included within the count?"
+          },
+          {
+            "author": "branstonoriginal",
+            "postdate": "2025-05-18T00:34:58-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>bookermanpries wrote:</b></p></div><div class='quotebody'><i>So I strongly dislike the \"and/or\" phrasing in the RtR rules, since I don't think it creates a distinction, but why would it be there if not to signal that Chicago may be part of the 3 westernmost cities and should be included within the count?</i></div></div></font><br/><br/>I agree, it's the worst.<br/>But broken down:<br/><br/>A. This Railroad must start in Chicago <b>and</b> in one of the three westernmost occupied cities.<br/><br/>B. This Railroad must start in Chicago <b>or</b> in one of the three westernmost occupied cities.<br/><br/>Option A doesn't make any sense, but in both cases Chicago <i>appears</i> to be distinctly separated from the 3 cities?<br/><br/>Ultimately, while I find this interesting from an English language and rules editing point of view, I don't think playing by one interpretation or another will make a huge difference to gameplay.<br/>The looser interpretation does give a player more flexibility in making those connections, which you could argue is core to the game?"
+          },
+          {
+            "author": "bookermanpries",
+            "postdate": "2025-05-18T07:27:39-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>branstonoriginal wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>bookermanpries wrote:</b></p></div><div class='quotebody'><i>So I strongly dislike the \"and/or\" phrasing in the RtR rules, since I don't think it creates a distinction, but why would it be there if not to signal that Chicago may be part of the 3 westernmost cities and should be included within the count?</i></div></div></font><br/><br/>I agree, it's the worst.<br/>But broken down:<br/><br/>A. This Railroad must start in Chicago <b>and</b> in one of the three westernmost occupied cities.<br/><br/>B. This Railroad must start in Chicago <b>or</b> in one of the three westernmost occupied cities.<br/><br/>Option A doesn't make any sense, but in both cases Chicago <i>appears</i> to be distinctly separated from the 3 cities?<br/><br/>Ultimately, while I find this interesting from an English language and rules editing point of view, I don't think playing by one interpretation or another will make a huge difference to gameplay.<br/>The looser interpretation does give a player more flexibility in making those connections, which you could argue is core to the game?</i></div></div></font><br/><br/>I agree, fwiw, about the looser interpretation being favourable.<br/><br/>Where I was coming from was the following sequence of thought: <br/>A) The and/or phrasing seems to imply with the \"and\" that the yellow railroad can start in two cities simultaneously, which is definitely wrong.<br/>B) The looser interpretation is easy to clear up: \"This railroad must start in one [of] the three westernmost cities that has a railroad and only one railroad in the hex <b>(not including Chicago)</b>, or Chicago.\"<br/>C) So it seemed quite possible to me that the reversal of sequencing, putting Chicago before the westernmost cities, and the inclusion of an \"and/or\" (excellent TV series on Disney btw) statement was an attempt to impose a stricter clarification. <br/><br/>This is speculative of course!"
+          },
+          {
+            "author": "cdunc123",
+            "postdate": "2025-05-18T07:41:20-05:00",
+            "body": "I agree that the \"and/or\" is far from clear. All interpretations of it are going to be strained in some way.<br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>This Railroad must start in Chicago and/or in one of the three<br/>westernmost occupied cities. </i></div></div></font><br/>One way of reading this is as elliptical for:<br/>This Railroad must start in <i>one of the following set:</i> Chicago and/or in one of the three westernmost occupied cities. <br/><br/>Breaking this down = <br/><br/>⭐This Railroad must start in one of the following set: {Chicago, westernmost 1, westernmost 2, and westernmost 3} <br/>⭐This Railroad must start in one of the following set: {Chicago, westernmost 1, westernmost 2, or westernmost 3} <br/><br/>These mean the same thing, which makes \"and/or\" unnecessary but harmless.<br/><br/>I'm not saying that this is necessarily the <i>correct </i>reading. It's just *a* way of reading the confusing wording. As I said above, the interpretation boils down to a subjective judgment call. <br/><br/>EDIT: Oops, I had failed to spot Tom’s post above when I wrote this. I agree that the “and/or” is either careless, or a clumsy attempt to impose the stricter reading. I’m not sure which! The point of my post here is just to say, “Here is one way the ‘and/or’ could be merely careless, nothing more.”"
+          },
+          {
+            "author": "WilbertK",
+            "postdate": "2025-05-18T11:26:34-05:00",
+            "body": "I'm going to predict a reprint of TGZ happening in 2026."
+          },
+          {
+            "author": "cdunc123",
+            "postdate": "2025-05-18T11:45:17-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>WilbertK wrote:</b></p></div><div class='quotebody'><i>I'm going to predict a reprint of TGZ happening in 2026.</i></div></div></font><br/>TGZ = ?<br/><br/>Maybe The Great Zimbabwe, in a post to the wrong thread, maybe?<br/>"
+          },
+          {
+            "author": "branstonoriginal",
+            "postdate": "2025-05-18T12:04:19-05:00",
+            "body": "I think it's mighty fine for Wilbert to make such a prediction here 😂"
+          },
+          {
+            "author": "WilbertK",
+            "postdate": "2025-05-18T12:09:25-05:00",
+            "body": "Haha I don't know what the hell happened. That post was obviously not meant for this thread."
+          },
+          {
+            "author": "WilbertK",
+            "postdate": "2025-05-18T12:10:55-05:00",
+            "body": "Lol somehow I meant to reply on a Discord discussion but pulled up the wrong tab without looking. Silly me."
+          }
+        ]
+      },
+      {
+        "title": "If Placing a Train on a mountain hex, what happens to the unsued train? ",
+        "url": "https://boardgamegeek.com/thread/3449971",
+        "postdate": "2025-01-28 07:07:05",
+        "posts": [
+          {
+            "author": "ThePes",
+            "postdate": "2025-01-28T07:07:05-06:00",
+            "body": "A quick question here that I wasn't able to answer from the rule book; when placing a train on a mountain hex, you lose a train from your batch (if you have 5 to place, a mountain hex placement reduces it to 4).  The question is, what happens to that extra train?  Does it go away from the game or does it go back to the general supply?  "
+          },
+          {
+            "author": "Mayaheine",
+            "postdate": "2025-01-28T07:14:35-06:00",
+            "body": "From <b>PHASE 2: Build Railroad Track</b>:<br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>If a player builds track in a Mountain hex (or hexes), the total number of locomotives able to be placed by that player is reduced by one.</i></div></div></font><br/><br/><br/>Effectively, the \"lost\" train is returned to the supply.  The way the rule reads is that if you build into mountains you treat the number of available trains as being one lower than normal for your player count.<br/>"
+          },
+          {
+            "author": "ThePes",
+            "postdate": "2025-01-28T07:24:46-06:00",
+            "body": "Okay, the rules feel a bit criptic about it, and it implies you have to announce your intentions before picking up your alloted trains.<br/><br/>Thanks for the info. "
+          },
+          {
+            "author": "Mayaheine",
+            "postdate": "2025-01-28T07:29:35-06:00",
+            "body": "Agreed, it's not as clear as it might be.  The intent seems obvious, and the playthroughs I've seen all play it as \"take the number of trains indicated and then return one if they build into mountains\".  I normally play it that way.  It certainly seems possible to announce that you're building into mountains and take one fewer, though, if you're doing any sort of planning ahead."
+          },
+          {
+            "author": "ThePes",
+            "postdate": "2025-01-28T08:01:28-06:00",
+            "body": "Hopefully they do a small errata on future printings and just add \"...return any unused trains to the supply\". "
+          },
+          {
+            "author": "branstonoriginal",
+            "postdate": "2025-01-28T08:43:19-06:00",
+            "body": "To reduce errata, a change of perspective may help:<br/><br/>There is an <i>option</i> to build track, from 0 locomotives up to the maximum <i>allowance</i> dictated by player count.<br/><br/>Building into mountains reduces the allowance.<br/><br/>(While players may pick up the locomotives to help think through their building, handling the locomotives before their placement is not part of the game rules 🙂)"
+          }
+        ]
+      },
+      {
+        "title": "Germany misprints fixed in 2024 printing?",
+        "url": "https://boardgamegeek.com/thread/3391003",
+        "postdate": "2024-10-21 08:27:42",
+        "posts": [
+          {
+            "author": "dakerjohn",
+            "postdate": "2024-10-21T08:27:42-05:00",
+            "body": "During the KS campaign for Age of Rail, where a bigger box for Ride the Rails was offered as an add-on including both expansion maps, Capstone promised the misspelled city names on the Germany map would be fixed in the new printing. I’d be grateful if someone could confirm whether this actually happened by checking their 2024 Germany board. For example “Onasbrück” on the original printing should be “Osnabrück.” (There are other misspelled cities mentioned in <a  href=\"https://boardgamegeek.com/thread/2459888/misspelled-cities-on-germany-map\"   >this thread</a>.)"
+          },
+          {
+            "author": "alphasixty",
+            "postdate": "2024-10-21T09:15:23-05:00",
+            "body": "While I don't know what else was misspelled, I can confirm that Osnabrück has been corrected. "
+          },
+          {
+            "author": "hammermh",
+            "postdate": "2024-10-30T10:10:16-05:00",
+            "body": "I just opened the Germany map and can confirm that all the cities mentioned in the referenced thread have been corrected."
+          }
+        ]
+      },
+      {
+        "title": "Do parallel links pay out to both companies?",
+        "url": "https://boardgamegeek.com/thread/3211819",
+        "postdate": "2023-12-22 00:08:46",
+        "posts": [
+          {
+            "author": "mediaisrelative",
+            "postdate": "2023-12-22T00:08:46-06:00",
+            "body": "Most hexes can hold two trains, same with cities. If I build parallel along my opponent's line would both links pay out if I then ride the rails across said links? So for example, my opponent has connected Cincinnati and St. Louis with orange. I build exactly along their track with black and then when it comes time to ride the rails, I ride it along those links. Black and orange would then both pay out, right? Or does a different scenario come up? I couldn't find a thread or rules clarification about this."
+          },
+          {
+            "author": "Murr",
+            "postdate": "2023-12-22T00:23:42-06:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>mediaisrelative wrote:</b></p></div><div class='quotebody'><i>Most hexes can hold two trains, same with cities. If I build parallel along my opponent's line would both links pay out if I then ride the rails across said links? So for example, my opponent has connected Cincinnati and St. Louis with orange. I build exactly along their track with black and then when it comes time to ride the rails, I ride it along those links. Black and orange would then both pay out, right? Or does a different scenario come up? I couldn't find a thread or rules clarification about this.</i></div></div></font>You only ride along a single color between cities and cannot loop back to include the same hex more than once.  Rules read (emphasis mine):<br/><br/><i>The player must be able to trace a route of locomotives from the Passenger’s starting city to their ending city via Links. <font color='#ff0000'><b>A Link is a path of locomotives belonging to a <u>single</u> Railroad that connects two cities.</b></font><br/>. . .<br/>No looping is allowed—each hex may only be visited once during the journey. Additionally, the player decides through which Railroad’s Links the Passenger travels.</i>"
+          },
+          {
+            "author": "Prop_Joe",
+            "postdate": "2023-12-22T00:24:53-06:00",
+            "body": "You're only activating one color during delivery. <br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>A Link is a path of locomotives belonging to a single Railroad that connects two cities.</i></div></div></font><br/><br/>So parallel would be two links, one for each color/railroad.<br/><br/>Edit: Beaten to it."
+          },
+          {
+            "author": "mediaisrelative",
+            "postdate": "2023-12-22T00:24:56-06:00",
+            "body": "Wonderful, thank you."
+          }
+        ]
+      },
+      {
+        "title": "Transcontinental Connection",
+        "url": "https://boardgamegeek.com/thread/3208352",
+        "postdate": "2023-12-15 12:40:22",
+        "posts": [
+          {
+            "author": "Jon_Stern",
+            "postdate": "2023-12-15T12:40:23-06:00",
+            "body": "I read the related threads and do not see an answer to this specific question (sorry if I missed it). I have not played yet, but want to make sure I know what to do if it comes up.<br/><br/>From what I understand, the 12/8 bonus is determined when the connection is made. That makes sense if one track is heading east from a purple city and another is heading west.<br/><br/>However, what happens if there is a multi-railway route that started in the east and heads west. Then eventually, after multiple connections reaches a purple city. At the time the transcontinental is completed, it is due to a western extension, not a new connection. If there are 3 railways on the route, and one connection is in a city while the other is in a rural hex, how do you determine the bonus? In this case, would it be the westernmost connection? Or do you have to track the timestamp of every railway connection in case it eventually heads west and forms a transcontinental?"
+          },
+          {
+            "author": "liketheboys",
+            "postdate": "2023-12-15T14:12:07-06:00",
+            "body": "In the Capstone rules, I understand it to be that, as soon as you place a track that bridges a western city (purple/black) with an eastern city (six multi-colored), you get either $12 if the bridging track was in a city, or $8 elsewhere.<br/><br/>I didn't understand the scenario you described tho, sorry /: Maybe you could show us in a picture?"
+          },
+          {
+            "author": "Jon_Stern",
+            "postdate": "2023-12-15T17:53:26-06:00",
+            "body": "The scenario is when the final bridging track is placed in the purple city itself. This final track placement is completing the transcontinental but isn't connecting two different railways. I can set up a picture later if that's not clear."
+          },
+          {
+            "author": "liketheboys",
+            "postdate": "2023-12-15T18:30:15-06:00",
+            "body": "Ahhhh yeah I see.<br/><br/>The rule goes:<br/><font color=#2121A4><div class='quote'><div class='quotebody'><i><br/>The first player to make a Transcontinental connection—where a line of track comprised of different Railroads connects a West Coast Purple & Black city to one of the six multi-colored East Coast cities—immediately receives the Transcontinental bonus.<br/></i></div></div></font><br/><br/>It doesn't matter how you do it, the important thing if you need \"a line of track\" connecting the East and West. If you have a long stretch of track coming from an Eastern city and eventually touching down to a Western (purple/black) city, then at that moment you have met those conditions and done so by placing a track in a city.<br/><br/>I think the confusion stems from the graphic they use to represent it (with one track bridging existing track on both sides). It does a good job of conveying the general idea, but unfortunately that edge case does slip through."
+          },
+          {
+            "author": "Jon_Stern",
+            "postdate": "2023-12-15T18:50:45-06:00",
+            "body": "Ok. I'm also looking at the Capstone rules. The confusing part for me was the next sentence after the part you quoted:<br/><br/>\"If the Railroads connect in a city hex, the bonus is $12. However, if the<br/>Railroads connect in any other hex, the bonus is $8. The Transcontinental<br/>bonus is only paid once and to the player who makes the connection.\"<br/><br/>It seems like the key is based on where the connection between railroads is made, not where the final track is placed. Am I reading that wrong?"
+          },
+          {
+            "author": "liketheboys",
+            "postdate": "2023-12-15T19:09:17-06:00",
+            "body": "Glad you pointed that out, that is some weird wording.<br/><br/>Aside from that case probably being unlikely in practice, I think the intention of the rule is that you count where you place the track that connects the East and the West. "
+          }
+        ]
+      }
+    ],
+    "reason": "《Ride the Rails》近期上榜的主要原因可能與其新版本的推出有關，特別是對於2024年印刷版中的德國地區誤印問題進行了修正，這引起了玩家社群的關注與討論。此外，遊戲中的規則細節也持續引發玩家的提問與交流，顯示出其在玩家間的活躍度和持續的興趣。這些因素共同促進了該遊戲的知名度和人氣。"
+  },
+  "423698": {
+    "name": "Tree Society",
+    "threads": [
+      {
+        "title": "Fruit cards available",
+        "url": "https://boardgamegeek.com/thread/3512519",
+        "postdate": "2025-05-15 15:26:05",
+        "posts": [
+          {
+            "author": "smoni",
+            "postdate": "2025-05-15T15:26:05-05:00",
+            "body": "Just seeking some clarity - for four players, there should only be 3 types of fruits in the game (eg. apples, cherries, grapes) and the other two types (in this example oranges and blueberries) are not in play?<br/>How many fruit cards should be on display in the market?<br/><br/>We've read the rulebook, but it's not clear. Thanks for any help!"
+          },
+          {
+            "author": "SaltyHorse",
+            "postdate": "2025-05-16T02:22:38-05:00",
+            "body": "In a 3 player game, you use ALL the cards - do not remove any types.<br/>The rules are trying to say (badly) that the market size for a 3-player game is 4 (as indicated next to the card slots), and that in the initial setup, you make sure that the 4 cards are different."
+          }
+        ]
+      },
+      {
+        "title": "Any solo mode ?",
+        "url": "https://boardgamegeek.com/thread/3482399",
+        "postdate": "2025-03-21 11:56:44",
+        "posts": [
+          {
+            "author": "Hugostolze",
+            "postdate": "2025-03-21T11:56:44-05:00",
+            "body": "Does anyone has a solo mode ?"
+          }
+        ]
+      },
+      {
+        "title": "Tree Society - A short review by The Meeple Guys",
+        "url": "https://boardgamegeek.com/thread/3473786",
+        "postdate": "2025-03-07 02:28:28",
+        "posts": [
+          {
+            "author": "TheMeepleGuys",
+            "postdate": "2025-03-07T02:28:28-06:00",
+            "body": "In Tree Society, players work together to expand a flourishing forest community made up of various guilds, each with its own unique buildings. Every turn, players sell fruit to earn money, which they’ll need to construct new structures.<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750227\"><img src=\"https://cf.geekdo-images.com/NOXUUblVhnSbYqFriNx0XA__small/img/V_LBfPe2CsWddXmvF7M4p_Ffg84=/fit-in/200x150/filters:strip_icc()/pic8750227.jpg\" border=0></a></div> <div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750228\"><img src=\"https://cf.geekdo-images.com/BfmjTVbDa7IosMPKCQG4kw__small/img/Z_x-_pvnEyOJeXLr1W4IuqRsuqc=/fit-in/200x150/filters:strip_icc()/pic8750228.jpg\" border=0></a></div><br/><br/>🍎Selling fruit is a clever market-driven mechanic—simply choose a fruit card on your board and check how many matching fruit cards are in play, both in the central market and on opponents’ boards. The more there are, the more money you earn when selling that fruit!<br/><br/>🫐With your earnings, you’ll begin constructing a building. Each guild offers different types of structures, all built in 3 sequential levels. As you progress, you may unlock instant bonuses, temporary abilities, and valuable scoring conditions. Completing all 3 levels not only earns you points but also grants you banners, which play a key role in ending the game. At the end of your turn you’ll select a new fruit from the market to add to your board.<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750232\"><img src=\"https://cf.geekdo-images.com/oJ8EFgg8rHJ0Jsqpkez6kA__small/img/XLO6f-0W1urycaBKiv5AWUB2ezE=/fit-in/200x150/filters:strip_icc()/pic8750232.jpg\" border=0></a></div> <div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750233\"><img src=\"https://cf.geekdo-images.com/u0nd3DgXksIROTz3NyVb2w__small/img/PC9B9p1X0e42YGE44QclSPIe1xU=/fit-in/200x150/filters:strip_icc()/pic8750233.jpg\" border=0></a></div><br/><br/>🍇Each building displays 1 to 2 banners, and once a player collects 6 banners, the game concludes. The player with the highest score wins, proving themselves the true architect of the Tree Society!🏛️<br/><br/>💭Our thoughts💭<br/>🍃The game is easy to teach and quick to set up.<br/>🍃We really enjoy the clever mechanic behind selling your fruit cards, which ensures plenty of player interaction. However we preferred playing with 3 or 4 players to fully appreciate the strategy.<br/>🍃With a variety of buildings and unique abilities, the game presents a fun and engaging puzzle that remains accessible to all players.<br/>🍃Only 4 out of 6 guilds are used in each game, which adds a fantastic layer of replayability and keeps things fresh.<br/>🍃Turns are quick, ensuring the game never overstays its welcome and keeps everyone engaged from start to finish.<br/><br/><div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750234\"><img src=\"https://cf.geekdo-images.com/RFq6qbKIlhoVeqahJ1KPoQ__small/img/z4HiyqwjbIeVkpTbgTtIoOpjnu8=/fit-in/200x150/filters:strip_icc()/pic8750234.jpg\" border=0></a></div> <div style='display:inline;'><a href=\"https://boardgamegeek.com/image/8750236\"><img src=\"https://cf.geekdo-images.com/XEK381BZVUUp8TCq4s-38A__small/img/Caj44E2pmLZwm4kZCdO52V8rRnA=/fit-in/200x150/filters:strip_icc()/pic8750236.jpg\" border=0></a></div><br/><br/>Tree Society offers a surprising amount of gameplay in a compact box, keeping players engaged with its dynamic player interaction and a captivating puzzle as you compete to score the most points.<br/><br/>⭐️ Our rating: 7,5/10<br/><br/>Original post on Instagram: <a target='_blank' href=\"https://www.instagram.com/p/DGz9VLoNlHY/?img_index=1\" rel=\"nofollow noreferrer noopener\">https://www.instagram.com/p/DGz9VLoNlHY/?img_index=1</a><br/>Original post in Dutch can be found on our Facebook page: <a target='_blank' href=\"https://www.facebook.com/profile.php?id=61567138417032\" rel=\"nofollow noreferrer noopener\">https://www.facebook.com/profile.php?id=61567138417032</a><br/>"
+          }
+        ]
+      },
+      {
+        "title": "Combine fruit action with effect from a Guild card",
+        "url": "https://boardgamegeek.com/thread/3406595",
+        "postdate": "2024-11-16 18:46:26",
+        "posts": [
+          {
+            "author": "faith4ev3r",
+            "postdate": "2024-11-16T18:46:26-06:00",
+            "body": "I'm wondering if we can use a fruit action at the same time as an effect from a Guild card.<br/><br/>Specific example :<br/><br/>Fruit action : The cost of any one level is reduced by 2 coins.<br/>Guild card effect : Build the level of another Guild card for 1/2 (rounded down).<br/><br/>I have 3 Coins and want to Build a 6 Coins Guild card. Could I apply the 1/2 to the cost then apply the 2 Coins reduction (final cost : 1 Coin)?<br/><br/>I understand that effects from Guild cards cannot combine but a fruit action is not an effect... Or is it?<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8539585\"><img src=\"https://cf.geekdo-images.com/yvqV6alwUJj7j5829IS7oQ__small/img/bmZlGdXvuWve7BgDWddbc5wiM54=/fit-in/200x150/filters:strip_icc()/pic8539585.jpg\" border=0></a></div><br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8539586\"><img src=\"https://cf.geekdo-images.com/Y1UqYFnAVSmbxCIIqvGwtQ__small/img/hzQRf6oM-1sG9IQoy7iCJf0gOm4=/fit-in/200x150/filters:strip_icc()/pic8539586.jpg\" border=0></a></div><br/><br/>Thank you! "
+          },
+          {
+            "author": "shadowant",
+            "postdate": "2024-11-21T05:59:37-06:00",
+            "body": "I assume not...<br/><br/>You resolve one by one."
+          }
+        ]
+      },
+      {
+        "title": "Erreur d'impression sur carte Guilde n°24",
+        "url": "https://boardgamegeek.com/thread/3402449",
+        "postdate": "2024-11-09 14:58:20",
+        "posts": [
+          {
+            "author": "KcireN",
+            "postdate": "2024-11-09T14:58:21-06:00",
+            "body": "Bonjour,<br/>Une petite erreur d'impression sur la carte Guilde n°24, (confirmée par l'éditeur)<br/>Le verso de cette carte ne doit disposer (comme toutes les autres cartes de cette couleur) qu'une seule Icone et non deux."
+          }
+        ]
+      }
+    ],
+    "reason": "根據討論串內容，遊戲《Tree Society》近期上榜的主要原因可能是新版本的推出。討論中提到的果實卡片和公會卡的使用規則，以及玩家對於單人模式的詢問，顯示出遊戲正在進行調整或更新。此外，關於印刷錯誤的討論也暗示著遊戲在市場上仍有活躍的關注度和玩家的參與，這些因素共同促進了遊戲的熱度和上榜。"
+  }
+}

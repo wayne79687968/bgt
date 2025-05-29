@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}錯誤 - BGG 熱門遊戲報表{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="alert alert-danger mt-5" role="alert">
+            <h4 class="alert-heading">⚠️ 發生錯誤</h4>
+            <p>{{ error }}</p>
+            <hr>
+            <p class="mb-0">
+                <a href="{{ url_for('generate') }}" class="btn btn-primary">🔄 重新產生報表</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary ms-2">🏠 回到首頁</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

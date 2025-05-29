@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - BGG 熱門遊戲報表{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <h2>📊 BGG 熱門遊戲報表</h2>
+    <div>
+        <small class="text-muted">檔案：{{ filename }}</small><br>
+        <small class="text-muted">更新時間：{{ last_updated }}</small>
+    </div>
+</div>
+
+<div class="report-content">
+    {{ content | safe }}
+</div>
+
+<div class="text-center mb-4">
+    <a href="{{ url_for('generate') }}" class="btn btn-success">🔄 重新產生報表</a>
+</div>
+{% endblock %}

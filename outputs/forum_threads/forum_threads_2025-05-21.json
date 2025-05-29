@@ -1,0 +1,566 @@
+{
+  "395512": {
+    "name": "Bunny Boom",
+    "threads": [
+      {
+        "title": "Play a card on your tile ",
+        "url": "https://boardgamegeek.com/thread/3509110",
+        "postdate": "2025-05-08 19:38:45",
+        "posts": [
+          {
+            "author": "jnicharvey",
+            "postdate": "2025-05-08T19:38:45-05:00",
+            "body": "When level one is completed, can we play a card on the tile where our pawn is already located, or must we play it elsewhere? If we must play it elsewhere, it might be that the only option is to play a card where we are, because all the other tiles are completed, and the game would therefore be over."
+          },
+          {
+            "author": "Guime",
+            "postdate": "2025-05-08T20:16:57-05:00",
+            "body": "Hi, that's one of end of game conditions <br/>- page 11<br/><br/>The game ends when 1 of the following<br/>2 conditions has been achieved:<br/><br/>› The draw pile runs out<br/><br/>› There are no more spaces for cards<br/>to be played (the top 2 cards in each<br/>space are from the same suit)<br/><br/>Since you can't play a card where you are, it's the end of the game."
+          },
+          {
+            "author": "jnicharvey",
+            "postdate": "2025-05-09T08:54:18-05:00",
+            "body": "Ok thanks. There was nothing in the rule book about play a card where you are. "
+          },
+          {
+            "author": "Guime",
+            "postdate": "2025-05-09T18:12:40-05:00",
+            "body": "Yes it's on page 11. <br/><br/>You can’t play a card into a space your pawn is occupying"
+          }
+        ]
+      },
+      {
+        "title": "questions about the rabbit meeples you can pick up",
+        "url": "https://boardgamegeek.com/thread/3494446",
+        "postdate": "2025-04-11 12:30:24",
+        "posts": [
+          {
+            "author": "alaingree",
+            "postdate": "2025-04-11T12:30:25-05:00",
+            "body": "Hello Guime<br/>thank you for this excellent game, with its simple but varied rules and its many twists and turns (especially with the carrot card...).  A few questions:<br/>a) If there are rabbit meeples on my character's arrival card, does he pick them up? Or does he only pick up the ones on the cards he's passed over?<br/>b) Concerning the pose effect “pass over a card of your choice while moving without applying the passing effects”, if there are rabbit meeples on this card, do I pick them up and put them in my domain? <br/>Thank you.<br/><br/>Translated with DeepL.com (free version)"
+          },
+          {
+            "author": "Guime",
+            "postdate": "2025-04-11T13:02:21-05:00",
+            "body": "Hi!<br/><br/>Thank you so much for taking the time to share those kind words. Feel free to post them on the Bunny Boom page on BGG — it’s always appreciated!<br/><br/>A. Yes, you always pick up the meeple bunnies when passing onto or arriving on a card — even if it’s the one you just placed. However, the passing effect from your own arrival card is not triggered.<br/><br/>B. You don’t collect meeple bunnies or trigger passing effects from cards you jumped over.<br/><br/>Hope that clears things up!"
+          }
+        ]
+      },
+      {
+        "title": "what happens to bunnies on discarded river cards?",
+        "url": "https://boardgamegeek.com/thread/3490254",
+        "postdate": "2025-04-03 22:21:06",
+        "posts": [
+          {
+            "author": "deannep",
+            "postdate": "2025-04-03T22:21:06-05:00",
+            "body": "if there are bunnies on river cards and you need to activate a river effect when you play a card:<br/>do you discard the bunnies when you discard the river card whose effect was used?<br/>do you collect the bunnies?<br/>or do they stay around to be placed on the replacement river card?"
+          },
+          {
+            "author": "Guime",
+            "postdate": "2025-04-04T15:08:44-05:00",
+            "body": "They stay on the new card. "
+          }
+        ]
+      },
+      {
+        "title": "Not bad once you defeat the rulebook",
+        "url": "https://boardgamegeek.com/thread/3489587",
+        "postdate": "2025-04-02 15:37:37",
+        "posts": [
+          {
+            "author": "n2dasun",
+            "postdate": "2025-04-02T15:37:37-05:00",
+            "body": "Lots of iconography, and the round explanation could use some revisiting. I also wish they'd packed enough reference cards for all players, instead of one set. A player aid will help immensely "
+          },
+          {
+            "author": "francky34",
+            "postdate": "2025-04-09T15:19:34-05:00",
+            "body": "I agree with that. "
+          }
+        ]
+      },
+      {
+        "title": "Tutorial available on BGA!",
+        "url": "https://boardgamegeek.com/thread/3469692",
+        "postdate": "2025-02-28 03:42:36",
+        "posts": [
+          {
+            "author": "Nekonyancer",
+            "postdate": "2025-02-28T03:42:36-06:00",
+            "body": "If you want to learn Bunny Boom, but you don't like reading rulebooks or watching lengthy videos, you might consider playing through the tutorial I wrote, which uses the BGA engine to take you step-by-step through a few turns of the game. I hope everyone likes it! If you have any comments, I'd love to hear them!<br/><br/><a target='_blank' href=\"https://boardgamearena.com/tutorial?game=bunnyboom&tutorial=1836\" rel=\"nofollow noreferrer noopener\">https://boardgamearena.com/tutorial?game=bunnyboom&tutorial=...</a>"
+          }
+        ]
+      }
+    ],
+    "reason": "根據討論串內容，Bunny Boom近期上榜的主要原因可能是因為其新版本的推出。玩家對遊戲規則的提問和討論顯示出對於遊戲機制的興趣，並且有玩家提到遊戲的簡化和教學資源（如BGA上的教程），這表明遊戲在吸引新玩家方面有積極的努力。此外，對於遊戲內容的正面評價和對規則的反思也顯示出其潛在的受歡迎程度。這些因素共同促進了Bunny Boom的知名度和參與度。"
+  },
+  "332772": {
+    "name": "Revive",
+    "threads": [
+      {
+        "title": "Metal tokens availability? ",
+        "url": "https://boardgamegeek.com/thread/3514432",
+        "postdate": "2025-05-19 14:31:35",
+        "posts": [
+          {
+            "author": "Camboim",
+            "postdate": "2025-05-19T14:31:35-05:00",
+            "body": "Where I can buy them? thanks!"
+          }
+        ]
+      },
+      {
+        "title": "Has anyone read \"A Canticle for Leibowitz\"?",
+        "url": "https://boardgamegeek.com/thread/3512861",
+        "postdate": "2025-05-16 09:55:54",
+        "posts": [
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-16T09:55:54-05:00",
+            "body": "Frequently when playing Revive I am reminded of this amazing work of post-apocalyptic fiction - <i>A canticle for Leibowitz</i> by Walter M Miller Jr. Granted there is much that is different in the game, but it has many of the themes: rediscovering lost tech, shadowy memories of the past affecting cultural development, etc.<br/><br/>So has anyone read the book (including the designers)? What did you think? If not I would highly recommend it. There is also a late 4th season episode of Babylon 5 that seems to have been influenced by this book."
+          },
+          {
+            "author": "HelgeM",
+            "postdate": "2025-05-16T10:18:10-05:00",
+            "body": "I have not read Canticle, but I do read a lot of speculative fiction. As a student, I bought all the pulp paperbacks I came across on flea markets. Had a whole moving box full of them. The <a  href=\"https://boardgamegeek.com/boardgame/446493/recall\"   >Recall</a> cover makes me very happy for that reason."
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-16T12:19:59-05:00",
+            "body": "I have not read it either. Unfortunately,  for every game I made, there was a book I didn't read 😊<br/>But with Revive, we tried to make a world filled with different ideologies, philosophies and belief systems, and for this we had lots of different influences.  "
+          },
+          {
+            "author": "drathbun",
+            "postdate": "2025-05-16T14:42:36-05:00",
+            "body": "Wow, I read it...a long time ago. I took a Science Fiction Lit course in college (took it twice, actually, because it was fun) and this was one of the seminal works that were part of the curriculum. I can honestly say I don't remember much about it, but maybe I'll go back and reread it now that you have triggered the memory. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "kytmuisco",
+            "postdate": "2025-05-16T16:26:26-05:00",
+            "body": "Fantastic book, I really love it! I hadn't really connected it to Revive, but there's definitely some similar themes."
+          },
+          {
+            "author": "Sphere",
+            "postdate": "2025-05-16T16:40:17-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>thecorsetmaker wrote:</b></p></div><div class='quotebody'><i>Frequently when playing Revive I am reminded of this amazing work of post-apocalyptic fiction - <i>A canticle for Leibowitz</i> by Walter M Miller Jr. Granted there is much that is different in the game, but it has many of the themes: rediscovering lost tech, shadowy memories of the past affecting cultural development, etc.\n<br/>\n<br/>So has anyone read the book (including the designers)? What did you think? If not I would highly recommend it. There is also a late 4th season episode of Babylon 5 that seems to have been influenced by this book.</i></div></div></font>\n<br/>I've read it, plus a scad of others covering similar ground, but that's hardly surprising because I began reading sci-fi / fantasy in the late 1950s. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/biggrin.gif\" alt=\"\" border=\"0\" />"
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-17T01:10:00-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Sphere wrote:</b></p></div><div class='quotebody'><i><font color=#0B5C0D><div class='quote'><div class='quotetitle'><p><b>thecorsetmaker wrote:</b></p></div><div class='quotebody'><i>Frequently when playing Revive I am reminded of this amazing work of post-apocalyptic fiction - <i>A canticle for Leibowitz</i> by Walter M Miller Jr. Granted there is much that is different in the game, but it has many of the themes: rediscovering lost tech, shadowy memories of the past affecting cultural development, etc.<br/><br/>So has anyone read the book (including the designers)? What did you think? If not I would highly recommend it. There is also a late 4th season episode of Babylon 5 that seems to have been influenced by this book.</i></div></div></font><br/>I've read it, plus a scad of others covering similar ground, but that's hardly surprising because I began reading sci-fi / fantasy in the late 1950s. <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/biggrin.gif\" alt=\"\" border=\"0\" /></i></div></div></font><br/><br/>Wow. I didn't come across it until the early 1990's, a recommendation from the staff at my FLBS. I know this might some blasphemous to some here on BGG, but FLBS are evert more valuable to me than FLGS. As much as I try to use the internet to find great new reads, nothing I do has managed to replace the staff at FLBS for this."
+          },
+          {
+            "author": "wombat929",
+            "postdate": "2025-05-17T06:30:14-05:00",
+            "body": "Love that book! I'd also like to recommend another Walter M Miller story, \"Dark Benediction,\" which does not have much to do with REVIVE, but is a really interesting story in the zone of a zombie story but it isn't one. Closer to I AM LEGEND, really."
+          },
+          {
+            "author": "elsewiseunplugged",
+            "postdate": "2025-05-17T09:29:37-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>kytmuisco wrote:</b></p></div><div class='quotebody'><i>Fantastic book, I really love it! I hadn't really connected it to Revive, but there's definitely some similar themes.</i></div></div></font><br/><i>Canticle</i>'s themes also inspired in part <a href=\"https://boardgamegeek.com/geeklist/333707/the-existentialists-guild-essential-film-geeklist?itemid=10604011#10604011\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">a television series</a>."
+          },
+          {
+            "author": "patcon",
+            "postdate": "2025-05-17T19:34:58-05:00",
+            "body": "One of my favorite sci-fi novellas. I loved the Bible-style stories describing events where we know how they would have happened. Made me wonder how stories in the Bible and other myths might have come to be from actual events.<br/>When I was into community theater I found a play adaptation of Canticle that was brilliant. It's basically a passion play put on by the survivors/travelers in their new home, retelling the story on St. Leibowitz Day. My dream was to put it on in a church setting with the cast seated amongst the congregation and coming on stage to tell their part of the story. Alas, I never had the opportunity to get it to the stage as it was too niche for the groups I was involved with."
+          }
+        ]
+      },
+      {
+        "title": "Recall: A brand new spin on Revive",
+        "url": "https://boardgamegeek.com/thread/3512740",
+        "postdate": "2025-05-16 03:56:30",
+        "posts": [
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-16T03:56:30-05:00",
+            "body": "The design team from Revive has a new game coming out - <a  href=\"https://boardgamegeek.com/boardgame/446493/recall\"   >Recall</a>. Hopefully we will see it released at Essen '25 (fingers crossed). Based on the publishers description it has a lot of DNA with Revive, but at the same time has a lot of new mechanisms. It <i>feels</i> like the story might even be stronger with this one. There is even an online archive so that other players can discover part of your tribe's legacy? This game has been in development for well over <strike>a year</strike> three years and all of this has me very intrigued.<br/><br/>Plus look at the killer cover.<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8886325\"><img src=\"https://cf.geekdo-images.com/lZL0ID86ZmraJDGWO-Dyig__small/img/2Jx9NhxnhFMQNYeCkzDsm-j-G2k=/fit-in/200x150/filters:strip_icc()/pic8886325.png\" border=0></a></div>"
+          },
+          {
+            "author": "HelgeM",
+            "postdate": "2025-05-16T04:19:52-05:00",
+            "body": "Nearly four years, actually!"
+          },
+          {
+            "author": "Stormparkiet",
+            "postdate": "2025-05-16T04:56:31-05:00",
+            "body": "Color me intrigued!"
+          },
+          {
+            "author": "ManolisKK",
+            "postdate": "2025-05-16T08:14:57-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>HelgeM wrote:</b></p></div><div class='quotebody'><i>Nearly four years, actually!</i></div></div></font><br/>Nice! But this is a different game than revive right?"
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-16T09:34:42-05:00",
+            "body": "Yes, it is a very different game experience, with completely new mechanisms. But it has about the same depth, and you also explore and develop your tribes. "
+          },
+          {
+            "author": "oriad",
+            "postdate": "2025-05-16T09:36:51-05:00",
+            "body": "nice can't wait to see it <br/>😍😍"
+          },
+          {
+            "author": "Gamer_Dog",
+            "postdate": "2025-05-16T10:26:46-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Anaesthetic wrote:</b></p></div><div class='quotebody'><i>Yes, it is a very different game experience, with completely new mechanisms. But it has about the same depth, and you also explore and develop your tribes. </i></div></div></font><br/><br/>Revive is such an ambitious design, clearly with tremendous passion and attention to detail. Our gaming group has had many, many hours of enjoyment with it. Wishing you great success with Recall!"
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-16T11:30:45-05:00",
+            "body": "Thank you for your very kind words, Mark! 😊"
+          },
+          {
+            "author": "Cardboardjunkie",
+            "postdate": "2025-05-16T14:54:56-05:00",
+            "body": "Thank you for the post Kirk! I hadn't heard of this one yet.<br/>I think if I made my top games list right now, Revive would probably be #1. A lot of my friends like it too, which helps with my ranking. So, I'm very intrigued by Recall to say the least!"
+          },
+          {
+            "author": "alialkabah",
+            "postdate": "2025-05-16T15:53:01-05:00",
+            "body": "if I get this will It replace revive or are they different enough to justify owning both.<br/>also will the player interaction be similar to revive?"
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-17T05:45:50-05:00",
+            "body": "They are two very different games, providing different game experiences. <br/>There are no direct conflict or destructive player interaction (as in Revive)"
+          },
+          {
+            "author": "UltiMatt7",
+            "postdate": "2025-05-17T20:19:10-05:00",
+            "body": "You guys really ought to send Kirk a review copy of Recall. I’d be really interested to know what he thinks of it. Both in comparison to Revive and on its own. More than I would be interested in hearing what any YouTuber thinks. "
+          },
+          {
+            "author": "Anaesthetic",
+            "postdate": "2025-05-18T01:02:39-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>UltiMatt7 wrote:</b></p></div><div class='quotebody'><i>You guys really ought to send Kirk a review copy of Recall. </i></div></div></font><br/>That's a great suggestion 🙂 <br/>We are still preparing the graphical files for printing, so we don't have any copies available yet, though! "
+          },
+          {
+            "author": "thecorsetmaker",
+            "postdate": "2025-05-18T05:22:38-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>UltiMatt7 wrote:</b></p></div><div class='quotebody'><i>You guys really ought to send Kirk a review copy of Recall. I’d be really interested to know what he thinks of it. Both in comparison to Revive and on its own. More than I would be interested in hearing what any YouTuber thinks. </i></div></div></font><br/><br/>Thanks so much for your endorsement Matt. I'm very flattered. I've never actually written a formal review here of a game, but as you know I do sprinkle my opinions on games throughout the comments sections quite freely, especially for games that I love. And yes, despite <a  href=\"https://boardgamegeek.com/boardgame/237179/weather-machine\"   >Weather Machine</a> entering strongly into my top games of all time, Revive still holds at number 1."
+          },
+          {
+            "author": "srpad",
+            "postdate": "2025-05-18T11:09:50-05:00",
+            "body": "Looking forward to learning more about this. Really love Revive."
+          },
+          {
+            "author": "cranky_hobbit",
+            "postdate": "2025-05-19T17:55:35-05:00",
+            "body": "1-4 players too hey?<br/>I will be keeping a keen eye on the solo mode for <a  href=\"https://boardgamegeek.com/boardgame/446493/recall\"   >Recall</a> and hoping there may also be some DNA from the fan made solo variants of Revive that trickle into the solo mode for Recall <img class=\"emoticon\" src=\"https://cf.geekdo-static.com/images/smile.gif\" alt=\"\" border=\"0\" />"
+          }
+        ]
+      },
+      {
+        "title": "Stayin’ Alive – A Review of Revive (and the Campaign) as a Solo Player",
+        "url": "https://boardgamegeek.com/thread/3508626",
+        "postdate": "2025-05-07 21:45:52",
+        "posts": [
+          {
+            "author": "YogiBearandDelaware",
+            "postdate": "2025-05-07T21:45:52-05:00",
+            "body": "Designers: Helge Meissner, Kristian Amundsen Østby, Eilif Svensson, Anna Wermlund<br/>Publisher: Aporta Games<br/>Artists: Gjermund Bohne, Martin Mottet, Dan Roff, Jessy Töpfer<br/><br/>Original post on our blog with pictures: <a target='_blank' href=\"https://yogibearanddelaware.com/\" rel=\"nofollow noreferrer noopener\">https://yogibearanddelaware.com/</a><br/><br/>Revive is such a unique, fascinating, thinky board game that doesn’t take too long to play (at least solo) but does showcase some really interesting decision making and strategizing. While not mechanically integrated, the theme is present and relevant, specifically in the campaign story. It’s just overall a really solid mid-weight, smooth euro.<br/><br/>There is honestly quite a lot going on in this game, so I’m not going to cover too much in terms of how to play or the nitty gritty of the mechanics. Some will be mentioned in my thoughts, but if you’re interested in a game play overview, this is not the review you’re looking for.<br/><br/>First off, let me just say that the setup for this game is rather lengthy. There are a lot of little bits and pieces including wooden components, tiles, cards, etc. that all require some TLC to get the game going. That said, the componentry is nice, and everything fits well back into the box which is always a positive. The artwork is also gorgeous, especially the image on the back of the board.<br/><br/>The rulebook for this game is fantastic, in my opinion. Not only are the explanations of the game done well, but the order of the rulebook integrates with the flow of the game expertly. That first game, you feel like you can sort of following along with the descriptions and play your first turn(s) simultaneously. The symbol reference pages are also phenomenal; there was not one symbol or tile or card that I came across that wasn’t described in detail.<br/><br/>While I only played it solo, I would be interested in testing it in a multiplayer setting. I feel like a four-player game would be quite lengthy, but the player interaction on the main board would obviously be more intriguing when not playing solo. There are also some tribes that have abilities more well suited to a multiplayer setting that I would like to experiment with.<br/><br/>Before I get into what I really enjoy and appreciate about this game, I do want to point out a few small, potential flaws. I always value the inclusion of player aids and reference cards, but these ones are a little weak. I assume they were trying to keep text on them minimal, which I do like, but I still felt like I needed to reference the rulebook at quite a few stages, especially during hibernation. By personal preference, I also am not a huge fan of the beat your own score system for the solo mode. I actually find the design of the solo mode to be lovely but playing to just try to beat any previous scores/reach a certain level in the score chart is a little irritating. From my limited board game design knowledge, it seems like creating and implementing scenarios and/or achievements for the solo game would be an easy addition. Also, I think partly due to this, the game got rather repetitive for me after eight (ish) plays. I’d likely feel different if there was variation in player count, but always just trying to maximize points wasn’t super motivating.<br/><br/>Now on to my favorite parts! As most people who have read at least one of our reviews knows, I adore a good campaign, especially when it can be played solo. The unlockable components and content during the campaign for Revive was great. It’s a five chapter campaign, and after the first game, additional elements, content, and rules get introduced that enhance the game play and strategic nature of the game. I also admire how tense and tight the solo game gets towards the end: with the action cube moving up the track when playing cards and hibernating, it’s tough to balance the action selection and resource management with trying to gain points. I always felt I needed one or two more turns to really optimize my game, but I enjoyed that.<br/><br/>One other addition that I greatly appreciate is that the unique tribes do truly play differently, have their own abilities, and their boards display special technologies (and maybe other powers that could get unlocked during the campaign…). Each tribe board is also double sided to increase that variation. The back side (the moon side) increases the variety of actions, bonuses, and technologies which are really impressive and overall practical in terms of replayability.<br/><br/>My absolute favorite design choice in this game is the interconnectedness between the tech tracks on the player boards and the actions and goals for the game. It’s challenging to describe without just explaining the whole game, but even though there are a lot of moving parts, action options, components, etc., everything has its place and ties in or relates to some other important aspect of the game (and maybe even the theme). It’s truly brilliant and it creates such a satisfying puzzle to try to decipher. It’s a solid combo-making game where one thing lets you do another thing which leads to two more things.<br/><br/>For me, as I’ve only played it solo, this game isn’t perfect, but it is a really fun and cleverly designed board game. There are a lot of unique elements, some thematic integration, and just really cool, puzzly game play with neat reliability on other aspects of the game. The ultimate creation? A piece of art that is cohesive, strategically deep, and has a wonderful table presence. What more could you ask for!? Unless, of course, we are talking about the win conditions related to the solo mode…"
+          },
+          {
+            "author": "Stealthmutant",
+            "postdate": "2025-05-08T07:42:52-05:00",
+            "body": "I really don’t play solo but will add that for those that play solo and multiplayer, the multiplayer is one of my top 20 games…..it is a beautiful game and one that made it to our annual rotation (we have actually got this game to the table about 5 times since the holidays).  This is pretty GM rare for a game for us."
+          }
+        ]
+      },
+      {
+        "title": "In solo mode during the hibernation phase, in what order can the modules be reset?",
+        "url": "https://boardgamegeek.com/thread/3506005",
+        "postdate": "2025-05-02 16:00:58",
+        "posts": [
+          {
+            "author": "Filjouatou",
+            "postdate": "2025-05-02T16:00:59-05:00",
+            "body": "En effet en solo, puis je d’abord reset les modules puis en choisir un grâce à la récompense d’hibernation du 1er palier ou dois je d’abord en choisir un dispo puis reset les modules à la fin de l’hibernation ?<br/>Indeed in solo, can I first reset the modules then choose one thanks to the hibernation reward of the 1st level or must I first choose an available one then reset the modules at the end of hibernation?"
+          }
+        ]
+      }
+    ],
+    "reason": "近期《Revive》上榜的主要原因可能是因為新版本的推出與設計團隊的持續關注。討論串中提到的各種話題，包括金屬代幣的需求、新遊戲的預告以及針對單人遊玩的評論，都顯示出玩家對於這款遊戲的熱情和參與度。此外，設計團隊的活躍度和新作品的宣傳也可能吸引了更多玩家的目光，進一步提升了遊戲的知名度和受歡迎程度。"
+  },
+  "434367": {
+    "name": "Nippon: Zaibatsu",
+    "threads": [
+      {
+        "title": "Strong starting tile combination",
+        "url": "https://boardgamegeek.com/thread/3513208",
+        "postdate": "2025-05-17 02:15:46",
+        "posts": [
+          {
+            "author": "Andimatter",
+            "postdate": "2025-05-17T02:15:46-05:00",
+            "body": "Hello,<br/><br/>I recently played this game (2p) on TTS and we think we found a potentially very strong combination of starting tiles.<br/><br/>Namely the one that gives a free train coupled with a resource tile that gives 2 iron.<br/><br/>With the free train you can get the 3rd iron and basically get a free ship on turn 1.<br/><br/>Compared to what the other starting powers are, this combo seems quite strong. Has anyone else noticed this?"
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-17T02:30:55-05:00",
+            "body": "I don't see why this is so strong? Building a ship is still an action, so it's not free. There's a starting tile that just gives you a ship. I think you might be overestimating the strength of a ship?<br/><br/>Sure, you can unlock both income bonuses early with a machine. But can you afford both a factory and a machine?<br/><br/>What might you be giving up with this start?"
+          },
+          {
+            "author": "Andimatter",
+            "postdate": "2025-05-17T08:57:45-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Awakening wrote:</b></p></div><div class='quotebody'><i><br/><br/>Sure, you can unlock both income bonuses early with a machine. But can you afford both a factory and a machine?<br/></i></div></div></font><br/><br/>Yes. You start with 12 money. Enough for a factory and a machine.<br/><br/>Thats the thing. I dont see that you need tongive up anything with this start.<br/><br/>The game even gauges the machine starting tile as more powerful and i dont really understand why."
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-17T09:38:43-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Andimatter wrote:</b></p></div><div class='quotebody'><i><br/>Yes. You start with 12 money. Enough for a factory and a machine.<br/><br/>Thats the thing. I dont see that you need tongive up anything with this start.<br/><br/>The game even gauges the machine starting tile as more powerful and i dont really understand why.</i></div></div></font><br/>I have not played the game enough to judge how strong this start really is. +1 income isn't amazing. The Investment action is far stronger (+2 to +6 income),<br/><br/>To me, ships seems like a nice thing, but not really strong. They cost the same as trains but gives no influence. Just an extra worker and a minor boost."
+          }
+        ]
+      },
+      {
+        "title": "Box Art",
+        "url": "https://boardgamegeek.com/thread/3513113",
+        "postdate": "2025-05-16 20:21:24",
+        "posts": [
+          {
+            "author": "BuenaGames",
+            "postdate": "2025-05-16T20:21:24-05:00",
+            "body": "I notice a notable amount of people voicing their preference for the retail edition box art vs the emperor's edition.<br/><br/>I think a neat compromise would be to remove the big navy blue coloring from the top and bottom banners, but keep all golden borders (i.e. the parallel golden lines) and lettering and leave the navy blue within the enclosed Title and Designer bubbles. So that way, the openness of the retail box art isn't cut off, and can still have a premium look. <br/><br/>Considering that most people are pledging for the Emperor's Edition, the contents of the pledge vastly outweigh its appearance. However, an adjustment like this in my opinion is bound to please an even greater majority of people.<br/><br/>How would you design or alter the game's box art?"
+          },
+          {
+            "author": "brokengod",
+            "postdate": "2025-05-16T21:44:39-05:00",
+            "body": "is it weird that I like the Emperor's Edition box art?<br/><br/>Prefer it, even.<br/><br/>The retail art is nice, I wouldn't be disappointed with it, but I prefer the 'overlayed banner' look of the header and footer wording."
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-17T00:48:02-05:00",
+            "body": "I too prefer the Emperor's Edition box. I think it looks more premium. It also has a pattern in the dark blue areas that you may not notice if you don't look at it close up.<br/><br/>You are seeing more people complaining about this because people don't generally write to tell you that they like something. But they will write if they don't like something.<br/><br/>I don't mind the regular version with gold details. But I prefer the current version."
+          },
+          {
+            "author": "adamxt",
+            "postdate": "2025-05-17T06:10:24-05:00",
+            "body": "I agree, I prefer the Emperor box art as it is. I didn’t bother commenting because every Kickstarter seems to have this sort of discussion, and questions of aesthetics are very personal. <br/><br/>I think the design is good. "
+          }
+        ]
+      },
+      {
+        "title": "Italian and German editions of Nippon: Zaibatsu now available throughout Europe",
+        "url": "https://boardgamegeek.com/thread/3511841",
+        "postdate": "2025-05-14 07:09:32",
+        "posts": [
+          {
+            "author": "Aenvar",
+            "postdate": "2025-05-14T07:09:32-05:00",
+            "body": "In <a href=\"https://www.kickstarter.com/projects/crowdgames/nippon-zaibatsu/posts/4384149?ref=bggforums\" target=\"_blank\" class=\"postlink\" rel=\"nofollow noreferrer noopener\">the recent update</a> on the Nippon: Zaibatsu Kickstarter campaign page, CrowD Games announced that <b>Italian and German copies of the Emperor’s Edition will be available for delivery to all European countries</b> (except the UK).<br/><br/>Backers will be able to choose between three language editions (English, Italian, and German) in the pledge manager. For Emperor's Edition x2 pledges, two-language combinations — IT + EN and DE + EN — will also be available."
+          }
+        ]
+      },
+      {
+        "title": "Factory effects question",
+        "url": "https://boardgamegeek.com/thread/3511789",
+        "postdate": "2025-05-14 04:30:08",
+        "posts": [
+          {
+            "author": "Altcore",
+            "postdate": "2025-05-14T04:30:08-05:00",
+            "body": "Hello, I have some questions about factory synergy based on our first game.<br/>First example:<br/><br/><div style=''><a href=\"https://boardgamegeek.com/image/8883885\"><img src=\"https://cf.geekdo-images.com/XRf1fiBwJ6efucriYBpbqw__small/img/Y5Yro6DS4Y4zaZls_ki9TEndfmM=/fit-in/200x150/filters:strip_icc()/pic8883885.png\" border=0></a></div><br/>Does the effect of the second factory trigger the effect of the first? In the TTS module, the description of the first factory says that it's an action modifier. The effect of the second factory isn't an action, as I understand.<br/><br/>Second example:<br/><div style=''><a href=\"https://boardgamegeek.com/image/8883733\"><img src=\"https://cf.geekdo-images.com/zRYRC8IcbyDXe1JhgSNswg__small/img/pmLPkSfcnN3cxCLUK6rFvnGFwBs=/fit-in/200x150/filters:strip_icc()/pic8883733.png\" border=0></a></div><br/>The first and third factories modify actions with R&D and mining. Could these effects apply when we have an Innovation Department bonuses?<br/><br/>I think in both cases the answer should be no, because in both cases the wording says that the effect of factory is an action modifier (action on the main board, not the action from the other effects). But in this case, we should always think about not buying factories with these anti-synergy effects (in opposite to how it usually works in other games).<br/><br/>Best regards.<br/><br/>"
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T05:53:28-05:00",
+            "body": "The first factory triggers every time you take the R&D action, increase the development track by 1 additional space.<br/>The second factory just gives you 5 money when you build it.<br/>The third factory triggers every time you take the mining action, increase the mining track by 1 additional space and gain 1 steel.<br/><br/>The first and third factory only applies to you taking the corresponding action."
+          },
+          {
+            "author": "Altcore",
+            "postdate": "2025-05-14T06:07:26-05:00",
+            "body": "Thank you for the answer. What is about the first example?"
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T06:16:25-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Altcore wrote:</b></p></div><div class='quotebody'><i>Thank you for the answer. What is about the first example?</i></div></div></font><br/>Oh, it showed the same image on both for me at first so I didn't realize it was a different case 🙂<br/><br/>That is a good question. The icon and description indicates that it does not trigger since you didn't use the specified action.<br/>Otherwise it should trigger when a machine is placed on that factory. But I think it should only trigger when the machine building action is used.<br/>If that is not the case then a further clarification is needed and a different icon should be used. I would definitely put this into an FAQ."
+          },
+          {
+            "author": "Altcore",
+            "postdate": "2025-05-14T06:23:05-05:00",
+            "body": "Yes, the problem in the first example also applies to many other combinations. Like a factory that produces 3 items and another that has a bonus to produce something in this factory. It's a bit tricky to always think about what factory to buy to not break some synergy in engine (totally opposite how it usually works in many other games where all new cards/tiles have synergy and combos with everything else, but I understand that the combos are not a part of this game idea)."
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T09:27:15-05:00",
+            "body": "This is from the rules on page 10.<br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i><br/><b>Immediate.</b> Immediately apply the effect of the Factory after placing it on your Zaibatsu.<br/><br/><b>Action modifier.</b> Factories can modify the actions. You may only apply a modifier from one Factory per action, even if you have more than one Factory with the same respective modifier.<br/><br/><b>Special.</b> Some Factories have permanent effects or effects triggered in specific situations. Such Factories have no icon to the left of the effect.<br/><br/><b>Note: </b>Factory effects are not actions, so those effects cannot be modified by the action modifiers.<br/></i></div></div></font><br/><br/>So this makes it clear that the factories that have those square icons are Action Modifiers.<br/>And the note states that factories cannot trigger Action Modifiers on other factories."
+          }
+        ]
+      },
+      {
+        "title": "New additions/adding to much?",
+        "url": "https://boardgamegeek.com/thread/3511536",
+        "postdate": "2025-05-13 14:57:47",
+        "posts": [
+          {
+            "author": "graham671",
+            "postdate": "2025-05-13T14:57:47-05:00",
+            "body": "For those who have tried the new version: is the game becoming too 'combotastic'? It seems like the recent changes—such as adding silk as a new resource, introducing factory production bonuses, and adding more bonuses to development and income tracks—might lead to excessive combo chains and loosen up the game a bit. "
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T02:25:58-05:00",
+            "body": "I would not call this game combotastic. Sometimes you do one thing that triggers one other thing. For example you could buy a factory that raises your development and that could trigger income of 2/3 coal. The number of things that can trigger other things is very limited and they do so very rarely. For example the development track only triggers coal once and then unlocks influence markers 3 times. That's it, and you are not likely to do all that every game. "
+          },
+          {
+            "author": "1ngu",
+            "postdate": "2025-05-14T04:50:44-05:00",
+            "body": "Sorry for this getting long and maybe a bit outside of the scope of your original question, but it all ties in with the new additions to the game. <br/>I'd say it depends on what you compare it to. In comparison to og Nippon, I would argue that one might call this game 'combotastic' or 'abundant', but in comparison to other games; maybe not so much. <br/>l'll just start by saying that I've only played og Nippon a handful of times, all within this year except an old play on BGA a few years back, so I'm in no way an expert.<br/>But I've followed the campaign as I like the game and wanted to see what this new version brought to the table. And I do share a lot of the 'concerns' that's been voiced so far. My two main concerns with the new version was that it's become too 'abundant' in resources and leans more into multiplayer solitaire. <br/><br/>I think Board gaming ramblings did a good comparison in their video, and they addressed the fact that vp multipliers are now on your own board instead of in a common pool, which I am not really a fan of. The race to grab the high multipliers is completely gone and you can consolidate at your own leisure knowing your high scoring tokens are still there waiting for you to decide what to do with them, making you able to play it a bit more safe and not have to chicken race others in grabbing the x5s or x4s. <br/>Also the new department makes me feel like players will focus more on what they need themselves in terms of bonuses, rather than in what colour worker other players are focusing on and what might be 'left alone' for you to consolidate for cheap (or for others to draft just to make it more expensive for you, there's that aspect as well).<br/>When I watched the 2p playthrough from Before you play I felt they had so many resources all the time and albeit tight, some of it felt not so tight anymore. But maybe they're just good at the game or good at resource management in general?<br/><br/>So I tried the solo mode on TTS. I am not at all a fan of TTS so I didn't exactly bring my 'a-game', I just wanted to try it out. <br/>Even so, I had so much coal and steel that getting enough actions to actually spend them became almost like a chore. I took a starting tile that gave me a ship, so I tried to lean into a ship strategy. Also because of the new ship mechanic, to get a good feel for it. <br/>I always felt like I took the ship action 'too late' in a round so I didn't have enough space left for the expert workers. I'm sure if you play the game more you'll figure out how to plan for it, but I almost always had steel to build 2 or 3 ships, but not enough space for the workers. <br/>And to be honest, I'm unsure how to go about building 3 ships in one turn and still have a good foundation for consolidation, since 3 ships will take up 4 of the 6 department slots, leaving only 2 actions to spend all your money and coal before they're discarded in a consolidation. I do realize I might have played thinking like in og Nippon, and upon playing Zaibatsu more I reckon you'd get a better feel for when to take what resources as to not take more resources than you need, but even so the game just 'gives you resources' at times that you then have to do something with (as mentioned above when going up the different tracks etc). <br/><br/>A bit of a side step from your original question, but in a way it ties in with combotasticness and abundance. I had the means (steel) to build 3 ships, but I didn't see the benefit of doing so cause I had so much of my other resources that I also needed to spend before consolidating. And had I used the steel to build trains, the first two in every region gives you more resources. <br/><br/>So for me I'm sticking with my og Nippon. I don't find the new game to be bad per se, if you like to do your own thing (not having to race for scoring multipliers) and like having enough resources to not feel too restricted, then the new version I'd say is still a good game, but for me personally and for the reasons I like Nippon, I feel like the new version is not for me. "
+          },
+          {
+            "author": "graham671",
+            "postdate": "2025-05-14T08:59:14-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>1ngu wrote:</b></p></div><div class='quotebody'><i>Sorry for this getting long and maybe a bit outside of the scope of your original question, but it all ties in with the new additions to the game. <br/>I'd say it depends on what you compare it to. In comparison to og Nippon, I would argue that one might call this game 'combotastic' or 'abundant', but in comparison to other games; maybe not so much. <br/>l'll just start by saying that I've only played og Nippon a handful of times, all within this year except an old play on BGA a few years back, so I'm in no way an expert.<br/>But I've followed the campaign as I like the game and wanted to see what this new version brought to the table. And I do share a lot of the 'concerns' that's been voiced so far. My two main concerns with the new version was that it's become too 'abundant' in resources and leans more into multiplayer solitaire. <br/><br/>I think Board gaming ramblings did a good comparison in their video, and they addressed the fact that vp multipliers are now on your own board instead of in a common pool, which I am not really a fan of. The race to grab the high multipliers is completely gone and you can consolidate at your own leisure knowing your high scoring tokens are still there waiting for you to decide what to do with them, making you able to play it a bit more safe and not have to chicken race others in grabbing the x5s or x4s. <br/>Also the new department makes me feel like players will focus more on what they need themselves in terms of bonuses, rather than in what colour worker other players are focusing on and what might be 'left alone' for you to consolidate for cheap (or for others to draft just to make it more expensive for you, there's that aspect as well).<br/>When I watched the 2p playthrough from Before you play I felt they had so many resources all the time and albeit tight, some of it felt not so tight anymore. But maybe they're just good at the game or good at resource management in general?<br/><br/>So I tried the solo mode on TTS. I am not at all a fan of TTS so I didn't exactly bring my 'a-game', I just wanted to try it out. <br/>Even so, I had so much coal and steel that getting enough actions to actually spend them became almost like a chore. I took a starting tile that gave me a ship, so I tried to lean into a ship strategy. Also because of the new ship mechanic, to get a good feel for it. <br/>I always felt like I took the ship action 'too late' in a round so I didn't have enough space left for the expert workers. I'm sure if you play the game more you'll figure out how to plan for it, but I almost always had steel to build 2 or 3 ships, but not enough space for the workers. <br/>And to be honest, I'm unsure how to go about building 3 ships in one turn and still have a good foundation for consolidation, since 3 ships will take up 4 of the 6 department slots, leaving only 2 actions to spend all your money and coal before they're discarded in a consolidation. I do realize I might have played thinking like in og Nippon, and upon playing Zaibatsu more I reckon you'd get a better feel for when to take what resources as to not take more resources than you need, but even so the game just 'gives you resources' at times that you then have to do something with (as mentioned above when going up the different tracks etc). <br/><br/>A bit of a side step from your original question, but in a way it ties in with combotasticness and abundance. I had the means (steel) to build 3 ships, but I didn't see the benefit of doing so cause I had so much of my other resources that I also needed to spend before consolidating. And had I used the steel to build trains, the first two in every region gives you more resources. <br/><br/>So for me I'm sticking with my og Nippon. I don't find the new game to be bad per se, if you like to do your own thing (not having to race for scoring multipliers) and like having enough resources to not feel too restricted, then the new version I'd say is still a good game, but for me personally and for the reasons I like Nippon, I feel like the new version is not for me. </i></div></div></font><br/><br/>Thanks for the insight.  After reading the rules a few times and watching some of the preview videos, it does seem that the limiters have been taken away from the game just a bit as you described: more availability of resources, more secure and safe bonuses to rely on."
+          },
+          {
+            "author": "Starpunch22",
+            "postdate": "2025-05-14T09:21:18-05:00",
+            "body": "Having played the demo, I think they made the game a bit more open and it has more ways to get resources. It does have the classic euro \"move forward this track, reach the icon, get more resources\", but I think it's important to point out that those bonuses are never more actions. The only time you would get a new action is when a factory has a bonus that lets you either do another action on build or during production, which is not really that often. It's not like in Tiletum when someone is chaining 4 different actions into one turn and you wait 20 minutes for that one person to do their thing, actions in this game are rather quick and there is no easy way to get more actions per turn.<br/><br/>The thing that I don't like is expert workers, this current iteration feels a bit pointless to me, it's not an interesting mechanic and theme-wise it just doesn't make sense."
+          },
+          {
+            "author": "1ngu",
+            "postdate": "2025-05-14T09:41:15-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>graham671 wrote:</b></p></div><div class='quotebody'><i>Thanks for the insight.  After reading the rules a few times and watching some of the preview videos, it does seem that the limiters have been taken away from the game just a bit as you described: more availability of resources, more secure and safe bonuses to rely on.</i></div></div></font><br/><br/>Yes, secure bonuses is a good way to put it! Forgot to mention it along with everything else but since the consolidation bonuses in og Nippon are tied to the scoring multipliers and therefor limited it adds to the 'multiplayer solitaire' feel of the new department bonuses since it's much more pick n choose without much worry about what others are doing. "
+          },
+          {
+            "author": "Mazmo_",
+            "postdate": "2025-05-14T10:27:17-05:00",
+            "body": "All those comments about the game being more multiplayer solitaire and that ressources are plenty make me reconsider my back. I think I will drop out then as I prefer my euro to be more interactive.... I thought the area control part was more important I guess...."
+          },
+          {
+            "author": "Drac0nichero",
+            "postdate": "2025-05-14T10:42:12-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>All those comments about the game being more multiplayer solitaire and that ressources are plenty make me reconsider my back. I think I will drop out then as I prefer my euro to be more interactive.... I thought the area control part was more important I guess....</i></div></div></font><br/>The area control part is highly interactive, i just think people are comparing the race aspect of the previous edition and how it was removed for more individualized scoring. <br/>I played the game at 2p and i think it's more interactive than most games now days. "
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T10:47:08-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>All those comments about the game being more multiplayer solitaire and that ressources are plenty make me reconsider my back. I think I will drop out then as I prefer my euro to be more interactive.... I thought the area control part was more important I guess....</i></div></div></font><br/>Depends on what you are looking for. The area majority scoring is still the biggest part of the game. You also have the worker selection that is interactive. And there's only one of each factory. There are limited spaces for the ships and the trains, with other limits on the ships as well. You also have the Common Goals and Late-Game Factories modules for added interactions between the players."
+          },
+          {
+            "author": "Mazmo_",
+            "postdate": "2025-05-14T10:59:06-05:00",
+            "body": "Is it true that the ressources are too plentiful ? I prefer crunchy decision and tense choices.<br/><br/>Thanks for your replies by the way"
+          },
+          {
+            "author": "1ngu",
+            "postdate": "2025-05-14T11:01:37-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>All those comments about the game being more multiplayer solitaire and that ressources are plenty make me reconsider my back. I think I will drop out then as I prefer my euro to be more interactive.... I thought the area control part was more important I guess....</i></div></div></font><br/><br/>I agree with the others on this, I didn't touch upon the area control aspect because that I would say is still pretty much the same. A big chunk of your points come from it, and I didn't mention it since the topic was changes/additions. It is still important to focus on area control and getting influence out on the board, and since I played solo I honestly can't say much about how that would work with human opponents because I felt the bot was way more aggressive with it and put them out a lot easier than a human player would. I think my main focus when trying the solo mode was trying out what was different, and come to terms with how I felt about those differences. The area control is important and I reckon still interactive, but it's how you get there that feels more mps for me, if that makes sense 🙂 not trying to sway you to keep your pledge, but as mentioned I focused more on the differences in my analysis and agree that there is still interaction, just not 'as much' imo. <br/>"
+          },
+          {
+            "author": "1ngu",
+            "postdate": "2025-05-14T11:05:57-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>Is it true that the ressources are too plentiful ? I prefer crunchy decision and tense choices.<br/><br/>Thanks for your replies by the way</i></div></div></font><br/><br/>I would say it depends on who you ask and what you compare to. It's still not 'do what you want you will never ever be short on resources' but I did feel I had more resources and more ways of getting them compared to og Nippon. I hope to get some multiplayer games in before the campaign ends to get a 'proper' feel for it, but that's my initial thoughts at least. "
+          },
+          {
+            "author": "Drac0nichero",
+            "postdate": "2025-05-14T11:28:21-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>Is it true that the ressources are too plentiful ? I prefer crunchy decision and tense choices.<br/><br/>Thanks for your replies by the way</i></div></div></font><br/>I felt during my play that i was rarely in the situation where i lacked resources for my actions, but that was due to careful planning ahead of time. If you manage things well you should never theoretically be short of resources. Does that make the game less engaging? Not in my experience. I still had to think out each and every move i made and was pressured by other players to produce and put out influence as well as get the factories that fit my strategy best first before they were taken."
+          },
+          {
+            "author": "Awakening",
+            "postdate": "2025-05-14T11:55:26-05:00",
+            "body": "<font color=#2121A4><div class='quote'><div class='quotetitle'><p><b>Mazmo_ wrote:</b></p></div><div class='quotebody'><i>Is it true that the ressources are too plentiful ? I prefer crunchy decision and tense choices.</i></div></div></font><br/>I have not played the original. I know that this version has one more type of resource. It also has more ways to get resources. I have tried the new solo mode once and I felt like I was constantly short on something. You really have to plan ahead. If you want to do something you have to figure out how to get the resources you need. There's no action to just get the resource you want right away. Coal I think was the hardest one, I always wished I had more. Since you can't keep your coal or money, they will always be tight. When you do the Local Markets action you can get loads of a single resource. You need to constantly think ahead and plan multiple steps forward.<br/>"
+          }
+        ]
+      }
+    ],
+    "reason": "近期《Nippon: Zaibatsu》上榜的主要原因是因為其新版本在歐洲市場推出，並且意大利和德國版本的上市引起了廣泛關注。此外，討論串中提到的強力起始棋盤組合和玩家對於新版本美術設計的偏好，也顯示出遊戲在玩家社群中的活躍度和熱度。這些因素共同促進了遊戲的關注度和上榜表現。"
+  },
+  "429860": {
+    "name": "Transgalactica",
+    "threads": [
+      {
+        "title": "A Few Questions After One Play ",
+        "url": "https://boardgamegeek.com/thread/3514415",
+        "postdate": "2025-05-19 14:02:03",
+        "posts": [
+          {
+            "author": "LoremasterRyan",
+            "postdate": "2025-05-19T14:02:03-05:00",
+            "body": "Hey all, have a few questions here that I don't think I could find the answers for in the rules:<br/><br/>What happens if you pull back more crew than you have spaces for?<br/><br/>There's no explanation of the Outpost icon as a reward on the Galactic Senate. The icon for \"place 1 outpost, paying any related costs\" has a black arrow about it. The outpost icon without the arrow appears in the senate and also on a pink tile. How does this differ?<br/><br/>How does the permanent wormhole work on the special tile? Can you just always pay to use a wormhole no matter where you are?<br/><br/>When do you replace missions? The rules don't seem to say if they slide or get replaced immediately or what. <br/><br/>Bonuses that say go up a track without paying. Some bonuses have the \"don't pay to go up this track\" but what about the icons that don't have that? Do you pay the cost like you're taking the action? The green planet that moved you up tracks, the mining tiles, etc - they don't have the free icon. So do you pay something? <br/><br/>Thanks all "
+          },
+          {
+            "author": "fabio",
+            "postdate": "2025-05-20T02:08:31-05:00",
+            "body": "Unfortunately, it seems that this rules really leaves too many open questions. I have listed several in other posts as well. From your post, the only one I can answer for sure is the one about mission cards. In fact, on the rules this sentence is present (page 22): <br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>If there is an open space after a Mission card is taken, replace it with a card from the appropriate deck.</i></div></div></font><br/><br/>The rules do not mention that they must be rearranged in numerical order when adding a new card, however, at the top of the page is indicated:<br/><br/><font color=#2121A4><div class='quote'><div class='quotebody'><i>These cards are divided into 2 decks, and there will always be only 3 cards from each deck on the board. These cards are arranged in numerical order from top to bottom (higher number on top), observing the numbers in the top left corner of the cards.</i></div></div></font><br/><br/>So I suppose that you have to rearrange the cards every time a new card comes into play. Of this last deduction, however, I am not at all sure.<br/>f<br/>"
+          },
+          {
+            "author": "aarranzlopez",
+            "postdate": "2025-05-20T12:56:23-05:00",
+            "body": "I'm still concerned that nobody seems to master the rules yet (the rulebook doesn't seem to help). I mean, nobody (except the author and maybe Devir I guess) has the knowledge to clarify all these details which, again, don't look like rare corner cases but regular game situations.<br/>Let's hope someone dares to upload a playthrough video and shed some light on your questions.<br/><br/>I really love the Daniel Tascini and Edu Valls combo...but I really don't know what to think of Transgalactica yet."
+          },
+          {
+            "author": "LoremasterRyan",
+            "postdate": "2025-05-20T14:12:03-05:00",
+            "body": "Thanks I missed that part about replacing. So I guess nothing slides or rearranges then? "
+          },
+          {
+            "author": "LoremasterRyan",
+            "postdate": "2025-05-20T14:13:39-05:00",
+            "body": "I think the game itself is really good it's just these situations appear that you might have to guess at. It's possible I just missed these things in the rules. "
+          }
+        ]
+      },
+      {
+        "title": " Multicolored planets are also considered grey planets?",
+        "url": "https://boardgamegeek.com/thread/3511782",
+        "postdate": "2025-05-14 04:06:25",
+        "posts": [
+          {
+            "author": "fabio",
+            "postdate": "2025-05-14T04:06:25-05:00",
+            "body": "It is not clear to me whether multicolored planets are also considered gray planets in reference to the exploration action.<br/>It seems, judging from the iconography on the rulebook that only fully gray planets offer the +1 bonus on spaceship movement. But then, why do multicolored planets also have gray color? If, on the other hand, multicolored planets also offer the +1 on movement during exploration, how should the initial planet be considered?<br/>The rulebook says to move 1 plus 1 for each gray planet. Does that mean that at the beginning of the game the movement ability is 2 (1 + 1 offered by the initial planet)?<br/>Thanks"
+          },
+          {
+            "author": "LoremasterRyan",
+            "postdate": "2025-05-20T14:16:01-05:00",
+            "body": "I had this same question. I assumed the grey planet you start with gives you +1 because the rules never say it doesn't. So I believed you start with 2 movement. <br/><br/>I also assume the multi-colored planets count as grey. "
+          }
+        ]
+      },
+      {
+        "title": "Bonus tiles face up during setup?",
+        "url": "https://boardgamegeek.com/thread/3511774",
+        "postdate": "2025-05-14 03:30:44",
+        "posts": [
+          {
+            "author": "fabio",
+            "postdate": "2025-05-14T03:30:44-05:00",
+            "body": "Could you confirm that the bonus tiles must be put ALL face up on the main board during setup? The pictures on the rules are misleading (and also some pictures I have seen on the web) but the rules clearly say to put them face up.<br/>The rules also say to stack them when more than one is to be placed in a space. In that case, if a player reaches that space on a track, he chooses the bonus tile to take from the ones stacked or does he have to take the one at the top of the stack?<br/>Thanks "
+          }
+        ]
+      },
+      {
+        "title": "Bonus tile for military track progress ",
+        "url": "https://boardgamegeek.com/thread/3511749",
+        "postdate": "2025-05-14 02:17:54",
+        "posts": [
+          {
+            "author": "fabio",
+            "postdate": "2025-05-14T02:17:54-05:00",
+            "body": "One of the bonus tiles (one of the blue ones) indicates an advancement on the military track with a discount of one energy. If I understand correctly these bonus tiles are collected and can be used once during one's turn. How is that tile to be understood? Is it a discount if you perform that action (I don't think so) or is it itself an extra action that allows me to advance on the military track in addition to the action I will take on the turn? And if so, the base cost of the action I should consider what is it? The one of the main action (one energy and one credit OR two energies) or the one of the secondary action (two energies AND one credit). There is no explanation of these tiles in the rulebook and that particular icon is not in the icon summary.<br/>Thanks"
+          }
+        ]
+      },
+      {
+        "title": "Crew on duty",
+        "url": "https://boardgamegeek.com/thread/3511748",
+        "postdate": "2025-05-14 02:08:50",
+        "posts": [
+          {
+            "author": "fabio",
+            "postdate": "2025-05-14T02:08:50-05:00",
+            "body": "There are only four spaces on the player board to accommodate crew on duty . Is that a limitation or can you have more crew members than those spaces can accommodate? There are 6 crew members in total. What happens in the maintenance phase if the crewmembers I retrieve from the main board are more than the available spaces in the player board? "
+          }
+        ]
+      }
+    ],
+    "reason": "Transgalactica近期上榜的主要原因可能是因為其新版本的推出，這引發了玩家對於遊戲規則的討論與疑問，顯示出遊戲在社群中的活躍度和關注度。玩家們對於規則的細節有許多不明之處，這種情況通常會促使更多人進行討論和探索，進一步提升遊戲的曝光率和人氣。"
+  }
+}
