@@ -11,11 +11,38 @@
     </div>
 </div>
 
+<!-- 日期選擇器 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <label for="dateSelect" class="form-label">📅 選擇報表日期：</label>
+                <select id="dateSelect" class="form-select" onchange="changeDate()">
+                    {% for date in available_dates %}
+                        <option value="{{ date }}" {% if date == selected_date %}selected{% endif %}>
+                            {{ date }}{% if loop.first %} (最新){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-2 mt-3 mt-md-0">
+                    <a href="{{ url_for('generate') }}" class="btn btn-success">🔄 重新產生報表</a>
+                    <a href="{{ url_for('settings') }}" class="btn btn-primary">⚙️ 設定</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="report-content">
     {{ content | safe }}
 </div>
 
-<div class="text-center mb-4">
-    <a href="{{ url_for('generate') }}" class="btn btn-success">🔄 重新產生報表</a>
-</div>
+<script>
+function changeDate() {
+    const selectedDate = document.getElementById('dateSelect').value;
+    window.location.href = '{{ url_for("index") }}?date=' + selectedDate;
+}
+</script>
 {% endblock %}

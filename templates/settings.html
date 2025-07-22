@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}設定 - BGG 熱門遊戲報表{% endblock %}
+
+{% block content %}
+<div class="mt-4">
+    <h2>⚙️ 系統設定</h2>
+
+    <!-- 排程控制區 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">📅 排程管理</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <p><strong>自動排程時間：</strong>每天早上 8:00 (台北時間)</p>
+                    <p class="text-muted">自動排程會執行以下任務：</p>
+                    <ul class="text-muted">
+                        <li>抓取 BGG 熱門遊戲榜單</li>
+                        <li>獲取遊戲詳細資訊</li>
+                        <li>抓取討論串並翻譯</li>
+                        <li>產生報表</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <button id="runSchedulerBtn" class="btn btn-warning btn-lg w-100" onclick="runScheduler()">
+                        🚀 立即執行完整排程
+                    </button>
+                    <small class="text-muted">此操作可能需要 10-30 分鐘</small>
+                </div>
+            </div>
+
+            <!-- 執行狀態顯示 -->
+            <div id="schedulerStatus" class="mt-3" style="display: none;">
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <span>正在執行排程任務，請稍候...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快速操作區 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">🔧 快速操作</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <a href="{{ url_for('generate') }}" class="btn btn-success mb-2 w-100">
+                        🔄 僅重新產生報表
+                    </a>
+                    <small class="text-muted">基於現有資料產生報表 (約1-2分鐘)</small>
+                </div>
+                <div class="col-md-6">
+                    <a href="{{ url_for('index') }}" class="btn btn-info mb-2 w-100">
+                        📊 回到報表頁面
+                    </a>
+                    <small class="text-muted">查看最新的報表內容</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系統狀態區 -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">📈 系統狀態</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>可用報表數量：</strong>{{ available_dates|length }} 份</p>
+                    {% if available_dates %}
+                    <p><strong>最新報表日期：</strong>{{ available_dates[0] }}</p>
+                    <p><strong>最舊報表日期：</strong>{{ available_dates[-1] }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <p><strong>部署平台：</strong>Zeabur</p>
+                    <p><strong>排程狀態：</strong><span class="badge bg-success">正常運行</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function runScheduler() {
+    const btn = document.getElementById('runSchedulerBtn');
+    const status = document.getElementById('schedulerStatus');
+
+    // 禁用按鈕並顯示載入狀態
+    btn.disabled = true;
+    btn.innerHTML = '🔄 執行中...';
+    status.style.display = 'block';
+
+    try {
+        const response = await fetch('/api/run-scheduler', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        // 隱藏載入狀態
+        status.style.display = 'none';
+
+        if (result.success) {
+            // 成功
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                ${result.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
+        } else {
+            // 失敗
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                執行失敗：${result.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
+        }
+    } catch (error) {
+        // 網路錯誤
+        status.style.display = 'none';
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            網路錯誤：${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
+    }
+
+    // 恢復按鈕狀態
+    btn.disabled = false;
+    btn.innerHTML = '🚀 立即執行完整排程';
+}
+</script>
+{% endblock %}
