@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import sqlite3
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from dotenv import load_dotenv
@@ -9,6 +8,7 @@ import logging
 import glob
 import re
 import json
+from database import get_db_connection
 
 # 嘗試導入 markdown，如果失敗則使用簡單的文字顯示
 try:
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'password')
 
-DB_PATH = "data/bgg_rag.db"
+# DB_PATH = "data/bgg_rag.db"  # 移除，改用統一的資料庫連接
 
 def get_report_by_date(report_date, lang='zh-tw'):
     """獲取指定日期的報表內容"""
@@ -103,30 +103,29 @@ def get_available_dates():
 def get_game_details_from_db(objectid):
     """從資料庫獲取遊戲的完整詳細資料"""
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        
-        # 獲取遊戲基本資料
-        cursor.execute("""
-            SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
-                   minplaytime, maxplaytime, image
-            FROM game_detail
-            WHERE objectid = ?
-        """, (objectid,))
-        
-        game_detail = cursor.fetchone()
-        
-        # 獲取所有類型的分類資料
-        cursor.execute("""
-            SELECT bi.id, bi.name, bi.category 
-            FROM bgg_items bi
-            JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
-            WHERE gc.objectid = ?
-            ORDER BY bi.category, bi.name
-        """, (objectid,))
-        
-        category_results = cursor.fetchall()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 獲取遊戲基本資料
+            cursor.execute("""
+                SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
+                       minplaytime, maxplaytime, image
+                FROM game_detail
+                WHERE objectid = ?
+            """, (objectid,))
+            
+            game_detail = cursor.fetchone()
+            
+            # 獲取所有類型的分類資料
+            cursor.execute("""
+                SELECT bi.id, bi.name, bi.category 
+                FROM bgg_items bi
+                JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
+                WHERE gc.objectid = ?
+                ORDER BY bi.category, bi.name
+            """, (objectid,))
+            
+            category_results = cursor.fetchall()
         
         # 組織分類資料
         categories = {'boardgamecategory': [], 'boardgamemechanic': [], 
