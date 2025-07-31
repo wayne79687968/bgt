@@ -8,6 +8,7 @@ import subprocess
 import logging
 import glob
 import re
+import json
 
 # 嘗試導入 markdown，如果失敗則使用簡單的文字顯示
 try:
@@ -97,6 +98,286 @@ def get_available_dates():
         return sorted(dates, reverse=True)
     except Exception as e:
         logger.error(f"獲取可用日期失敗: {e}")
+        return []
+
+def get_game_details_from_db(objectid):
+    """從資料庫獲取遊戲的完整詳細資料"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # 獲取遊戲基本資料
+        cursor.execute("""
+            SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
+                   minplaytime, maxplaytime, image
+            FROM game_detail
+            WHERE objectid = ?
+        """, (objectid,))
+        
+        game_detail = cursor.fetchone()
+        
+        # 獲取所有類型的分類資料
+        cursor.execute("""
+            SELECT bi.id, bi.name, bi.category 
+            FROM bgg_items bi
+            JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
+            WHERE gc.objectid = ?
+            ORDER BY bi.category, bi.name
+        """, (objectid,))
+        
+        category_results = cursor.fetchall()
+        conn.close()
+        
+        # 組織分類資料
+        categories = {'boardgamecategory': [], 'boardgamemechanic': [], 
+                     'boardgamedesigner': [], 'boardgameartist': [], 'boardgamepublisher': []}
+        
+        for cat_id, name, category in category_results:
+            if category in categories:
+                categories[category].append({'id': cat_id, 'name': name})
+        
+        # 組織返回資料
+        if game_detail:
+            return {
+                'rating': game_detail[0],
+                'bgg_rank': game_detail[1],  # BGG總排名
+                'weight': game_detail[2],
+                'min_players': game_detail[3],
+                'max_players': game_detail[4],
+                'bestplayers': game_detail[5],
+                'minplaytime': game_detail[6],
+                'maxplaytime': game_detail[7],
+                'image': game_detail[8],
+                'categories': categories['boardgamecategory'],
+                'mechanics': categories['boardgamemechanic'],
+                'designers': categories['boardgamedesigner'],
+                'artists': categories['boardgameartist'],
+                'publishers': categories['boardgamepublisher']
+            }
+        else:
+            return {
+                'rating': None,
+                'bgg_rank': None,
+                'weight': None,
+                'min_players': None,
+                'max_players': None,
+                'bestplayers': None,
+                'minplaytime': None,
+                'maxplaytime': None,
+                'image': None,
+                'categories': categories['boardgamecategory'],
+                'mechanics': categories['boardgamemechanic'],
+                'designers': categories['boardgamedesigner'],
+                'artists': categories['boardgameartist'],
+                'publishers': categories['boardgamepublisher']
+            }
+            
+    except Exception as e:
+        logger.error(f"獲取遊戲詳細資料失敗: {e}")
+        return {
+            'rating': None,
+            'bgg_rank': None,
+            'weight': None,
+            'min_players': None,
+            'max_players': None,
+            'bestplayers': None,
+            'minplaytime': None,
+            'maxplaytime': None,
+            'image': None,
+            'categories': [],
+            'mechanics': [],
+            'designers': [],
+            'artists': [],
+            'publishers': []
+        }
+
+def get_game_categories_from_db(objectid):
+    """從資料庫獲取遊戲的分類資訊（包含ID）- 保持向後兼容"""
+    details = get_game_details_from_db(objectid)
+    return {
+        'boardgamecategory': details['categories'],
+        'boardgamemechanic': details['mechanics'],
+        'boardgamedesigner': details['designers'],
+        'boardgameartist': details['artists'],
+        'boardgamepublisher': details['publishers']
+    }
+
+def parse_game_data_from_report(content):
+    """從報表內容解析遊戲資料"""
+    games = []
+    if not content:
+        return games
+    
+    try:
+        # 解析排行榜表格
+        lines = content.split('\n')
+        in_table = False
+        
+        for line in lines:
+            line = line.strip()
+            
+            # 檢查是否是表格開始
+            if '| 排名 | 桌遊 | 年份 | 排名變化 |' in line:
+                in_table = True
+                continue
+            elif '|------|------|------|----------|' in line:
+                continue
+            elif in_table and line.startswith('|') and '|' in line:
+                # 解析表格行
+                parts = [p.strip() for p in line.split('|') if p.strip()]
+                if len(parts) >= 4:
+                    try:
+                        rank = int(parts[0])
+                        # 移除限制，獲取所有遊戲資料
+                            
+                        # 提取遊戲名稱和連結
+                        game_cell = parts[1]
+                        name_match = re.search(r'\[([^\]]+)\]', game_cell)
+                        game_name = name_match.group(1) if name_match else '未知遊戲'
+                        
+                        # 提取遊戲ID（從BGG連結中）
+                        bgg_link_match = re.search(r'https://boardgamegeek\.com/boardgame/(\d+)', game_cell)
+                        game_objectid = int(bgg_link_match.group(1)) if bgg_link_match else None
+                        
+                        # 提取圖片URL
+                        img_match = re.search(r'<img src="([^"]+)"', game_cell)
+                        image_url = img_match.group(1) if img_match else None
+                        
+                        # 提取年份
+                        year = parts[2]
+                        
+                        # 解析排名變化
+                        rank_change_cell = parts[3]
+                        rank_change = 0
+                        is_new = False
+                        
+                        if '⬆️' in rank_change_cell:
+                            change_match = re.search(r'⬆️\s*(\d+)', rank_change_cell)
+                            if change_match:
+                                rank_change = int(change_match.group(1))
+                        elif '⬇️' in rank_change_cell:
+                            change_match = re.search(r'⬇️\s*(\d+)', rank_change_cell)
+                            if change_match:
+                                rank_change = -int(change_match.group(1))
+                        elif '🆕' in rank_change_cell:
+                            is_new = True
+                        
+                        # 從資料庫獲取完整的遊戲詳細資料
+                        db_details = get_game_details_from_db(game_objectid) if game_objectid else {}
+                        
+                        games.append({
+                            'rank': rank,
+                            'name': game_name,
+                            'objectid': game_objectid,
+                            'year': year,
+                            'image': db_details.get('image') or image_url,
+                            'rank_change': rank_change,
+                            'is_new': is_new,
+                            'rating': db_details.get('rating') or '8.0',
+                            'bgg_rank': db_details.get('bgg_rank'),
+                            'weight': db_details.get('weight'),
+                            'min_players': db_details.get('min_players') or 1,
+                            'max_players': db_details.get('max_players') or 4,
+                            'bestplayers': db_details.get('bestplayers'),
+                            'playtime': 60,  # 預設值，後續會更新
+                            'minplaytime': db_details.get('minplaytime'),
+                            'maxplaytime': db_details.get('maxplaytime'),
+                            'categories': db_details.get('categories', []),
+                            'mechanics': db_details.get('mechanics', []),
+                            'designers': db_details.get('designers', []),
+                            'artists': db_details.get('artists', []),
+                            'publishers': db_details.get('publishers', []),
+                            'reason': None
+                        })
+                        
+                    except (ValueError, IndexError) as e:
+                        logger.warning(f"解析排行榜行失敗: {line}, 錯誤: {e}")
+                        continue
+            elif in_table and not line.startswith('|'):
+                # 表格結束
+                break
+        
+        # 解析詳細資料區段來獲取更多資訊
+        for game in games:
+            game_section_pattern = f"### <a id='{re.escape(game['name'].replace(' ', '-').replace(':', ''))}.*?</a>{re.escape(game['name'])}"
+            match = re.search(game_section_pattern, content, re.DOTALL)
+            if match:
+                section_start = match.end()
+                # 找到下一個遊戲區段或結束
+                next_game_match = re.search(r'###\s+<a id=', content[section_start:])
+                if next_game_match:
+                    section_end = section_start + next_game_match.start()
+                else:
+                    section_end = len(content)
+                
+                section_content = content[section_start:section_end]
+                
+                # 提取評分
+                rating_match = re.search(r'Rating.*?(\d+\.\d+)/10', section_content)
+                if rating_match:
+                    game['rating'] = rating_match.group(1)
+                
+                # 提取人數
+                players_match = re.search(r'人數.*?(\d+)～(\d+)\s*人', section_content)
+                if players_match:
+                    game['min_players'] = int(players_match.group(1))
+                    game['max_players'] = int(players_match.group(2))
+                
+                # 提取時間
+                time_match = re.search(r'時間.*?(\d+)～(\d+)\s*分鐘', section_content)
+                if time_match:
+                    game['playtime'] = int(time_match.group(2))
+                elif re.search(r'時間.*?(\d+)\s*分鐘', section_content):
+                    time_single_match = re.search(r'時間.*?(\d+)\s*分鐘', section_content)
+                    game['playtime'] = int(time_single_match.group(1))
+                
+                # 提取分類
+                category_match = re.search(r'分類.*?：\s*([^\n]+)', section_content)
+                if category_match:
+                    categories = [{'name': cat.strip()} for cat in category_match.group(1).split(',')]
+                    game['categories'] = categories
+                
+                # 提取機制
+                mechanic_match = re.search(r'機制.*?：\s*([^\n]+)', section_content)
+                if mechanic_match:
+                    mechanics = [{'name': mech.strip()} for mech in mechanic_match.group(1).split(',')]
+                    game['mechanics'] = mechanics
+                
+                # 提取設計師
+                designer_match = re.search(r'設計師.*?：\s*([^\n]+)', section_content)
+                if designer_match:
+                    designers = [{'name': designer.strip()} for designer in designer_match.group(1).split(',')]
+                    game['designers'] = designers
+                
+                # 提取美術
+                artist_match = re.search(r'美術.*?：\s*([^\n]+)', section_content)
+                if artist_match:
+                    artists = [{'name': artist.strip()} for artist in artist_match.group(1).split(',')]
+                    game['artists'] = artists
+                
+                # 提取發行商
+                publisher_match = re.search(r'發行商.*?：\s*([^\n]+)', section_content)
+                if publisher_match:
+                    publishers = [{'name': pub.strip()} for pub in publisher_match.group(1).split(',')]
+                    game['publishers'] = publishers
+                
+                # 提取上榜原因
+                reason_match = re.search(r'\*\*📈 上榜原因推論：\*\*\s*>\s*([^-]+?)(?=\n---|####|\nz{3,}|\n##|\n###|$)', section_content, re.DOTALL)
+                if reason_match:
+                    reason_text = reason_match.group(1).strip()
+                    # 清理多餘的空白和換行並移除前綴
+                    reason_text = re.sub(r'\s+', ' ', reason_text)
+                    # 移除《遊戲名》近期上榜的主要原因是 這類前綴
+                    reason_text = re.sub(r'^《[^》]+》[^，。]*?[的是]', '', reason_text)
+                    # 移除其他可能的前綴
+                    reason_text = re.sub(r'^[^，。]*?主要原因是', '', reason_text)
+                    reason_text = reason_text.strip()
+                    game['reason'] = reason_text
+        
+        return games
+    
+    except Exception as e:
+        logger.error(f"解析遊戲資料失敗: {e}")
         return []
 
 def generate_report():
@@ -237,6 +518,43 @@ def generate():
         flash(message, 'error')
 
     return redirect(url_for('index'))
+
+@app.route('/newspaper')
+def newspaper():
+    """報紙風格的報表檢視"""
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+
+    # 獲取選擇的日期，預設為今日
+    selected_date = request.args.get('date')
+    if not selected_date:
+        selected_date = datetime.now().strftime('%Y-%m-%d')
+
+    # 獲取指定日期的報表
+    content, filename = get_report_by_date(selected_date)
+
+    # 如果找不到指定日期的報表，嘗試獲取最新報表
+    if content is None:
+        content, filename = get_latest_report()
+
+    if content is None:
+        return render_template('error.html', error=filename)
+
+    # 解析所有遊戲資料 - 一次顯示全部
+    all_games = parse_game_data_from_report(content)
+    current_page_games = all_games  # 顯示所有遊戲
+    total_games = len(all_games)
+    
+    # 獲取所有可用日期
+    available_dates = get_available_dates()
+
+    return render_template('newspaper.html',
+                         current_page_games=current_page_games,
+                         filename=filename,
+                         selected_date=selected_date,
+                         available_dates=available_dates,
+                         total_games=total_games,
+                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/health')
 def health():
