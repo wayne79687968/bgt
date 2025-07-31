@@ -19,7 +19,9 @@ task_status = {
     'current_step': '',
     'progress': 0,
     'message': '',
-    'last_update': None
+    'last_update': None,
+    'stop_requested': False,
+    'stopped_by_user': False
 }
 
 def update_task_status(step, progress, message):
@@ -32,6 +34,33 @@ def update_task_status(step, progress, message):
         'last_update': datetime.now()
     })
     logger.info(f"📊 任務進度: {progress}% - {step} - {message}")
+
+def request_task_stop():
+    """請求停止當前任務"""
+    global task_status
+    if task_status['is_running']:
+        task_status['stop_requested'] = True
+        logger.info("🛑 用戶請求停止任務")
+        return True
+    return False
+
+def reset_task_status():
+    """重置任務狀態"""
+    global task_status
+    task_status.update({
+        'is_running': False,
+        'start_time': None,
+        'current_step': '',
+        'progress': 0,
+        'message': '',
+        'last_update': None,
+        'stop_requested': False,
+        'stopped_by_user': False
+    })
+
+def check_if_should_stop():
+    """檢查是否應該停止任務"""
+    return task_status.get('stop_requested', False)
 
 # 嘗試導入 markdown，如果失敗則使用簡單的文字顯示
 try:
@@ -494,16 +523,27 @@ def parse_game_data_from_report(content):
         return []
 
 def run_scheduler_async():
-    """異步執行排程任務"""
+    """異步執行排程任務（支持用戶停止）"""
     global task_status
 
     try:
         task_status['is_running'] = True
         task_status['start_time'] = datetime.now()
+        task_status['stop_requested'] = False
+        task_status['stopped_by_user'] = False
 
         update_task_status('開始', 0, '初始化任務...')
 
         logger.info("開始執行完整排程任務...")
+
+        # 檢查是否在初始化階段就被停止
+        if check_if_should_stop():
+            logger.info("🛑 任務在初始化階段被停止")
+            update_task_status('已停止', 0, '任務已被用戶停止')
+            task_status['is_running'] = False
+            task_status['stopped_by_user'] = True
+            return False, "任務已被用戶停止"
+
         logger.info(f"🔧 當前工作目錄: {os.getcwd()}")
         logger.info(f"🔧 Python 版本: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
 
@@ -528,9 +568,17 @@ def run_scheduler_async():
         else:
             logger.warning(f"⚠️ 輸出目錄不存在: {output_dir}")
 
+        # 再次檢查是否被停止
+        if check_if_should_stop():
+            logger.info("🛑 任務在環境檢查階段被停止")
+            update_task_status('已停止', 0, '任務已被用戶停止')
+            task_status['is_running'] = False
+            task_status['stopped_by_user'] = True
+            return False, "任務已被用戶停止"
+
         update_task_status('準備執行', 5, '檢查環境完成，開始執行排程...')
 
-        # 執行排程腳本，添加 --force 參數以確保能產生今日報表
+        # 執行排程腳本，使用 Popen 來支持中途停止
         cmd = [
             'python3', 'scheduler.py', '--run-now',
             '--detail', 'all',
@@ -541,23 +589,86 @@ def run_scheduler_async():
 
         update_task_status('執行中', 10, '正在執行數據抓取和報表生成...')
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)  # 30分鐘超時
+        # 使用 Popen 啟動子進程
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
 
-        logger.info(f"📊 命令執行完成，返回碼: {result.returncode}")
+        # 監控子進程並檢查停止請求
+        output_lines = []
+        error_lines = []
 
-        if result.stdout:
+        while process.poll() is None:  # 進程還在運行
+            # 檢查是否需要停止
+            if check_if_should_stop():
+                logger.info("🛑 收到停止請求，正在終止子進程...")
+                update_task_status('停止中', task_status['progress'], '正在停止任務...')
+
+                try:
+                    # 優雅地終止進程
+                    process.terminate()
+                    # 等待 5 秒讓進程優雅退出
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        # 如果進程沒有優雅退出，強制終止
+                        logger.warning("⚠️ 進程未能優雅退出，強制終止...")
+                        process.kill()
+                        process.wait()
+
+                    logger.info("✅ 子進程已成功停止")
+                    update_task_status('已停止', 0, '任務已被用戶停止')
+                    task_status['is_running'] = False
+                    task_status['stopped_by_user'] = True
+                    return False, "任務已被用戶停止"
+
+                except Exception as stop_error:
+                    logger.error(f"❌ 停止進程時發生錯誤: {stop_error}")
+                    # 即使停止失敗，也要更新狀態
+                    update_task_status('停止失敗', 0, '停止任務時發生錯誤')
+                    task_status['is_running'] = False
+                    return False, f"停止任務時發生錯誤: {stop_error}"
+
+            # 短暫休眠，避免過度消耗 CPU
+            time.sleep(1)
+
+            # 更新進度（模擬進度更新）
+            elapsed = (datetime.now() - task_status['start_time']).total_seconds()
+            estimated_progress = min(10 + (elapsed / 1200) * 80, 90)  # 預估進度，最多到90%
+            update_task_status('執行中', int(estimated_progress), f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)')
+
+        # 子進程已完成，獲取輸出
+        stdout, stderr = process.communicate()
+        return_code = process.returncode
+
+        logger.info(f"📊 命令執行完成，返回碼: {return_code}")
+
+        if stdout:
             logger.info("📝 標準輸出:")
-            for line in result.stdout.split('\n'):
+            for line in stdout.split('\n'):
                 if line.strip():
                     logger.info(f"  STDOUT: {line}")
 
-        if result.stderr:
+        if stderr:
             logger.info("⚠️ 標準錯誤:")
-            for line in result.stderr.split('\n'):
+            for line in stderr.split('\n'):
                 if line.strip():
                     logger.info(f"  STDERR: {line}")
 
-        if result.returncode == 0:
+        # 最後檢查是否被停止（以防在進程結束後立即被停止）
+        if check_if_should_stop():
+            logger.info("🛑 任務在完成檢查階段被停止")
+            update_task_status('已停止', 0, '任務已被用戶停止')
+            task_status['is_running'] = False
+            task_status['stopped_by_user'] = True
+            return False, "任務已被用戶停止"
+
+        if return_code == 0:
             update_task_status('檢查結果', 90, '排程執行成功，檢查產生的檔案...')
 
             logger.info("✅ 排程任務執行成功")
@@ -605,16 +716,11 @@ def run_scheduler_async():
             task_status['is_running'] = False
             return True, "排程任務執行成功"
         else:
-            logger.error(f"❌ 排程任務執行失敗，返回碼: {result.returncode}")
-            update_task_status('失敗', 0, f'排程執行失敗: {result.stderr[:100]}...')
+            logger.error(f"❌ 排程任務執行失敗，返回碼: {return_code}")
+            update_task_status('失敗', 0, f'排程執行失敗: {stderr[:100] if stderr else "未知錯誤"}...')
             task_status['is_running'] = False
-            return False, f"排程任務執行失敗: {result.stderr}"
+            return False, f"排程任務執行失敗: {stderr}"
 
-    except subprocess.TimeoutExpired:
-        logger.error("⏰ 排程任務執行超時")
-        update_task_status('超時', 0, '任務執行超過30分鐘超時')
-        task_status['is_running'] = False
-        return False, "排程任務執行超時"
     except Exception as e:
         logger.error(f"💥 排程任務執行異常: {e}")
         import traceback
@@ -636,6 +742,9 @@ def generate_report():
         if task_status['is_running']:
             elapsed = (datetime.now() - task_status['start_time']).total_seconds() if task_status['start_time'] else 0
             return True, f"報表產生中... 已運行 {int(elapsed/60)} 分鐘，當前步驟: {task_status['current_step']}"
+
+        # 重置任務狀態，清除之前的停止標誌
+        reset_task_status()
 
         # 啟動異步任務
         thread = threading.Thread(target=run_scheduler_async)
@@ -718,7 +827,9 @@ def api_task_status():
             'message': task_status['message'],
             'elapsed_seconds': int(elapsed_seconds),
             'elapsed_minutes': int(elapsed_seconds / 60),
-            'last_update': task_status['last_update'].isoformat() if task_status['last_update'] else None
+            'last_update': task_status['last_update'].isoformat() if task_status['last_update'] else None,
+            'stop_requested': task_status.get('stop_requested', False),
+            'stopped_by_user': task_status.get('stopped_by_user', False)
         }
     })
 
@@ -730,6 +841,48 @@ def api_run_scheduler():
 
     success, message = generate_report()
     return jsonify({'success': success, 'message': message})
+
+@app.route('/api/stop-task', methods=['POST'])
+def api_stop_task():
+    """API端點：停止當前執行的任務"""
+    if 'logged_in' not in session:
+        logger.warning("未登入用戶嘗試停止任務")
+        return jsonify({'success': False, 'message': '未登入'}), 401
+
+    try:
+        logger.info(f"收到停止任務請求，當前任務狀態: is_running={task_status['is_running']}")
+
+        if not task_status['is_running']:
+            logger.info("沒有運行中的任務需要停止")
+            return jsonify({
+                'success': False,
+                'message': '目前沒有運行中的任務'
+            })
+
+        # 請求停止任務
+        stopped = request_task_stop()
+
+        if stopped:
+            logger.info("🛑 停止請求已成功發送")
+            return jsonify({
+                'success': True,
+                'message': '停止請求已發送，任務正在停止中...'
+            })
+        else:
+            logger.error("停止任務請求失敗")
+            return jsonify({
+                'success': False,
+                'message': '無法停止任務'
+            })
+
+    except Exception as e:
+        logger.error(f"停止任務 API 發生異常: {e}")
+        import traceback
+        logger.error(f"異常堆疊: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': f'停止任務時發生錯誤: {e}'
+        })
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

@@ -28,6 +28,9 @@
                 <button id="generate-btn" class="btn btn-success" onclick="generateReport()">
                     🔄 重新產生報表
                 </button>
+                <button id="stop-btn" class="btn btn-danger" onclick="stopTask()" style="display: none;">
+                    🛑 停止任務
+                </button>
                 <button class="btn btn-info" onclick="checkStatus()">
                     📊 檢查狀態
                 </button>
@@ -131,6 +134,7 @@ function updateStatusDisplay(status) {
     const progressBar = document.getElementById('progress-bar');
     const statusMessage = document.getElementById('status-message');
     const generateBtn = document.getElementById('generate-btn');
+    const stopBtn = document.getElementById('stop-btn');
 
     if (status.is_running) {
         statusText.innerHTML = `🔄 ${status.current_step}`;
@@ -145,19 +149,28 @@ function updateStatusDisplay(status) {
 
         generateBtn.disabled = true;
         generateBtn.innerHTML = '⏳ 運行中...';
+        stopBtn.style.display = 'inline-block'; // 顯示停止按鈕
 
         // 如果正在運行，開始定期檢查
         if (!statusCheckInterval) {
             startStatusCheck();
         }
     } else {
-        statusText.innerHTML = '⏸️ 無運行中的任務';
-        statusTime.innerHTML = '';
+        // 檢查是否是被用戶停止的狀態
+        if (status.current_step === '已停止' || status.message.includes('停止')) {
+            statusText.innerHTML = '🛑 任務已停止';
+            statusTime.innerHTML = status.elapsed_minutes ? `運行了 ${status.elapsed_minutes} 分鐘後停止` : '';
+        } else {
+            statusText.innerHTML = '⏸️ 無運行中的任務';
+            statusTime.innerHTML = '';
+        }
+
         progressContainer.style.display = 'none';
         statusMessage.style.display = 'none';
 
         generateBtn.disabled = false;
         generateBtn.innerHTML = '🔄 重新產生報表';
+        stopBtn.style.display = 'none'; // 隱藏停止按鈕
 
         // 停止狀態檢查
         if (statusCheckInterval) {
@@ -169,6 +182,8 @@ function updateStatusDisplay(status) {
             showAlert('success', '報表產生完成！');
         } else if (status.message && status.message.includes('失敗')) {
             showAlert('danger', '報表產生失敗：' + status.message);
+        } else if (status.current_step === '已停止') {
+            showAlert('warning', '任務已被停止');
         }
     }
 }
@@ -180,6 +195,52 @@ function startStatusCheck() {
 
     statusCheckInterval = setInterval(checkStatus, 5000); // 每5秒檢查一次
     checkStatus(); // 立即檢查一次
+}
+
+function stopTask() {
+    const stopBtn = document.getElementById('stop-btn');
+    const generateBtn = document.getElementById('generate-btn');
+    const statusText = document.getElementById('status-text');
+    const statusTime = document.getElementById('status-time');
+    const progressContainer = document.getElementById('progress-bar-container');
+    const progressBar = document.getElementById('progress-bar');
+    const statusMessage = document.getElementById('status-message');
+
+    stopBtn.disabled = true;
+    stopBtn.innerHTML = '⏳ 停止中...';
+
+    fetch('/api/stop-task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            updateStatusDisplay({ is_running: false, current_step: '已停止', elapsed_minutes: 0, progress: 0, message: '' });
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '🛑 停止任務';
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '🔄 重新產生報表';
+            // 停止狀態檢查
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+            }
+        } else {
+            showAlert('danger', data.message);
+            stopBtn.disabled = false;
+            stopBtn.innerHTML = '🛑 停止任務';
+        }
+    })
+    .catch(error => {
+        console.error('Error stopping task:', error);
+        showAlert('danger', '停止任務失敗，請稍後再試');
+        stopBtn.disabled = false;
+        stopBtn.innerHTML = '🛑 停止任務';
+    });
 }
 
 function showAlert(type, message) {
