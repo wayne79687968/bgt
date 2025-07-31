@@ -315,9 +315,11 @@ def main():
     parser = argparse.ArgumentParser(description="產生 BGG 熱門桌遊排行榜報告")
     parser.add_argument('--detail', choices=['all', 'up', 'new', 'up_and_new'], default='new', help='詳細資料顯示模式：all=全部, up=只顯示排名上升, new=只顯示新進榜, up_and_new=排名上升+新進榜')
     parser.add_argument('--lang', choices=['zh-tw', 'en'], default='zh-tw', help='報表語言')
+    parser.add_argument('--force', action='store_true', help='強制產生今日報表，即使已存在')
     args = parser.parse_args()
     detail_mode = args.detail
     lang = args.lang
+    force_generate = args.force
 
     # 確保數據庫已初始化
     try:
@@ -349,7 +351,11 @@ def main():
     dates_to_generate = []
     start_date = None
 
-    if last_report_date is None:
+    if force_generate:
+        # 強制模式：直接產生今日報表
+        print("🔄 強制模式：將產生今日報表")
+        dates_to_generate = [today_date]
+    elif last_report_date is None:
         print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
         # Find the earliest date in the database with error handling
         try:
@@ -395,16 +401,22 @@ def main():
             print("3. python fetch_bgg_forum_threads.py")
             return
     else:
+        # 正常模式：產生比最新報表更新的日期
         start_date = last_report_date + timedelta(days=1)
 
-    if start_date:
+    # 如果不是強制模式，按正常邏輯產生日期範圍
+    if not force_generate and start_date:
         current_date = start_date
         while current_date <= today_date:
             dates_to_generate.append(current_date)
             current_date += timedelta(days=1)
 
     if not dates_to_generate:
-        print("✅ 報告已是最新狀態。")
+        if force_generate:
+            print("❌ 強制模式失敗：無法確定要產生的日期")
+        else:
+            print("✅ 報告已是最新狀態。")
+            print("💡 如果要重新產生今日報表，請使用 --force 選項")
         return
 
     # 檢查資料庫連線
@@ -415,12 +427,19 @@ def main():
 
         for dt in dates_to_generate:
             target_date_str = dt.strftime("%Y-%m-%d")
-            execute_query(cursor_check, "SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,), config['type'])
-            if cursor_check.fetchone():
-                print(f"--- 正在產生 {target_date_str} 的報告 ---")
+
+            if force_generate:
+                # 強制模式：直接產生報表，不檢查數據是否存在
+                print(f"--- 強制產生 {target_date_str} 的報告 ---")
                 generate_single_report(target_date_str, detail_mode, lang)
             else:
-                print(f"--- 找不到 {target_date_str} 的資料，跳過報告產生 ---")
+                # 正常模式：檢查數據是否存在
+                execute_query(cursor_check, "SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,), config['type'])
+                if cursor_check.fetchone():
+                    print(f"--- 正在產生 {target_date_str} 的報告 ---")
+                    generate_single_report(target_date_str, detail_mode, lang)
+                else:
+                    print(f"--- 找不到 {target_date_str} 的資料，跳過報告產生 ---")
 
 if __name__ == "__main__":
     main()

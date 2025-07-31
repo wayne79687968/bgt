@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def fetch_and_generate_report(detail_mode='all', lang='zh-tw'):
+def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
     """抓取資料並產生報表"""
     try:
         logger.info("🎲 開始執行每日報表產生任務...")
@@ -55,8 +55,12 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw'):
 
         # 4. 產生報表
         logger.info("📝 步驟 4/4: 產生報表...")
-        result = subprocess.run(['python3', 'generate_report.py', '--lang', lang, '--detail', detail_mode],
-                              capture_output=True, text=True, timeout=300)
+        generate_cmd = ['python3', 'generate_report.py', '--lang', lang, '--detail', detail_mode]
+        if force:
+            generate_cmd.append('--force')
+            logger.info("🔄 使用強制模式產生報表")
+
+        result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=300)
         if result.returncode != 0:
             logger.error(f"❌ 產生報表失敗: {result.stderr}")
             return False
@@ -83,13 +87,15 @@ def main():
                        help='詳細資料顯示模式：all=全部, up=只顯示排名上升, new=只顯示新進榜, up_and_new=排名上升+新進榜')
     parser.add_argument('--lang', choices=['zh-tw', 'en'], default='zh-tw',
                        help='報表語言')
+    parser.add_argument('--force', action='store_true',
+                       help='強制產生今日報表，即使已存在')
 
     args = parser.parse_args()
 
     # 如果指定 --run-now，立即執行任務
     if args.run_now:
         logger.info("🚀 立即執行報表產生任務...")
-        
+
         # 確保資料庫已初始化
         logger.info("🗃️ 確保資料庫已初始化...")
         try:
@@ -98,8 +104,8 @@ def main():
         except Exception as e:
             logger.error(f"❌ 資料庫初始化失敗: {e}")
             return
-            
-        success = fetch_and_generate_report(args.detail, args.lang)
+
+        success = fetch_and_generate_report(args.detail, args.lang, args.force)
         if success:
             logger.info("✅ 任務執行成功")
         else:
@@ -107,7 +113,7 @@ def main():
         return
 
     logger.info("🚀 啟動 BGG 報表排程器...")
-    
+
     # 確保資料庫已初始化
     logger.info("🗃️ 確保資料庫已初始化...")
     try:

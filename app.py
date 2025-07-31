@@ -404,11 +404,12 @@ def run_scheduler():
     try:
         logger.info("開始執行完整排程任務...")
 
-        # 執行排程腳本
+        # 執行排程腳本，添加 --force 參數以確保能產生今日報表
         result = subprocess.run([
             'python3', 'scheduler.py', '--run-now',
             '--detail', 'all',
-            '--lang', 'zh-tw'
+            '--lang', 'zh-tw',
+            '--force'
         ], capture_output=True, text=True, timeout=1800)  # 30分鐘超時
 
         if result.returncode == 0:
