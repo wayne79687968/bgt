@@ -55,6 +55,29 @@ CREATE TABLE IF NOT EXISTS game_detail (
 )
 """)
 
+# BGG 項目資料表
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bgg_items (
+    id INTEGER,
+    name TEXT,
+    category TEXT,
+    PRIMARY KEY (id, category),
+    UNIQUE (id, category)
+)
+""")
+
+# 遊戲與分類的關聯表
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS game_categories (
+    objectid INTEGER,
+    category_id INTEGER,
+    category_type TEXT,
+    FOREIGN KEY (objectid) REFERENCES game_detail (objectid),
+    FOREIGN KEY (category_id, category_type) REFERENCES bgg_items (id, category),
+    PRIMARY KEY (objectid, category_id, category_type)
+)
+""")
+
 # 評論快取
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS game_comments (

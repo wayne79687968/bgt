@@ -40,6 +40,12 @@ def fetch_details(id_batch):
 def get_attrs(elem, path, attr="value"):
     return [e.attrib[attr] for e in elem.findall(path)]
 
+def get_attrs_with_ids(elem, path, name_attr="value", id_attr="id"):
+    elements = elem.findall(path)
+    names = [e.attrib[name_attr] for e in elements]
+    ids = [e.attrib[id_attr] for e in elements]
+    return names, ids
+
 for i in range(0, len(new_ids), batch_size):
     batch = new_ids[i:i + batch_size]
     root = fetch_details(batch)
@@ -70,8 +76,16 @@ for i in range(0, len(new_ids), batch_size):
         designers = ", ".join(get_attrs(item, "link[@type='boardgamedesigner']"))
         artists = ", ".join(get_attrs(item, "link[@type='boardgameartist']"))
         publishers = ", ".join(get_attrs(item, "link[@type='boardgamepublisher']"))
+        
+        # 獲取對應的ID資訊
+        category_names, category_ids = get_attrs_with_ids(item, "link[@type='boardgamecategory']")
+        mechanic_names, mechanic_ids = get_attrs_with_ids(item, "link[@type='boardgamemechanic']")
+        designer_names, designer_ids = get_attrs_with_ids(item, "link[@type='boardgamedesigner']")
+        artist_names, artist_ids = get_attrs_with_ids(item, "link[@type='boardgameartist']")
+        publisher_names, publisher_ids = get_attrs_with_ids(item, "link[@type='boardgamepublisher']")
         image = item.find("image").text if item.find("image") is not None else ""
 
+        # 儲存遊戲基本資料
         cursor.execute("""
             INSERT INTO game_detail (
                 objectid, name, year, rating, rank, weight,
@@ -106,6 +120,35 @@ for i in range(0, len(new_ids), batch_size):
             categories, mechanics, designers, artists, publishers,
             image, datetime.utcnow().isoformat()
         ))
+
+        # 儲存分類資料和關聯
+        def store_categories(names, ids, category_type):
+            # 清除舊的關聯
+            cursor.execute("""
+                DELETE FROM game_categories 
+                WHERE objectid = ? AND category_type = ?
+            """, (objectid, category_type))
+            
+            # 儲存新的分類和關聯
+            for name, cat_id in zip(names, ids):
+                # 儲存分類資料（如果不存在）
+                cursor.execute("""
+                    INSERT OR IGNORE INTO bgg_items (id, name, category)
+                    VALUES (?, ?, ?)
+                """, (int(cat_id), name, category_type))
+                
+                # 儲存遊戲與分類的關聯
+                cursor.execute("""
+                    INSERT OR IGNORE INTO game_categories (objectid, category_id, category_type)
+                    VALUES (?, ?, ?)
+                """, (objectid, int(cat_id), category_type))
+
+        # 儲存各種分類
+        store_categories(category_names, category_ids, 'boardgamecategory')
+        store_categories(mechanic_names, mechanic_ids, 'boardgamemechanic')
+        store_categories(designer_names, designer_ids, 'boardgamedesigner')
+        store_categories(artist_names, artist_ids, 'boardgameartist')
+        store_categories(publisher_names, publisher_ids, 'boardgamepublisher')
 
 conn.commit()
 conn.close()
