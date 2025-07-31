@@ -40,10 +40,6 @@ PROMPT_HEADER = {
     'en': "You are a board game analyst. Based on the following forum threads, infer the most likely reason why this game recently became hot. Common reasons include: 1. New and promising game 2. New edition 3. Publisher bankruptcy 4. Shipping 5. Controversies (art, plagiarism, PR, etc.)\nPlease write a concise, professional, and fluent English paragraph directly stating the key reason for the ranking. Avoid bullet points, filler, and introductions."
 }
 
-# DB 連線
-conn = None
-cursor = None
-
 # 設定 requests 重試機制
 session = requests.Session()
 session.headers.update({'User-Agent': 'BGG Forum Threads Fetcher 1.0'})
@@ -130,16 +126,24 @@ def fetch_thread_posts(thread_id, max_posts=3):
 
 # 查詢 i18n 是否已有翻譯且未過期
 def is_i18n_fresh(objectid, lang, days=7):
-    cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
-    row = cursor.fetchone()
-    if row and row[0]:
-        try:
-            dt = datetime.fromisoformat(row[0])
-            if datetime.utcnow() - dt < timedelta(days=days):
-                return True
-        except Exception:
-            pass
-    return False
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
+        else:
+            cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
+
+        row = cursor.fetchone()
+        if row and row[0]:
+            try:
+                dt = datetime.fromisoformat(row[0])
+                if datetime.utcnow() - dt < timedelta(days=days):
+                    return True
+            except Exception:
+                pass
+        return False
 
 def summarize_reason_with_llm(game_name, threads):
     # 若沒有討論串，產生預設回應
@@ -202,31 +206,50 @@ def is_english_thread(thread):
             return False
     return True
 
-def is_threads_expired(objectid, days=7):
-    cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
-    row = cursor.fetchone()
-    if not row or not row[0]:
-        return True
+def is_threads_expired(objectid):
+    """檢查討論串是否過期（7天）"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
 
-    # 檢查討論串內容是否為空
-    try:
-        threads_data = json.loads(row[1]) if row[1] else []
-        if not threads_data:  # 如果討論串為空，也視為過期
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
+        else:
+            cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+
+        row = cursor.fetchone()
+        if not row or not row[0]:
             return True
-    except Exception:
-        return True
 
-    # 檢查時間是否過期
-    try:
-        dt = datetime.fromisoformat(row[0])
-        return (datetime.utcnow() - dt).days >= days
-    except Exception:
-        return True
+        # 檢查討論串內容是否為空
+        try:
+            threads_data = json.loads(row[1]) if row[1] else []
+            if not threads_data:  # 如果討論串為空，也視為過期
+                return True
+        except Exception:
+            return True
+
+        # 檢查時間是否過期
+        try:
+            dt = datetime.fromisoformat(row[0])
+            return (datetime.utcnow() - dt).days >= 7
+        except Exception:
+            return True
 
 def delete_all_threads_and_i18n(objectid):
-    cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = ?", (objectid,))
-    cursor.execute("DELETE FROM forum_threads WHERE objectid = ?", (objectid,))
-    conn.commit()
+    """刪除指定遊戲的所有討論串和多語言推論"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+
+        if config['type'] == 'postgresql':
+            cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = %s", (objectid,))
+            cursor.execute("DELETE FROM forum_threads WHERE objectid = %s", (objectid,))
+        else:
+            cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = ?", (objectid,))
+            cursor.execute("DELETE FROM forum_threads WHERE objectid = ?", (objectid,))
+
+        conn.commit()
 
 def fetch_and_save_threads(objectid, name):
     """實際抓取並儲存討論串內容"""
@@ -262,17 +285,129 @@ def fetch_and_save_threads(objectid, name):
                 break
 
     # 3. 儲存到資料庫
-    cursor.execute("""
-        INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
-        VALUES (?, ?, ?, ?, ?)
-    """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
-    conn.commit()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+
+        if config['type'] == 'postgresql':
+            cursor.execute("""
+                INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+        else:
+            cursor.execute("""
+                INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+
+        conn.commit()
 
     print(f"✅ 已抓取 {len(threads)} 個討論串 objectid={objectid}")
     return threads
 
 def get_threads_by_objectid(objectid):
-    cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+    """根據 objectid 獲取討論串資料"""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
+        else:
+            cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+
+        row = cursor.fetchone()
+        if row:
+            return json.loads(row[0])
+        return []
+
+def is_threads_expired_with_cursor(cursor, objectid, config):
+    if config['type'] == 'postgresql':
+        cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
+    else:
+        cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+    row = cursor.fetchone()
+    if not row or not row[0]:
+        return True
+
+    # 檢查討論串內容是否為空
+    try:
+        threads_data = json.loads(row[1]) if row[1] else []
+        if not threads_data:  # 如果討論串為空，也視為過期
+            return True
+    except Exception:
+        return True
+
+    # 檢查時間是否過期
+    try:
+        dt = datetime.fromisoformat(row[0])
+        return (datetime.utcnow() - dt).days >= 7
+    except Exception:
+        return True
+
+def delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config):
+    if config['type'] == 'postgresql':
+        cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = %s", (objectid,))
+        cursor.execute("DELETE FROM forum_threads WHERE objectid = %s", (objectid,))
+    else:
+        cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = ?", (objectid,))
+        cursor.execute("DELETE FROM forum_threads WHERE objectid = ?", (objectid,))
+    conn.commit()
+
+def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
+    """實際抓取並儲存討論串內容"""
+    print(f"🔍 正在抓取 {name} ({objectid}) 的討論串...")
+
+    # 1. 抓取討論區列表
+    forums = fetch_forum_list(objectid)
+    if not forums:
+        print(f"⚠️ 無討論區資料 objectid={objectid}")
+        threads = []
+    else:
+        threads = []
+        # 2. 從前幾個討論區抓取討論串
+        for forum in forums[:3]:  # 只抓前3個討論區
+            time.sleep(1)  # 避免請求過快
+            forum_threads = fetch_forum_threads(forum['id'], max_threads=3)
+
+            for thread_info in forum_threads:
+                time.sleep(1)  # 避免請求過快
+                posts = fetch_thread_posts(thread_info['id'], max_posts=3)
+
+                if posts:  # 只保留有內容的討論串
+                    threads.append({
+                        'title': thread_info['subject'],
+                        'postdate': thread_info['lastpostdate'],
+                        'posts': posts
+                    })
+
+                if len(threads) >= 5:  # 限制總討論串數量
+                    break
+
+            if len(threads) >= 5:
+                break
+
+    # 3. 儲存到資料庫
+    if config['type'] == 'postgresql':
+        cursor.execute("""
+            INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+    else:
+        cursor.execute("""
+            INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+    conn.commit()
+
+    print(f"✅ 已抓取 {len(threads)} 個討論串 objectid={objectid}")
+    return threads
+
+def get_threads_by_objectid_with_cursor(cursor, objectid, config):
+    if config['type'] == 'postgresql':
+        cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
+    else:
+        cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
     row = cursor.fetchone()
     if row:
         return json.loads(row[0])
@@ -288,77 +423,133 @@ def main():
             print(f"⏩ {output_path} 已存在且距今未滿 7 天，直接跳過。")
             return
 
-    # 獲取需要處理的遊戲：新進榜 + 沒有討論串資料的遊戲
-    def get_games_to_process():
-        # 1. 新進榜的遊戲
-        cursor.execute("SELECT DISTINCT snapshot_date FROM hot_games ORDER BY snapshot_date DESC LIMIT 2")
-        rows = cursor.fetchall()
-        new_games = []
-        if len(rows) >= 2:
-            today, yesterday = rows[0][0], rows[1][0]
-            cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = ?", (today,))
-            today_list = cursor.fetchall()
-            cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday,))
-            yesterday_ids = [r[0] for r in cursor.fetchall()]
-            new_games = [(oid, name) for oid, name in today_list if oid not in yesterday_ids]
+    # 使用正確的資料庫連接
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
 
-        # 2. 今日榜上但沒有討論串資料或翻譯的遊戲
-        cursor.execute("""
-            SELECT h.objectid, h.name
-            FROM hot_games h
-            WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
-            AND (
-                h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
-                OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = ?)
-            )
-        """, (lang,))
-        missing_games = cursor.fetchall()
+        # 獲取需要處理的遊戲：新進榜 + 沒有討論串資料的遊戲
+        def get_games_to_process():
+            # 1. 新進榜的遊戲
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT DISTINCT snapshot_date FROM hot_games ORDER BY snapshot_date DESC LIMIT 2")
+            else:
+                cursor.execute("SELECT DISTINCT snapshot_date FROM hot_games ORDER BY snapshot_date DESC LIMIT 2")
 
-        # 合併並去重
-        all_games = {}
-        for oid, name in new_games + missing_games:
-            all_games[oid] = name
+            rows = cursor.fetchall()
+            new_games = []
+            if len(rows) >= 2:
+                today_date, yesterday_date = rows[0][0], rows[1][0]
 
-        return [(oid, name) for oid, name in all_games.items()]
+                if config['type'] == 'postgresql':
+                    cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = %s", (today_date,))
+                else:
+                    cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = ?", (today_date,))
+                today_list = cursor.fetchall()
 
-    games_to_process = get_games_to_process()
-    all_results = {}
+                if config['type'] == 'postgresql':
+                    cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = %s", (yesterday_date,))
+                else:
+                    cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday_date,))
+                yesterday_ids = [r[0] for r in cursor.fetchall()]
+                new_games = [(oid, name) for oid, name in today_list if oid not in yesterday_ids]
 
-    for objectid, name in games_to_process:
-        print(f"Fetching forum threads for {name} ({objectid}) [{lang}] ...")
-        # 1. 判斷討論串是否過期或不存在
-        if is_threads_expired(objectid):
-            print(f"⏩ 討論串已過期或不存在，重抓並刪除所有語言 reason：objectid={objectid}")
-            delete_all_threads_and_i18n(objectid)
-            threads = fetch_and_save_threads(objectid, name)
-        else:
-            threads = get_threads_by_objectid(objectid)
+            # 2. 今日榜上但沒有討論串資料或翻譯的遊戲
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT h.objectid, h.name
+                    FROM hot_games h
+                    WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
+                    AND (
+                        h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
+                        OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = %s)
+                    )
+                """, (lang,))
+            else:
+                cursor.execute("""
+                    SELECT h.objectid, h.name
+                    FROM hot_games h
+                    WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
+                    AND (
+                        h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
+                        OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = ?)
+                    )
+                """, (lang,))
+            missing_games = cursor.fetchall()
 
-        # 2. 若該語言 reason 不存在，才丟給 LLM
-        cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
-        reason_exists = cursor.fetchone() is not None
-        if reason_exists:
-            print(f"⏩ 已有新鮮 {lang} reason，跳過 objectid={objectid}")
-            continue
+            # 合併並去重
+            all_games = {}
+            for oid, name in new_games + missing_games:
+                all_games[oid] = name
 
-        # 3. 用現有 threads 產生 reason
-        reason = summarize_reason_with_llm(name, threads)
-        cursor.execute("""
-            INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(objectid, lang) DO UPDATE SET reason=excluded.reason, updated_at=excluded.updated_at
-        """, (objectid, lang, reason, datetime.utcnow().isoformat()))
-        all_results[objectid] = {
-            "name": name,
-            "threads": threads,
-            "reason": reason
-        }
+            return list(all_games.items())
 
-    conn.commit()
-    conn.close()
+        games_to_process = get_games_to_process()
+        all_results = {}
+
+        print(f"📊 找到 {len(games_to_process)} 個遊戲需要處理討論串")
+
+        for objectid, name in games_to_process:
+            print(f"Fetching forum threads for {name} ({objectid}) [{lang}] ...")
+
+            try:
+                # 1. 判斷討論串是否過期或不存在
+                if is_threads_expired_with_cursor(cursor, objectid, config):
+                    print(f"⏩ 討論串已過期或不存在，重抓並刪除所有語言 reason：objectid={objectid}")
+                    delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config)
+                    threads = fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config)
+                else:
+                    threads = get_threads_by_objectid_with_cursor(cursor, objectid, config)
+
+                # 2. 若該語言 reason 不存在，才丟給 LLM
+                if config['type'] == 'postgresql':
+                    cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
+                else:
+                    cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
+                reason_exists = cursor.fetchone() is not None
+
+                if reason_exists:
+                    print(f"⏩ 已有新鮮 {lang} reason，跳過 objectid={objectid}")
+                    continue
+
+                # 3. 用現有 threads 產生 reason
+                reason = summarize_reason_with_llm(name, threads)
+
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT(objectid, lang) DO UPDATE SET reason=EXCLUDED.reason, updated_at=EXCLUDED.updated_at
+                    """, (objectid, lang, reason, datetime.utcnow().isoformat()))
+                else:
+                    cursor.execute("""
+                        INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(objectid, lang) DO UPDATE SET reason=excluded.reason, updated_at=excluded.updated_at
+                    """, (objectid, lang, reason, datetime.utcnow().isoformat()))
+
+                all_results[objectid] = {
+                    "name": name,
+                    "threads": threads,
+                    "reason": reason
+                }
+
+                print(f"✅ 完成處理 {name} ({objectid})")
+
+            except Exception as e:
+                print(f"❌ 處理遊戲 {name} ({objectid}) 時發生錯誤: {e}")
+                import traceback
+                print(f"❌ 錯誤詳情: {traceback.format_exc()}")
+                continue
+
+        conn.commit()
+
     # 儲存 debug 檔案
+    print(f"💾 儲存結果到 {output_path}")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_results, f, ensure_ascii=False, indent=2)
+
+    print(f"🎉 討論串處理完成，共處理 {len(all_results)} 個遊戲")
 
 if __name__ == "__main__":
     main()
