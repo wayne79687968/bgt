@@ -384,12 +384,53 @@ def generate_report():
     try:
         logger.info("開始產生報表...")
 
+        # 檢查當前環境和權限
+        logger.info(f"🔧 當前用戶: {os.getenv('USER', 'unknown')}")
+        logger.info(f"🔧 HOME 目錄: {os.getenv('HOME', 'unknown')}")
+        logger.info(f"🔧 工作目錄: {os.getcwd()}")
+
+        # 檢查輸出目錄
+        output_dir = "frontend/public/outputs"
+        abs_output_dir = os.path.abspath(output_dir)
+        logger.info(f"📁 輸出目錄相對路徑: {output_dir}")
+        logger.info(f"📁 輸出目錄絕對路徑: {abs_output_dir}")
+
+        if os.path.exists(output_dir):
+            logger.info(f"✅ 輸出目錄存在")
+            try:
+                files = os.listdir(output_dir)
+                logger.info(f"📂 目錄中有 {len(files)} 個檔案")
+            except Exception as e:
+                logger.error(f"❌ 無法列出目錄內容: {e}")
+        else:
+            logger.warning(f"⚠️ 輸出目錄不存在: {output_dir}")
+
         # 使用完整的排程任務來確保數據完整性
         # 這會執行：抓取熱門遊戲 → 抓取詳細資訊 → 抓取討論串 → 產生報表
         success, message = run_scheduler()
 
         if success:
             logger.info("報表產生成功")
+
+            # 再次檢查檔案是否產生
+            logger.info("🔍 最終檢查報表檔案...")
+            if os.path.exists(output_dir):
+                files = os.listdir(output_dir)
+                logger.info(f"📂 最終目錄中有 {len(files)} 個檔案")
+
+                # 檢查今日報表
+                today = datetime.now().strftime("%Y-%m-%d")
+                today_reports = [f for f in files if f.startswith(f"report-{today}")]
+                logger.info(f"📄 今日報表檔案: {today_reports}")
+
+                for report_file in today_reports:
+                    file_path = os.path.join(output_dir, report_file)
+                    file_size = os.path.getsize(file_path)
+                    file_mtime = os.path.getmtime(file_path)
+                    import datetime as dt
+                    mtime_str = dt.datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    logger.info(f"📄 {report_file}: {file_size} bytes, 修改時間: {mtime_str}")
+
             return True, "報表產生成功"
         else:
             logger.error(f"報表產生失敗: {message}")
@@ -397,32 +438,81 @@ def generate_report():
 
     except Exception as e:
         logger.error(f"報表產生異常: {e}")
+        import traceback
+        logger.error(f"異常堆疊: {traceback.format_exc()}")
         return False, f"報表產生異常: {e}"
 
 def run_scheduler():
     """執行完整的排程任務"""
     try:
         logger.info("開始執行完整排程任務...")
+        logger.info(f"🔧 當前工作目錄: {os.getcwd()}")
+        logger.info(f"🔧 Python 版本: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
 
         # 執行排程腳本，添加 --force 參數以確保能產生今日報表
-        result = subprocess.run([
+        cmd = [
             'python3', 'scheduler.py', '--run-now',
             '--detail', 'all',
             '--lang', 'zh-tw',
             '--force'
-        ], capture_output=True, text=True, timeout=1800)  # 30分鐘超時
+        ]
+        logger.info(f"🚀 執行命令: {' '.join(cmd)}")
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)  # 30分鐘超時
+
+        logger.info(f"📊 命令執行完成，返回碼: {result.returncode}")
+
+        if result.stdout:
+            logger.info("📝 標準輸出:")
+            for line in result.stdout.split('\n'):
+                if line.strip():
+                    logger.info(f"  STDOUT: {line}")
+
+        if result.stderr:
+            logger.info("⚠️ 標準錯誤:")
+            for line in result.stderr.split('\n'):
+                if line.strip():
+                    logger.info(f"  STDERR: {line}")
 
         if result.returncode == 0:
-            logger.info("排程任務執行成功")
+            logger.info("✅ 排程任務執行成功")
+
+            # 檢查報表檔案是否實際產生
+            report_dir = "frontend/public/outputs"
+            logger.info(f"🔍 檢查報表目錄: {report_dir}")
+
+            if os.path.exists(report_dir):
+                files = os.listdir(report_dir)
+                logger.info(f"📂 目錄中的檔案數量: {len(files)}")
+
+                # 列出最近的幾個檔案
+                if files:
+                    sorted_files = sorted(files, reverse=True)[:5]
+                    logger.info("📄 最近的報表檔案:")
+                    for f in sorted_files:
+                        file_path = os.path.join(report_dir, f)
+                        file_size = os.path.getsize(file_path)
+                        file_mtime = os.path.getmtime(file_path)
+                        import datetime
+                        mtime_str = datetime.datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                        logger.info(f"  📄 {f} ({file_size} bytes, {mtime_str})")
+                else:
+                    logger.warning("⚠️ 報表目錄為空！")
+            else:
+                logger.error(f"❌ 報表目錄不存在: {report_dir}")
+
             return True, "排程任務執行成功"
         else:
-            logger.error(f"排程任務執行失敗: {result.stderr}")
+            logger.error(f"❌ 排程任務執行失敗，返回碼: {result.returncode}")
             return False, f"排程任務執行失敗: {result.stderr}"
+
     except subprocess.TimeoutExpired:
-        logger.error("排程任務執行超時")
+        logger.error("⏰ 排程任務執行超時")
         return False, "排程任務執行超時"
     except Exception as e:
-        logger.error(f"排程任務執行異常: {e}")
+        logger.error(f"💥 排程任務執行異常: {e}")
+        import traceback
+        logger.error(f"💥 異常堆疊: {traceback.format_exc()}")
         return False, f"排程任務執行異常: {e}"
 
 @app.route('/')

@@ -44,11 +44,15 @@ def generate_single_report(target_date_str, detail_mode, lang):
     """
     為指定日期產生 BGG 熱門桌遊排行榜報告。
     """
+    print(f"🚀 開始產生 {target_date_str} 的 {lang} 版報表，模式: {detail_mode}")
     yesterday = None
 
     conn = get_db_conn()
     cursor = conn.cursor()
     config = get_database_config()
+
+    print(f"🔧 資料庫類型: {config['type']}")
+    print(f"🔧 目標日期: {target_date_str}")
 
     # 報表用語多語言字典
     I18N = {
@@ -110,22 +114,37 @@ def generate_single_report(target_date_str, detail_mode, lang):
     T = I18N[lang]
 
     # 找出昨天的日期（若存在）
+    print("🔍 查找昨天的數據...")
     execute_query(cursor, "SELECT DISTINCT snapshot_date FROM hot_games WHERE snapshot_date < ? ORDER BY snapshot_date DESC LIMIT 1", (target_date_str,), config['type'])
     row = cursor.fetchone()
     if row:
         yesterday = row[0]
+        print(f"📅 找到昨天日期: {yesterday}")
+    else:
+        print("📅 沒有找到昨天的數據")
 
     # 抓取今天與昨天的榜單
+    print(f"🔍 查找 {target_date_str} 的熱門遊戲數據...")
     execute_query(cursor, "SELECT rank, objectid, name, year, thumbnail FROM hot_games WHERE snapshot_date = ? ORDER BY rank ASC", (target_date_str,), config['type'])
     today_list = cursor.fetchall()
     today_ids = [r[1] for r in today_list]
+
+    print(f"📊 找到 {len(today_list)} 個今日熱門遊戲")
+    if today_list:
+        print(f"📊 排名範圍: 第{today_list[0][0]}名 到 第{today_list[-1][0]}名")
+    else:
+        print("❌ 沒有找到今日的熱門遊戲數據！")
+        conn.close()
+        return
 
     yesterday_ids = []
     if yesterday:
         execute_query(cursor, "SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday,), config['type'])
         yesterday_ids = [r[0] for r in cursor.fetchall()]
+        print(f"📊 昨日遊戲數量: {len(yesterday_ids)}")
 
     # 組成對照表
+    print("📝 開始生成報表內容...")
     markdown = [T['report_title'].format(target_date_str)]
 
     markdown.append(T['rank_list'])
@@ -164,6 +183,8 @@ def generate_single_report(target_date_str, detail_mode, lang):
     else:
         markdown.append(T['detail_new'])  # 預設
 
+    print(f"📝 排行榜表格生成完成，共 {len(today_list)} 個遊戲")
+
     # 讀取 LLM 上榜推論結果（多語言）
     forum_threads_path = f"outputs/forum_threads/forum_threads_{target_date_str}.json"
     llm_reasons = {}
@@ -173,12 +194,19 @@ def generate_single_report(target_date_str, detail_mode, lang):
             for oid, info in forum_data.items():
                 if info.get("reason"):
                     llm_reasons[int(oid)] = info["reason"]
+        print(f"📝 載入 LLM 推論結果: {len(llm_reasons)} 個")
+    else:
+        print(f"⚠️ 找不到 LLM 推論檔案: {forum_threads_path}")
+
     # 讀取多語言 reason
     llm_reasons_i18n = {}
     cursor2 = conn.cursor()
     execute_query(cursor2, "SELECT objectid, lang, reason FROM forum_threads_i18n WHERE lang = ?", (lang,), config['type'])
-    for oid, l, reason in cursor2.fetchall():
+    reasons_data = cursor2.fetchall()
+    for oid, l, reason in reasons_data:
         llm_reasons_i18n[oid] = reason
+    print(f"📝 載入 {lang} 語言推論結果: {len(llm_reasons_i18n)} 個")
+
     def get_reason(objectid):
         r = llm_reasons_i18n.get(objectid)
         if r:
@@ -186,6 +214,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
         return "" if lang == 'en' else "[暫無翻譯]"
 
     # 產生符合條件的桌遊詳細資料 (依照排名順序)
+    detailed_games_count = 0
     for current_rank, objectid, name, year, thumb in today_list:
         is_new = objectid not in yesterday_ids
         is_up = False
@@ -204,9 +233,11 @@ def generate_single_report(target_date_str, detail_mode, lang):
         if not should_display:
             continue
 
+        detailed_games_count += 1
         execute_query(cursor, "SELECT name, year, rating, rank, weight, minplayers, maxplayers, bestplayers, minplaytime, maxplaytime, categories, mechanics, designers, artists, publishers, image FROM game_detail WHERE objectid = ?", (objectid,), config['type'])
         detail = cursor.fetchone()
         if not detail:
+            print(f"⚠️ 找不到遊戲 {objectid} 的詳細資料")
             continue
         (
             name, year, rating, rank, weight,
@@ -298,20 +329,55 @@ def generate_single_report(target_date_str, detail_mode, lang):
                 markdown.append("")
         markdown.append("---")
 
+    print(f"📝 詳細資料生成完成，共處理 {detailed_games_count} 個遊戲")
+
     # 儲存為 Markdown
-    os.makedirs("frontend/public/outputs", exist_ok=True)
-    report_filename = f"frontend/public/outputs/report-{target_date_str}-{lang}.md"
-    with open(report_filename, "w", encoding="utf-8") as f:
-        f.write("\n".join(markdown).replace("\\n", "\n"))
+    output_dir = "frontend/public/outputs"
+    print(f"📁 確保輸出目錄存在: {output_dir}")
+    os.makedirs(output_dir, exist_ok=True)
+
+    report_filename = f"{output_dir}/report-{target_date_str}-{lang}.md"
+    print(f"💾 準備寫入檔案: {report_filename}")
+
+    try:
+        with open(report_filename, "w", encoding="utf-8") as f:
+            content = "\n".join(markdown).replace("\\n", "\n")
+            f.write(content)
+            f.flush()  # 強制寫入
+
+        # 驗證檔案是否成功寫入
+        if os.path.exists(report_filename):
+            file_size = os.path.getsize(report_filename)
+            print(f"✅ 已產出 {lang} 版 Markdown 格式報告：{report_filename}")
+            print(f"📊 檔案大小: {file_size} bytes")
+            print(f"📊 內容行數: {len(markdown)} 行")
+
+            # 讀取檔案前幾行驗證
+            try:
+                with open(report_filename, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip()
+                    print(f"📝 檔案首行: {first_line}")
+            except Exception as e:
+                print(f"⚠️ 讀取檔案首行失敗: {e}")
+        else:
+            print(f"❌ 檔案寫入失敗！檔案不存在: {report_filename}")
+    except Exception as e:
+        print(f"❌ 寫入檔案時發生錯誤: {e}")
+        import traceback
+        print(f"❌ 錯誤詳情: {traceback.format_exc()}")
 
     conn.close()
-    print(f"✅ 已產出 {lang} 版 Markdown 格式報告：{report_filename}")
+    print(f"🔒 資料庫連接已關閉")
 
 
 def main():
     """
     主程式，負責解析參數、計算需產生的報告日期，並呼叫產生器。
     """
+    print("🚀 BGG 報表產生器啟動")
+    print(f"🔧 當前工作目錄: {os.getcwd()}")
+    print(f"🔧 Python 版本: {os.sys.version}")
+
     parser = argparse.ArgumentParser(description="產生 BGG 熱門桌遊排行榜報告")
     parser.add_argument('--detail', choices=['all', 'up', 'new', 'up_and_new'], default='new', help='詳細資料顯示模式：all=全部, up=只顯示排名上升, new=只顯示新進榜, up_and_new=排名上升+新進榜')
     parser.add_argument('--lang', choices=['zh-tw', 'en'], default='zh-tw', help='報表語言')
@@ -321,6 +387,8 @@ def main():
     lang = args.lang
     force_generate = args.force
 
+    print(f"🔧 執行參數: detail={detail_mode}, lang={lang}, force={force_generate}")
+
     # 確保數據庫已初始化
     try:
         from database import init_database
@@ -329,12 +397,40 @@ def main():
         print("✅ 數據庫初始化完成")
     except Exception as e:
         print(f"❌ 數據庫初始化失敗: {e}")
+        import traceback
+        print(f"❌ 錯誤詳情: {traceback.format_exc()}")
         return
 
     output_dir = "frontend/public/outputs"
-    os.makedirs(output_dir, exist_ok=True)
+    print(f"📁 檢查輸出目錄: {output_dir}")
+
+    # 檢查目錄權限
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"✅ 輸出目錄已確保存在")
+
+        # 測試寫入權限
+        test_file = os.path.join(output_dir, "test_write_permission.tmp")
+        try:
+            with open(test_file, "w") as f:
+                f.write("test")
+            os.remove(test_file)
+            print(f"✅ 輸出目錄寫入權限正常")
+        except Exception as e:
+            print(f"❌ 輸出目錄寫入權限測試失敗: {e}")
+            print(f"❌ 目錄完整路徑: {os.path.abspath(output_dir)}")
+            import stat
+            if os.path.exists(output_dir):
+                dir_stat = os.stat(output_dir)
+                print(f"📊 目錄權限: {oct(dir_stat.st_mode)}")
+
+    except Exception as e:
+        print(f"❌ 創建輸出目錄失敗: {e}")
+        import traceback
+        print(f"❌ 錯誤詳情: {traceback.format_exc()}")
 
     report_files = glob.glob(os.path.join(output_dir, f"report-*-{lang}.md"))
+    print(f"📂 找到現有報表檔案: {len(report_files)} 個")
 
     last_report_date = None
     if report_files:
@@ -345,8 +441,10 @@ def main():
                 dates.append(date.fromisoformat(match.group(1)))
         if dates:
             last_report_date = max(dates)
+            print(f"📅 最新報表日期: {last_report_date}")
 
     today_date = datetime.utcnow().date()
+    print(f"📅 今日日期: {today_date}")
 
     dates_to_generate = []
     start_date = None
@@ -385,10 +483,13 @@ def main():
                 execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
                 earliest_date_result = cursor_check.fetchone()
                 earliest_date_str = earliest_date_result[0] if earliest_date_result else None
+                print(f"📅 資料庫中最早日期: {earliest_date_str}")
 
         except Exception as e:
             print(f"❌ 檢查數據庫時發生錯誤: {e}")
             print("請確保已執行數據抓取流程並且數據庫中有熱門遊戲數據。")
+            import traceback
+            print(f"❌ 錯誤詳情: {traceback.format_exc()}")
             return
 
         if earliest_date_str:
@@ -403,6 +504,7 @@ def main():
     else:
         # 正常模式：產生比最新報表更新的日期
         start_date = last_report_date + timedelta(days=1)
+        print(f"📅 開始產生日期: {start_date}")
 
     # 如果不是強制模式，按正常邏輯產生日期範圍
     if not force_generate and start_date:
@@ -410,6 +512,8 @@ def main():
         while current_date <= today_date:
             dates_to_generate.append(current_date)
             current_date += timedelta(days=1)
+
+    print(f"📋 待產生報表日期: {[d.strftime('%Y-%m-%d') for d in dates_to_generate]}")
 
     if not dates_to_generate:
         if force_generate:
@@ -420,6 +524,7 @@ def main():
         return
 
     # 檢查資料庫連線
+    print("🔍 開始檢查數據並產生報表...")
     with get_db_connection() as conn_check:
         cursor_check = conn_check.cursor()
 
@@ -427,19 +532,38 @@ def main():
 
         for dt in dates_to_generate:
             target_date_str = dt.strftime("%Y-%m-%d")
+            print(f"\n📊 處理日期: {target_date_str}")
 
             if force_generate:
                 # 強制模式：直接產生報表，不檢查數據是否存在
                 print(f"--- 強制產生 {target_date_str} 的報告 ---")
-                generate_single_report(target_date_str, detail_mode, lang)
+                try:
+                    generate_single_report(target_date_str, detail_mode, lang)
+                    print(f"✅ {target_date_str} 報表產生完成")
+                except Exception as e:
+                    print(f"❌ {target_date_str} 報表產生失敗: {e}")
+                    import traceback
+                    print(f"❌ 錯誤詳情: {traceback.format_exc()}")
             else:
                 # 正常模式：檢查數據是否存在
-                execute_query(cursor_check, "SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,), config['type'])
-                if cursor_check.fetchone():
+                execute_query(cursor_check, "SELECT COUNT(*) FROM hot_games WHERE snapshot_date = ?", (target_date_str,), config['type'])
+                count_result = cursor_check.fetchone()
+                data_count = count_result[0] if count_result else 0
+                print(f"📊 {target_date_str} 的數據量: {data_count}")
+
+                if data_count > 0:
                     print(f"--- 正在產生 {target_date_str} 的報告 ---")
-                    generate_single_report(target_date_str, detail_mode, lang)
+                    try:
+                        generate_single_report(target_date_str, detail_mode, lang)
+                        print(f"✅ {target_date_str} 報表產生完成")
+                    except Exception as e:
+                        print(f"❌ {target_date_str} 報表產生失敗: {e}")
+                        import traceback
+                        print(f"❌ 錯誤詳情: {traceback.format_exc()}")
                 else:
                     print(f"--- 找不到 {target_date_str} 的資料，跳過報告產生 ---")
+
+    print("🎉 報表產生任務完成！")
 
 if __name__ == "__main__":
     main()
