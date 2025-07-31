@@ -1,0 +1,105 @@
+<!-- 報紙文章式遊戲資訊模板 -->
+<article class="game-article">
+    <!-- 遊戲標題和排名 -->
+    <div class="article-header">
+        <h3 class="article-title">
+            <span class="game-rank-number">{{ game.rank }}.</span>
+            {{ game.name }}
+            {% if game.image %}
+            <img src="{{ game.image }}" alt="{{ game.name }}" class="article-image">
+            {% endif %}
+        </h3>
+        <div class="rank-change-line">
+            {% if game.is_new %}
+                <span class="rank-change rank-new">🆕 新進榜</span>
+            {% elif game.rank_change > 0 %}
+                <span class="rank-change rank-up">⬆️ {{ game.rank_change }}</span>
+            {% elif game.rank_change < 0 %}
+                <span class="rank-change rank-down">⬇️ {{ -game.rank_change }}</span>
+            {% else %}
+                <span class="rank-change rank-same">持平</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 遊戲詳細資訊 -->
+    <div class="article-content">
+        <p class="game-info-line">
+            <strong>Rating：</strong>{{ game.rating }}/10
+            <strong>Rank：</strong>{{ game.bgg_rank if game.bgg_rank else 'N/A' }}
+            <strong>重度：</strong>{{ game.weight if game.weight else 'N/A' }}/5
+        </p>
+        
+        <p class="game-info-line">
+            <strong>人數：</strong>{{ game.min_players }}～{{ game.max_players }} 人{% if game.bestplayers %}（最佳：{{ game.bestplayers }}）{% endif %}
+        </p>
+        
+        <p class="game-info-line">
+            <strong>時間：</strong>{{ game.minplaytime if game.minplaytime else game.playtime }}～{{ game.maxplaytime if game.maxplaytime else game.playtime }} 分鐘
+        </p>
+
+        {% if game.categories %}
+        <p class="game-info-line">
+            <strong>分類：</strong>
+            {% for category in game.categories %}
+            <a href="https://boardgamegeek.com/boardgamecategory/{{ category.id }}" 
+               target="_blank" class="info-link">{{ category.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if game.mechanics %}
+        <p class="game-info-line">
+            <strong>機制：</strong>
+            {% for mechanic in game.mechanics %}
+            <a href="https://boardgamegeek.com/boardgamemechanic/{{ mechanic.id }}" 
+               target="_blank" class="info-link">{{ mechanic.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if game.designers %}
+        <p class="game-info-line">
+            <strong>設計師：</strong>
+            {% for designer in game.designers %}
+            <a href="https://boardgamegeek.com/boardgamedesigner/{{ designer.id }}" 
+               target="_blank" class="info-link">{{ designer.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if game.artists %}
+        <p class="game-info-line">
+            <strong>美術：</strong>
+            {% for artist in game.artists %}
+            <a href="https://boardgamegeek.com/boardgameartist/{{ artist.id }}" 
+               target="_blank" class="info-link">{{ artist.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        {% if game.publishers %}
+        <p class="game-info-line">
+            <strong>發行商：</strong>
+            {% for publisher in game.publishers %}
+            <a href="https://boardgamegeek.com/boardgamepublisher/{{ publisher.id }}" 
+               target="_blank" class="info-link">{{ publisher.name }}</a>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+        {% endif %}
+
+        <!-- 上榜原因分析 -->
+        {% if game.reason %}
+        <div class="article-analysis">
+            <p><strong>上榜原因推論：</strong></p>
+            <p class="analysis-content">{{ game.reason }}</p>
+        </div>
+        {% endif %}
+
+        <!-- 分析總結 -->
+        <div class="article-summary">
+            <p><strong>分析總結：</strong></p>
+            <p><a href="#" onclick="openCommentsModal('{{ game.objectid }}', '{{ game.name }}'); return false;" class="summary-link">查看玩家留言分析</a></p>
+        </div>
+    </div>
+</article>
