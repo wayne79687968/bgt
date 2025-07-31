@@ -7,15 +7,22 @@ import glob
 from database import get_db_connection, get_database_config
 
 def get_db_conn():
-    """相容性函數：取得資料庫連接"""
-    # 直接返回連接，在使用完畢後需要手動關閉
-    import sqlite3
+    """相容性函數：直接使用 get_db_connection 的結果"""
+    # 這個函數現在直接調用統一的連接函數
+    from contextlib import contextmanager
     
+    @contextmanager 
+    def db_conn():
+        with get_db_connection() as conn:
+            yield conn
+    
+    # 返回連接（為了保持向後相容性）
     config = get_database_config()
     if config['type'] == 'postgresql':
         import psycopg2
         return psycopg2.connect(config['url'])
     else:
+        import sqlite3
         import os
         os.makedirs('data', exist_ok=True)
         return sqlite3.connect(config['path'])
@@ -41,6 +48,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
 
     conn = get_db_conn()
     cursor = conn.cursor()
+    config = get_database_config()
         
     # 報表用語多語言字典
     I18N = {
@@ -102,19 +110,19 @@ def generate_single_report(target_date_str, detail_mode, lang):
     T = I18N[lang]
 
     # 找出昨天的日期（若存在）
-    cursor.execute("SELECT DISTINCT snapshot_date FROM hot_games WHERE snapshot_date < ? ORDER BY snapshot_date DESC LIMIT 1", (target_date_str,))
+    execute_query(cursor, "SELECT DISTINCT snapshot_date FROM hot_games WHERE snapshot_date < ? ORDER BY snapshot_date DESC LIMIT 1", (target_date_str,), config['type'])
     row = cursor.fetchone()
     if row:
         yesterday = row[0]
 
     # 抓取今天與昨天的榜單
-    cursor.execute("SELECT rank, objectid, name, year, thumbnail FROM hot_games WHERE snapshot_date = ? ORDER BY rank ASC", (target_date_str,))
+    execute_query(cursor, "SELECT rank, objectid, name, year, thumbnail FROM hot_games WHERE snapshot_date = ? ORDER BY rank ASC", (target_date_str,), config['type'])
     today_list = cursor.fetchall()
     today_ids = [r[1] for r in today_list]
 
     yesterday_ids = []
     if yesterday:
-        cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday,))
+        execute_query(cursor, "SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday,), config['type'])
         yesterday_ids = [r[0] for r in cursor.fetchall()]
 
     # 組成對照表
@@ -168,7 +176,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
     # 讀取多語言 reason
     llm_reasons_i18n = {}
     cursor2 = conn.cursor()
-    cursor2.execute("SELECT objectid, lang, reason FROM forum_threads_i18n WHERE lang = ?", (lang,))
+    execute_query(cursor2, "SELECT objectid, lang, reason FROM forum_threads_i18n WHERE lang = ?", (lang,), config['type'])
     for oid, l, reason in cursor2.fetchall():
         llm_reasons_i18n[oid] = reason
     def get_reason(objectid):
@@ -196,7 +204,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
         if not should_display:
             continue
 
-        cursor.execute("SELECT name, year, rating, rank, weight, minplayers, maxplayers, bestplayers, minplaytime, maxplaytime, categories, mechanics, designers, artists, publishers, image FROM game_detail WHERE objectid = ?", (objectid,))
+        execute_query(cursor, "SELECT name, year, rating, rank, weight, minplayers, maxplayers, bestplayers, minplaytime, maxplaytime, categories, mechanics, designers, artists, publishers, image FROM game_detail WHERE objectid = ?", (objectid,), config['type'])
         detail = cursor.fetchone()
         if not detail:
             continue
@@ -232,15 +240,19 @@ def generate_single_report(target_date_str, detail_mode, lang):
             markdown.append(f"> {reason}\n")
 
         # 加入留言分析內容（多語言）
-        cursor.execute("SELECT id, comment, sentiment, rating FROM game_comments WHERE objectid = ? ORDER BY id", (objectid,))
+        execute_query(cursor, "SELECT id, comment, sentiment, rating FROM game_comments WHERE objectid = ? ORDER BY id", (objectid,), config['type'])
         comments = cursor.fetchall()
         # 讀取當前遊戲的多語言留言
         comments_i18n = {}
         if comments:
             comment_ids = [c[0] for c in comments]
             if comment_ids:
-                placeholders = ','.join(['?'] * len(comment_ids))
-                cursor2.execute(f"SELECT comment_id, translated FROM game_comments_i18n WHERE comment_id IN ({placeholders}) AND lang = ?", comment_ids + [lang])
+                if config['type'] == 'postgresql':
+                    placeholders = ','.join(['%s'] * len(comment_ids))
+                    cursor2.execute(f"SELECT comment_id, translated FROM game_comments_i18n WHERE comment_id IN ({placeholders}) AND lang = %s", comment_ids + [lang])
+                else:
+                    placeholders = ','.join(['?'] * len(comment_ids))
+                    cursor2.execute(f"SELECT comment_id, translated FROM game_comments_i18n WHERE comment_id IN ({placeholders}) AND lang = ?", comment_ids + [lang])
                 for cid, translated in cursor2.fetchall():
                     comments_i18n[cid] = translated
 
@@ -332,7 +344,8 @@ def main():
         # Find the earliest date in the database
         with get_db_connection() as conn_check:
             cursor_check = conn_check.cursor()
-            cursor_check.execute("SELECT MIN(snapshot_date) FROM hot_games")
+            config_check = get_database_config()
+            execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
             earliest_date_str = cursor_check.fetchone()[0]
         if earliest_date_str:
             start_date = date.fromisoformat(earliest_date_str)
