@@ -10,12 +10,12 @@ def get_db_conn():
     """相容性函數：直接使用 get_db_connection 的結果"""
     # 這個函數現在直接調用統一的連接函數
     from contextlib import contextmanager
-    
-    @contextmanager 
+
+    @contextmanager
     def db_conn():
         with get_db_connection() as conn:
             yield conn
-    
+
     # 返回連接（為了保持向後相容性）
     config = get_database_config()
     if config['type'] == 'postgresql':
@@ -31,7 +31,7 @@ def execute_query(cursor, query, params, config_type=None):
     """執行相容性查詢，自動處理參數佔位符"""
     if config_type is None:
         config_type = get_database_config()['type']
-    
+
     if config_type == 'postgresql':
         # PostgreSQL 使用 %s
         query_pg = query.replace('?', '%s')
@@ -49,7 +49,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
     conn = get_db_conn()
     cursor = conn.cursor()
     config = get_database_config()
-        
+
     # 報表用語多語言字典
     I18N = {
         'zh-tw': {
@@ -319,6 +319,16 @@ def main():
     detail_mode = args.detail
     lang = args.lang
 
+    # 確保數據庫已初始化
+    try:
+        from database import init_database
+        print("🗃️ 確保數據庫已初始化...")
+        init_database()
+        print("✅ 數據庫初始化完成")
+    except Exception as e:
+        print(f"❌ 數據庫初始化失敗: {e}")
+        return
+
     output_dir = "frontend/public/outputs"
     os.makedirs(output_dir, exist_ok=True)
 
@@ -341,16 +351,48 @@ def main():
 
     if last_report_date is None:
         print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
-        # Find the earliest date in the database
-        with get_db_connection() as conn_check:
-            cursor_check = conn_check.cursor()
-            config_check = get_database_config()
-            execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
-            earliest_date_str = cursor_check.fetchone()[0]
+        # Find the earliest date in the database with error handling
+        try:
+            with get_db_connection() as conn_check:
+                cursor_check = conn_check.cursor()
+                config_check = get_database_config()
+
+                # 檢查 hot_games 表是否存在且有數據
+                if config_check['type'] == 'postgresql':
+                    cursor_check.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_name = 'hot_games'
+                        )
+                    """)
+                else:
+                    cursor_check.execute("""
+                        SELECT name FROM sqlite_master
+                        WHERE type='table' AND name='hot_games'
+                    """)
+
+                table_exists = cursor_check.fetchone()
+                if not table_exists or (isinstance(table_exists, tuple) and not table_exists[0]):
+                    print("❌ hot_games 表不存在。請先執行數據抓取流程（fetch_hotgames.py）。")
+                    return
+
+                execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
+                earliest_date_result = cursor_check.fetchone()
+                earliest_date_str = earliest_date_result[0] if earliest_date_result else None
+
+        except Exception as e:
+            print(f"❌ 檢查數據庫時發生錯誤: {e}")
+            print("請確保已執行數據抓取流程並且數據庫中有熱門遊戲數據。")
+            return
+
         if earliest_date_str:
             start_date = date.fromisoformat(earliest_date_str)
         else:
             print("❌ 資料庫中沒有任何資料，無法產生報表。")
+            print("請先執行完整的數據抓取流程：")
+            print("1. python fetch_hotgames.py")
+            print("2. python fetch_details.py")
+            print("3. python fetch_bgg_forum_threads.py")
             return
     else:
         start_date = last_report_date + timedelta(days=1)
@@ -368,9 +410,9 @@ def main():
     # 檢查資料庫連線
     with get_db_connection() as conn_check:
         cursor_check = conn_check.cursor()
-        
+
         config = get_database_config()
-        
+
         for dt in dates_to_generate:
             target_date_str = dt.strftime("%Y-%m-%d")
             execute_query(cursor_check, "SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,), config['type'])

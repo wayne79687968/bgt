@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import requests
 import re
 import os
@@ -8,7 +9,20 @@ import openai
 from dotenv import load_dotenv
 import time
 import argparse
-from database import get_db_connection, get_database_config
+from database import get_db_connection, get_database_config, init_database
+
+# 確保數據庫已初始化
+print("🗃️ 確保數據庫已初始化...")
+try:
+    init_database()
+    print("✅ 數據庫初始化完成")
+except Exception as e:
+    print(f"❌ 數據庫初始化失敗: {e}")
+    exit(1)
+
+# 設定日誌
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # 參考 comment_summarize_llm.py，載入 .env
 load_dotenv()

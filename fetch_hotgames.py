@@ -2,7 +2,16 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import os
-from database import get_db_connection, get_database_config
+from database import get_db_connection, get_database_config, init_database
+
+# 確保數據庫已初始化
+print("🗃️ 確保數據庫已初始化...")
+try:
+    init_database()
+    print("✅ 數據庫初始化完成")
+except Exception as e:
+    print(f"❌ 數據庫初始化失敗: {e}")
+    exit(1)
 
 # 資料庫與儲存設定
 snapshot_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -19,10 +28,10 @@ root = ET.fromstring(response.content)
 # 開啟資料庫
 with get_db_connection() as conn:
     cursor = conn.cursor()
-    
+
     # 取得資料庫類型
     config = get_database_config()
-    
+
     # 儲存資料
     for item in root.findall("item"):
         rank = int(item.attrib.get("rank", 0))
@@ -53,7 +62,7 @@ with get_db_connection() as conn:
                     year=excluded.year,
                     thumbnail=excluded.thumbnail
             """, (snapshot_date, rank, objectid, name, year, thumbnail))
-    
+
     conn.commit()
 
 print(f"✅ 抓取並儲存熱門桌遊榜單，共 {len(root.findall('item'))} 筆資料。")
