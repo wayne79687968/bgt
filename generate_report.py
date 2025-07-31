@@ -352,6 +352,37 @@ def generate_single_report(target_date_str, detail_mode, lang):
             print(f"📊 檔案大小: {file_size} bytes")
             print(f"📊 內容行數: {len(markdown)} 行")
 
+            # 同時保存報表內容到資料庫（持久化）
+            try:
+                print(f"💾 保存報表內容到資料庫...")
+                final_content = "\n".join(markdown).replace("\\n", "\n")
+                current_time = datetime.now().isoformat()
+
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        INSERT INTO reports (report_date, lang, content, file_size, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (report_date, lang) DO UPDATE SET
+                            content = EXCLUDED.content,
+                            file_size = EXCLUDED.file_size,
+                            updated_at = EXCLUDED.updated_at
+                    """, (target_date_str, lang, final_content, file_size, current_time, current_time))
+                else:
+                    cursor.execute("""
+                        INSERT INTO reports (report_date, lang, content, file_size, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        ON CONFLICT (report_date, lang) DO UPDATE SET
+                            content = excluded.content,
+                            file_size = excluded.file_size,
+                            updated_at = excluded.updated_at
+                    """, (target_date_str, lang, final_content, file_size, current_time, current_time))
+
+                conn.commit()
+                print(f"✅ 報表內容已保存到資料庫 (日期: {target_date_str}, 語言: {lang})")
+
+            except Exception as db_error:
+                print(f"⚠️ 保存到資料庫失敗，但檔案已成功寫入: {db_error}")
+
             # 讀取檔案前幾行驗證
             try:
                 with open(report_filename, "r", encoding="utf-8") as f:

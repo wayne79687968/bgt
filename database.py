@@ -223,6 +223,20 @@ def init_database():
                 created_at {text_type},
                 updated_at {text_type}
             )
+            """,
+
+            # 報表存儲表
+            f"""
+            CREATE TABLE IF NOT EXISTS reports (
+                id {autoincrement_type},
+                report_date {text_type} NOT NULL,
+                lang {text_type} NOT NULL DEFAULT 'zh-tw',
+                content {text_type} NOT NULL,
+                file_size INTEGER DEFAULT 0,
+                created_at {text_type} NOT NULL,
+                updated_at {text_type} NOT NULL,
+                UNIQUE(report_date, lang)
+            )
             """
         ]
 

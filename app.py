@@ -8,7 +8,7 @@ import logging
 import glob
 import re
 import json
-from database import get_db_connection
+from database import get_db_connection, get_database_config
 import threading
 import time
 
@@ -58,8 +58,34 @@ ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'password')
 # DB_PATH = "data/bgg_rag.db"  # 移除，改用統一的資料庫連接
 
 def get_report_by_date(report_date, lang='zh-tw'):
-    """獲取指定日期的報表內容"""
+    """獲取指定日期的報表內容（優先從資料庫讀取）"""
     try:
+        # 優先從資料庫讀取
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT content, file_size, updated_at
+                    FROM reports
+                    WHERE report_date = %s AND lang = %s
+                """, (report_date, lang))
+            else:
+                cursor.execute("""
+                    SELECT content, file_size, updated_at
+                    FROM reports
+                    WHERE report_date = ? AND lang = ?
+                """, (report_date, lang))
+
+            result = cursor.fetchone()
+            if result:
+                content, file_size, updated_at = result
+                logger.info(f"✅ 從資料庫讀取報表: {report_date}-{lang} ({file_size} bytes)")
+                return content, f"report-{report_date}-{lang}.md"
+
+        # 資料庫中沒有，嘗試從檔案讀取
+        logger.info(f"⚠️ 資料庫中沒有 {report_date}-{lang} 報表，嘗試從檔案讀取...")
         report_dir = "frontend/public/outputs"
         if not os.path.exists(report_dir):
             return None, "報表目錄不存在"
@@ -74,14 +100,46 @@ def get_report_by_date(report_date, lang='zh-tw'):
         with open(report_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        logger.info(f"✅ 從檔案讀取報表: {report_path}")
         return content, report_filename
+
     except Exception as e:
         logger.error(f"讀取報表失敗: {e}")
         return None, f"讀取報表失敗: {e}"
 
 def get_latest_report():
-    """獲取最新的報表內容"""
+    """獲取最新的報表內容（優先從資料庫讀取）"""
     try:
+        # 優先從資料庫讀取最新報表
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT report_date, lang, content, file_size, updated_at
+                    FROM reports
+                    WHERE lang = 'zh-tw'
+                    ORDER BY report_date DESC, updated_at DESC
+                    LIMIT 1
+                """)
+            else:
+                cursor.execute("""
+                    SELECT report_date, lang, content, file_size, updated_at
+                    FROM reports
+                    WHERE lang = 'zh-tw'
+                    ORDER BY report_date DESC, updated_at DESC
+                    LIMIT 1
+                """)
+
+            result = cursor.fetchone()
+            if result:
+                report_date, lang, content, file_size, updated_at = result
+                logger.info(f"✅ 從資料庫讀取最新報表: {report_date}-{lang} ({file_size} bytes)")
+                return content, f"report-{report_date}-{lang}.md"
+
+        # 資料庫中沒有，嘗試從檔案讀取
+        logger.info("⚠️ 資料庫中沒有報表，嘗試從檔案讀取...")
         # 尋找最新的報表檔案
         report_dir = "frontend/public/outputs"
         if not os.path.exists(report_dir):
@@ -99,26 +157,59 @@ def get_latest_report():
         with open(report_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
+        logger.info(f"✅ 從檔案讀取最新報表: {report_path}")
         return content, latest_file
+
     except Exception as e:
         logger.error(f"讀取報表失敗: {e}")
-        return None, f"讀取報表失敗: {e}"
+        return None, "讀取報表失敗"
 
 def get_available_dates():
-    """獲取所有可用的報表日期"""
+    """獲取所有可用的報表日期（優先從資料庫讀取）"""
     try:
+        dates_set = set()
+
+        # 優先從資料庫讀取
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT DISTINCT report_date
+                    FROM reports
+                    WHERE lang = 'zh-tw'
+                    ORDER BY report_date DESC
+                """)
+            else:
+                cursor.execute("""
+                    SELECT DISTINCT report_date
+                    FROM reports
+                    WHERE lang = 'zh-tw'
+                    ORDER BY report_date DESC
+                """)
+
+            db_dates = [row[0] for row in cursor.fetchall()]
+            dates_set.update(db_dates)
+
+            if db_dates:
+                logger.info(f"✅ 從資料庫讀取到 {len(db_dates)} 個報表日期")
+
+        # 同時從檔案系統讀取（作為備份）
         report_dir = "frontend/public/outputs"
-        if not os.path.exists(report_dir):
-            return []
+        if os.path.exists(report_dir):
+            report_files = [f for f in os.listdir(report_dir) if f.endswith('-zh-tw.md')]
+            file_dates = [f.replace('report-', '').replace('-zh-tw.md', '') for f in report_files]
+            dates_set.update(file_dates)
 
-        report_files = glob.glob(os.path.join(report_dir, "report-*-zh-tw.md"))
-        dates = []
-        for f in report_files:
-            match = re.search(r'report-(\d{4}-\d{2}-\d{2})', os.path.basename(f))
-            if match:
-                dates.append(match.group(1))
+            if file_dates:
+                logger.info(f"✅ 從檔案系統讀取到 {len(file_dates)} 個報表日期")
 
-        return sorted(dates, reverse=True)
+        # 合併並排序
+        all_dates = sorted(list(dates_set), reverse=True)
+        logger.info(f"📊 總共可用報表日期: {len(all_dates)} 個")
+        return all_dates
+
     except Exception as e:
         logger.error(f"獲取可用日期失敗: {e}")
         return []

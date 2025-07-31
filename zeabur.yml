@@ -20,6 +20,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - name: reports
+        mount: /app/frontend/public/outputs
 
   scheduler:
     type: python
@@ -30,3 +33,9 @@ services:
     env:
       FLASK_ENV: production
       TZ: Asia/Taipei
+    volumes:
+      - name: reports
+        mount: /app/frontend/public/outputs
+
+volumes:
+  reports:
