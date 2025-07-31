@@ -39,17 +39,19 @@ def get_db_connection():
     config = get_database_config()
 
     if config['type'] == 'postgresql':
+        # PostgreSQL 連接
         try:
             import psycopg2
+        except ImportError:
+            raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
+
         conn = psycopg2.connect(config['url'])
         try:
             yield conn
         finally:
             conn.close()
-        except ImportError:
-            raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
     else:
-        # SQLite
+        # SQLite 連接
         os.makedirs('data', exist_ok=True)
         conn = sqlite3.connect(config['path'])
         try:
