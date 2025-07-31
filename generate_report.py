@@ -4,13 +4,12 @@ import argparse
 import re
 import json
 import glob
-from database import get_db_connection
+from database import get_db_connection, get_database_config
 
 def get_db_conn():
     """相容性函數：取得資料庫連接"""
     # 直接返回連接，在使用完畢後需要手動關閉
     import sqlite3
-    from database import get_database_config
     
     config = get_database_config()
     if config['type'] == 'postgresql':
@@ -20,6 +19,19 @@ def get_db_conn():
         import os
         os.makedirs('data', exist_ok=True)
         return sqlite3.connect(config['path'])
+
+def execute_query(cursor, query, params, config_type=None):
+    """執行相容性查詢，自動處理參數佔位符"""
+    if config_type is None:
+        config_type = get_database_config()['type']
+    
+    if config_type == 'postgresql':
+        # PostgreSQL 使用 %s
+        query_pg = query.replace('?', '%s')
+        cursor.execute(query_pg, params)
+    else:
+        # SQLite 使用 ?
+        cursor.execute(query, params)
 
 def generate_single_report(target_date_str, detail_mode, lang):
     """
@@ -318,11 +330,10 @@ def main():
     if last_report_date is None:
         print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
         # Find the earliest date in the database
-        conn_check = get_db_conn()
-        cursor_check = conn_check.cursor()
-        cursor_check.execute("SELECT MIN(snapshot_date) FROM hot_games")
-        earliest_date_str = cursor_check.fetchone()[0]
-        conn_check.close()
+        with get_db_connection() as conn_check:
+            cursor_check = conn_check.cursor()
+            cursor_check.execute("SELECT MIN(snapshot_date) FROM hot_games")
+            earliest_date_str = cursor_check.fetchone()[0]
         if earliest_date_str:
             start_date = date.fromisoformat(earliest_date_str)
         else:
@@ -342,20 +353,19 @@ def main():
         return
 
     # 檢查資料庫連線
-    db_path = "data/bgg_rag.db"
-    conn_check = sqlite3.connect(db_path)
-    cursor_check = conn_check.cursor()
-
-    for dt in dates_to_generate:
-        target_date_str = dt.strftime("%Y-%m-%d")
-        cursor_check.execute("SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,))
-        if cursor_check.fetchone():
-            print(f"--- 正在產生 {target_date_str} 的報告 ---")
-            generate_single_report(target_date_str, detail_mode, lang)
-        else:
-            print(f"--- 找不到 {target_date_str} 的資料，跳過報告產生 ---")
-
-    conn_check.close()
+    with get_db_connection() as conn_check:
+        cursor_check = conn_check.cursor()
+        
+        config = get_database_config()
+        
+        for dt in dates_to_generate:
+            target_date_str = dt.strftime("%Y-%m-%d")
+            execute_query(cursor_check, "SELECT 1 FROM hot_games WHERE snapshot_date = ? LIMIT 1", (target_date_str,), config['type'])
+            if cursor_check.fetchone():
+                print(f"--- 正在產生 {target_date_str} 的報告 ---")
+                generate_single_report(target_date_str, detail_mode, lang)
+            else:
+                print(f"--- 找不到 {target_date_str} 的資料，跳過報告產生 ---")
 
 if __name__ == "__main__":
     main()

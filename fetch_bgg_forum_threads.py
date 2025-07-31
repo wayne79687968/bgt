@@ -1,4 +1,3 @@
-import sqlite3
 import requests
 import re
 import os
@@ -9,11 +8,10 @@ import openai
 from dotenv import load_dotenv
 import time
 import argparse
+from database import get_db_connection, get_database_config
 
 # 參考 comment_summarize_llm.py，載入 .env
 load_dotenv()
-
-DB_PATH = "data/bgg_rag.db"
 OUTPUT_DIR = "outputs/forum_threads"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -29,8 +27,8 @@ PROMPT_HEADER = {
 }
 
 # DB 連線
-conn = sqlite3.connect(DB_PATH)
-cursor = conn.cursor()
+conn = None
+cursor = None
 
 # 設定 requests 重試機制
 session = requests.Session()

@@ -1,7 +1,6 @@
 import os
 import requests
 import xml.etree.ElementTree as ET
-import sqlite3
 import time
 from datetime import datetime, timedelta
 from openai import OpenAI
@@ -12,15 +11,14 @@ import math
 import sys
 import json
 import argparse
+from database import get_db_connection
 
 # 初始化 OpenAI 客戶端
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-db_path = "data/bgg_rag.db"
-conn = sqlite3.connect(db_path)
-cursor = conn.cursor()
+# DB 連線將在需要時建立
 
 # 解析參數
 parser = argparse.ArgumentParser()
