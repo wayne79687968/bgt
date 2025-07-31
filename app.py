@@ -602,8 +602,33 @@ def run_scheduler_async():
         # 監控子進程並檢查停止請求
         output_lines = []
         error_lines = []
+        start_time = datetime.now()
+        last_progress_update = start_time
+        max_runtime = 1800  # 30分鐘超時
 
         while process.poll() is None:  # 進程還在運行
+            current_time = datetime.now()
+            elapsed = (current_time - task_status['start_time']).total_seconds()
+
+            # 檢查超時
+            if elapsed > max_runtime:
+                logger.error(f"⏰ 任務執行超時（{max_runtime/60}分鐘），強制終止進程")
+                try:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+                    update_task_status('超時', 0, f'任務執行超過{max_runtime/60}分鐘，已強制終止')
+                    task_status['is_running'] = False
+                    return False, f"任務執行超時（{max_runtime/60}分鐘）"
+                except Exception as timeout_error:
+                    logger.error(f"❌ 終止超時進程時發生錯誤: {timeout_error}")
+                    update_task_status('錯誤', 0, '終止超時任務時發生錯誤')
+                    task_status['is_running'] = False
+                    return False, f"終止超時任務時發生錯誤: {timeout_error}"
+
             # 檢查是否需要停止
             if check_if_should_stop():
                 logger.info("🛑 收到停止請求，正在終止子進程...")
@@ -635,12 +660,41 @@ def run_scheduler_async():
                     return False, f"停止任務時發生錯誤: {stop_error}"
 
             # 短暫休眠，避免過度消耗 CPU
-            time.sleep(1)
+            time.sleep(2)
 
-            # 更新進度（模擬進度更新）
-            elapsed = (datetime.now() - task_status['start_time']).total_seconds()
-            estimated_progress = min(10 + (elapsed / 1200) * 80, 90)  # 預估進度，最多到90%
-            update_task_status('執行中', int(estimated_progress), f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)')
+            # 更新進度（改進的進度計算）
+            if (current_time - last_progress_update).total_seconds() >= 10:  # 每10秒更新一次
+                if elapsed < 300:  # 前5分鐘：10-30%
+                    estimated_progress = 10 + (elapsed / 300) * 20
+                elif elapsed < 900:  # 5-15分鐘：30-70%
+                    estimated_progress = 30 + ((elapsed - 300) / 600) * 40
+                elif elapsed < 1500:  # 15-25分鐘：70-90%
+                    estimated_progress = 70 + ((elapsed - 900) / 600) * 20
+                else:  # 超過25分鐘：保持90%，但顯示警告
+                    estimated_progress = 90
+                    if elapsed > 1800:  # 超過30分鐘顯示警告
+                        warning_msg = f'任務運行時間過長 ({int(elapsed/60)} 分鐘)，可能需要停止'
+                    else:
+                        warning_msg = f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)'
+                    update_task_status('執行中', int(estimated_progress), warning_msg)
+                    last_progress_update = current_time
+                    continue
+
+                update_task_status('執行中', int(estimated_progress), f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)')
+                last_progress_update = current_time
+
+                # 記錄詳細狀態
+                if elapsed % 300 == 0:  # 每5分鐘記錄一次詳細狀態
+                    logger.info(f"🕐 任務已運行 {int(elapsed/60)} 分鐘，進度 {int(estimated_progress)}%")
+                    try:
+                        # 檢查進程是否還活著
+                        if process.poll() is None:
+                            logger.info("📊 子進程仍在運行中...")
+                        else:
+                            logger.info("⚠️ 子進程似乎已結束，但監控循環仍在運行")
+                            break
+                    except Exception as check_error:
+                        logger.error(f"❌ 檢查進程狀態時出錯: {check_error}")
 
         # 子進程已完成，獲取輸出
         stdout, stderr = process.communicate()
