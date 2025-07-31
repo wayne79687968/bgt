@@ -146,8 +146,12 @@ def is_i18n_fresh(objectid, lang, days=7):
         return False
 
 def summarize_reason_with_llm(game_name, threads):
+    """使用 LLM 分析討論串並產生上榜原因"""
+    print(f"🤖 開始為 {game_name} 分析討論串...")
+
     # 若沒有討論串，產生預設回應
     if not threads:
+        print(f"⚠️ {game_name} 沒有討論串資料")
         if lang == 'zh-tw':
             return f"因為討論資料過少，無法推論 {game_name} 的上榜原因。"
         else:
@@ -155,7 +159,10 @@ def summarize_reason_with_llm(game_name, threads):
 
     # 檢查討論串內容是否過少（例如：討論串數量少於2個，或總留言數少於3個）
     total_posts = sum(len(t.get('posts', [])) for t in threads)
+    print(f"📊 {game_name}: {len(threads)} 個討論串，共 {total_posts} 個留言")
+
     if len(threads) < 2 or total_posts < 3:
+        print(f"⚠️ {game_name} 討論資料過少（討論串: {len(threads)}, 留言: {total_posts}）")
         if lang == 'zh-tw':
             return f"因為討論資料過少，無法推論 {game_name} 的上榜原因。"
         else:
@@ -163,34 +170,86 @@ def summarize_reason_with_llm(game_name, threads):
 
     # 若 lang == 'en' 且 threads 全為英文，直接組合 reason
     if lang == 'en' and threads and all(is_english_thread(t) for t in threads):
+        print(f"🔤 {game_name} 為英文討論串，直接組合原因...")
         # 直接用第一個討論串標題與前幾則留言組合一段英文 reason
         reason = f"Key discussion for {game_name}: "
         for t in threads[:1]:
             reason += f"{t['title']}. "
             for p in t['posts'][:2]:
                 reason += f"{p['author']}: {p['body'][:80]}. "
+        print(f"✅ {game_name} 英文原因組合完成")
         return reason.strip()
+
     # 否則呼叫 LLM
+    print(f"🤖 準備調用 OpenAI API 分析 {game_name}...")
     prompt = PROMPT_HEADER[lang] + f"\n\nGame: {game_name}\nForum thread summary:\n"
     for t in threads:
         prompt += f"\n- {t['title']} ({t['postdate']})"
         for p in t['posts'][:2]:
             prompt += f"\n  - {p['author']}：{p['body'][:80]}"
-    try:
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        response = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=512,
-            temperature=0.5
-        )
-        reason = response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"⚠️ LLM 處理失敗: {e}")
-        if lang == 'zh-tw':
-            reason = f"因為討論資料過少，無法推論 {game_name} 的上榜原因。"
-        else:
-            reason = f"Unable to infer the reason for {game_name}'s popularity due to insufficient discussion data."
+
+    print(f"📝 Prompt 長度: {len(prompt)} 字符")
+
+    # 重試機制
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            print(f"🔄 第 {attempt + 1}/{max_retries} 次嘗試調用 OpenAI API...")
+
+            client = openai.OpenAI(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                timeout=60.0  # 設置 60 秒超時
+            )
+
+            print(f"⏰ 開始 API 調用... (超時: 60秒)")
+            start_time = time.time()
+
+            response = client.chat.completions.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=512,
+                temperature=0.5,
+                timeout=60.0  # 額外的超時設置
+            )
+
+            end_time = time.time()
+            duration = end_time - start_time
+            print(f"✅ API 調用成功！耗時: {duration:.2f} 秒")
+
+            reason = response.choices[0].message.content.strip()
+            print(f"📝 {game_name} 分析結果: {reason[:100]}...")
+            return reason
+
+        except openai.APITimeoutError as e:
+            print(f"⏰ OpenAI API 超時 (嘗試 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 10
+                print(f"⏳ 等待 {wait_time} 秒後重試...")
+                time.sleep(wait_time)
+            continue
+
+        except openai.RateLimitError as e:
+            print(f"🚫 OpenAI API 速率限制 (嘗試 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 30
+                print(f"⏳ 等待 {wait_time} 秒後重試...")
+                time.sleep(wait_time)
+            continue
+
+        except Exception as e:
+            print(f"❌ OpenAI API 調用失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                wait_time = (attempt + 1) * 5
+                print(f"⏳ 等待 {wait_time} 秒後重試...")
+                time.sleep(wait_time)
+            continue
+
+    # 所有重試都失敗了
+    print(f"❌ {game_name} 的 LLM 分析完全失敗，使用預設回應")
+    if lang == 'zh-tw':
+        reason = f"因為 API 調用失敗，無法推論 {game_name} 的上榜原因。"
+    else:
+        reason = f"Unable to infer the reason for {game_name}'s popularity due to API failure."
     return reason
 
 def is_english_thread(thread):
@@ -488,20 +547,30 @@ def main():
         all_results = {}
 
         print(f"📊 找到 {len(games_to_process)} 個遊戲需要處理討論串")
+        if len(games_to_process) == 0:
+            print("✅ 沒有遊戲需要處理，任務完成")
+            return
 
-        for objectid, name in games_to_process:
-            print(f"Fetching forum threads for {name} ({objectid}) [{lang}] ...")
+        for i, (objectid, name) in enumerate(games_to_process, 1):
+            start_time = time.time()
+            print(f"\n🎮 [{i}/{len(games_to_process)}] 開始處理 {name} ({objectid}) ...")
+            print(f"🔧 目標語言: {lang}")
 
             try:
                 # 1. 判斷討論串是否過期或不存在
+                print(f"🔍 檢查 {name} 的討論串是否需要更新...")
                 if is_threads_expired_with_cursor(cursor, objectid, config):
-                    print(f"⏩ 討論串已過期或不存在，重抓並刪除所有語言 reason：objectid={objectid}")
+                    print(f"⏩ {name} 討論串已過期或不存在，重抓並刪除所有語言 reason")
                     delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config)
+                    print(f"📥 開始抓取 {name} 的新討論串...")
                     threads = fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config)
+                    print(f"📥 {name} 討論串抓取完成，共 {len(threads) if threads else 0} 個")
                 else:
+                    print(f"✅ {name} 使用現有討論串資料")
                     threads = get_threads_by_objectid_with_cursor(cursor, objectid, config)
 
                 # 2. 若該語言 reason 不存在，才丟給 LLM
+                print(f"🔍 檢查 {name} 是否已有 {lang} 語言的分析結果...")
                 if config['type'] == 'postgresql':
                     cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
                 else:
@@ -509,12 +578,14 @@ def main():
                 reason_exists = cursor.fetchone() is not None
 
                 if reason_exists:
-                    print(f"⏩ 已有新鮮 {lang} reason，跳過 objectid={objectid}")
+                    print(f"⏩ {name} 已有新鮮 {lang} reason，跳過")
                     continue
 
                 # 3. 用現有 threads 產生 reason
+                print(f"🤖 開始為 {name} 產生 {lang} 語言分析...")
                 reason = summarize_reason_with_llm(name, threads)
 
+                print(f"💾 保存 {name} 的分析結果到數據庫...")
                 if config['type'] == 'postgresql':
                     cursor.execute("""
                         INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
@@ -534,15 +605,21 @@ def main():
                     "reason": reason
                 }
 
-                print(f"✅ 完成處理 {name} ({objectid})")
+                end_time = time.time()
+                duration = end_time - start_time
+                print(f"✅ [{i}/{len(games_to_process)}] 完成處理 {name} (耗時: {duration:.2f} 秒)")
 
             except Exception as e:
-                print(f"❌ 處理遊戲 {name} ({objectid}) 時發生錯誤: {e}")
+                end_time = time.time()
+                duration = end_time - start_time
+                print(f"❌ [{i}/{len(games_to_process)}] 處理遊戲 {name} ({objectid}) 時發生錯誤: {e}")
                 import traceback
                 print(f"❌ 錯誤詳情: {traceback.format_exc()}")
+                print(f"⏱️ 錯誤發生時間: {duration:.2f} 秒")
                 continue
 
         conn.commit()
+        print(f"\n💾 數據庫提交完成")
 
     # 儲存 debug 檔案
     print(f"💾 儲存結果到 {output_path}")

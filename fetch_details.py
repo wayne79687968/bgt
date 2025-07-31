@@ -123,14 +123,33 @@ with get_db_connection() as conn:
                 # 最佳玩家數 (這需要從 poll 中解析，這裡簡化處理)
                 bestplayers = f"{minplayers}-{maxplayers}" if minplayers and maxplayers else ""
 
+                # 提取分類、機制、設計師、美術、發行商資訊
+                def extract_links(item, link_type):
+                    """從 XML 中提取指定類型的連結資訊"""
+                    links = item.findall(f"link[@type='{link_type}']")
+                    return ", ".join([link.attrib.get("value", "") for link in links if link.attrib.get("value")])
+
+                categories = extract_links(item, "boardgamecategory")
+                mechanics = extract_links(item, "boardgamemechanic")
+                designers = extract_links(item, "boardgamedesigner")
+                artists = extract_links(item, "boardgameartist")
+                publishers = extract_links(item, "boardgamepublisher")
+
+                print(f"📋 {name} 詳細資訊:")
+                print(f"  分類: {categories[:50]}{'...' if len(categories) > 50 else ''}")
+                print(f"  機制: {mechanics[:50]}{'...' if len(mechanics) > 50 else ''}")
+                print(f"  設計師: {designers[:30]}{'...' if len(designers) > 30 else ''}")
+
                 # 插入或更新資料
                 if config['type'] == 'postgresql':
                     cursor.execute("""
                         INSERT INTO game_detail (
                             objectid, name, year, rating, rank, weight,
                             minplayers, maxplayers, bestplayers,
-                            minplaytime, maxplaytime, image, last_updated
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            minplaytime, maxplaytime,
+                            categories, mechanics, designers, artists, publishers,
+                            image, last_updated
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT (objectid) DO UPDATE SET
                             name = EXCLUDED.name,
                             year = EXCLUDED.year,
@@ -142,18 +161,27 @@ with get_db_connection() as conn:
                             bestplayers = EXCLUDED.bestplayers,
                             minplaytime = EXCLUDED.minplaytime,
                             maxplaytime = EXCLUDED.maxplaytime,
+                            categories = EXCLUDED.categories,
+                            mechanics = EXCLUDED.mechanics,
+                            designers = EXCLUDED.designers,
+                            artists = EXCLUDED.artists,
+                            publishers = EXCLUDED.publishers,
                             image = EXCLUDED.image,
                             last_updated = EXCLUDED.last_updated
                     """, (objectid, name, year, rating, rank, weight,
                           minplayers, maxplayers, bestplayers,
-                          minplaytime, maxplaytime, image, today))
+                          minplaytime, maxplaytime,
+                          categories, mechanics, designers, artists, publishers,
+                          image, today))
                 else:
                     cursor.execute("""
                         INSERT INTO game_detail (
                             objectid, name, year, rating, rank, weight,
                             minplayers, maxplayers, bestplayers,
-                            minplaytime, maxplaytime, image, last_updated
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            minplaytime, maxplaytime,
+                            categories, mechanics, designers, artists, publishers,
+                            image, last_updated
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT (objectid) DO UPDATE SET
                             name = excluded.name,
                             year = excluded.year,
@@ -165,11 +193,18 @@ with get_db_connection() as conn:
                             bestplayers = excluded.bestplayers,
                             minplaytime = excluded.minplaytime,
                             maxplaytime = excluded.maxplaytime,
+                            categories = excluded.categories,
+                            mechanics = excluded.mechanics,
+                            designers = excluded.designers,
+                            artists = excluded.artists,
+                            publishers = excluded.publishers,
                             image = excluded.image,
                             last_updated = excluded.last_updated
                     """, (objectid, name, year, rating, rank, weight,
                           minplayers, maxplayers, bestplayers,
-                          minplaytime, maxplaytime, image, today))
+                          minplaytime, maxplaytime,
+                          categories, mechanics, designers, artists, publishers,
+                          image, today))
 
                 print(f"✅ 已更新遊戲: {name} ({objectid})")
 
