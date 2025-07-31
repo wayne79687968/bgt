@@ -8,6 +8,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 import pytz
+from database import init_database
 
 # 載入環境變數
 load_dotenv()
@@ -88,6 +89,16 @@ def main():
     # 如果指定 --run-now，立即執行任務
     if args.run_now:
         logger.info("🚀 立即執行報表產生任務...")
+        
+        # 確保資料庫已初始化
+        logger.info("🗃️ 確保資料庫已初始化...")
+        try:
+            init_database()
+            logger.info("✅ 資料庫初始化完成")
+        except Exception as e:
+            logger.error(f"❌ 資料庫初始化失敗: {e}")
+            return
+            
         success = fetch_and_generate_report(args.detail, args.lang)
         if success:
             logger.info("✅ 任務執行成功")
@@ -96,6 +107,15 @@ def main():
         return
 
     logger.info("🚀 啟動 BGG 報表排程器...")
+    
+    # 確保資料庫已初始化
+    logger.info("🗃️ 確保資料庫已初始化...")
+    try:
+        init_database()
+        logger.info("✅ 資料庫初始化完成")
+    except Exception as e:
+        logger.error(f"❌ 資料庫初始化失敗: {e}")
+        return
 
     # 設定時區
     timezone = pytz.timezone(os.getenv('TZ', 'Asia/Taipei'))
