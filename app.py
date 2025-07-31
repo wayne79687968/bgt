@@ -9,6 +9,29 @@ import glob
 import re
 import json
 from database import get_db_connection
+import threading
+import time
+
+# 全域任務狀態追蹤
+task_status = {
+    'is_running': False,
+    'start_time': None,
+    'current_step': '',
+    'progress': 0,
+    'message': '',
+    'last_update': None
+}
+
+def update_task_status(step, progress, message):
+    """更新任務狀態"""
+    global task_status
+    task_status.update({
+        'current_step': step,
+        'progress': progress,
+        'message': message,
+        'last_update': datetime.now()
+    })
+    logger.info(f"📊 任務進度: {progress}% - {step} - {message}")
 
 # 嘗試導入 markdown，如果失敗則使用簡單的文字顯示
 try:
@@ -379,10 +402,19 @@ def parse_game_data_from_report(content):
         logger.error(f"解析遊戲資料失敗: {e}")
         return []
 
-def generate_report():
-    """產生新的報表"""
+def run_scheduler_async():
+    """異步執行排程任務"""
+    global task_status
+
     try:
-        logger.info("開始產生報表...")
+        task_status['is_running'] = True
+        task_status['start_time'] = datetime.now()
+
+        update_task_status('開始', 0, '初始化任務...')
+
+        logger.info("開始執行完整排程任務...")
+        logger.info(f"🔧 當前工作目錄: {os.getcwd()}")
+        logger.info(f"🔧 Python 版本: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
 
         # 檢查當前環境和權限
         logger.info(f"🔧 當前用戶: {os.getenv('USER', 'unknown')}")
@@ -405,49 +437,7 @@ def generate_report():
         else:
             logger.warning(f"⚠️ 輸出目錄不存在: {output_dir}")
 
-        # 使用完整的排程任務來確保數據完整性
-        # 這會執行：抓取熱門遊戲 → 抓取詳細資訊 → 抓取討論串 → 產生報表
-        success, message = run_scheduler()
-
-        if success:
-            logger.info("報表產生成功")
-
-            # 再次檢查檔案是否產生
-            logger.info("🔍 最終檢查報表檔案...")
-            if os.path.exists(output_dir):
-                files = os.listdir(output_dir)
-                logger.info(f"📂 最終目錄中有 {len(files)} 個檔案")
-
-                # 檢查今日報表
-                today = datetime.now().strftime("%Y-%m-%d")
-                today_reports = [f for f in files if f.startswith(f"report-{today}")]
-                logger.info(f"📄 今日報表檔案: {today_reports}")
-
-                for report_file in today_reports:
-                    file_path = os.path.join(output_dir, report_file)
-                    file_size = os.path.getsize(file_path)
-                    file_mtime = os.path.getmtime(file_path)
-                    import datetime as dt
-                    mtime_str = dt.datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                    logger.info(f"📄 {report_file}: {file_size} bytes, 修改時間: {mtime_str}")
-
-            return True, "報表產生成功"
-        else:
-            logger.error(f"報表產生失敗: {message}")
-            return False, f"報表產生失敗: {message}"
-
-    except Exception as e:
-        logger.error(f"報表產生異常: {e}")
-        import traceback
-        logger.error(f"異常堆疊: {traceback.format_exc()}")
-        return False, f"報表產生異常: {e}"
-
-def run_scheduler():
-    """執行完整的排程任務"""
-    try:
-        logger.info("開始執行完整排程任務...")
-        logger.info(f"🔧 當前工作目錄: {os.getcwd()}")
-        logger.info(f"🔧 Python 版本: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
+        update_task_status('準備執行', 5, '檢查環境完成，開始執行排程...')
 
         # 執行排程腳本，添加 --force 參數以確保能產生今日報表
         cmd = [
@@ -457,6 +447,8 @@ def run_scheduler():
             '--force'
         ]
         logger.info(f"🚀 執行命令: {' '.join(cmd)}")
+
+        update_task_status('執行中', 10, '正在執行數據抓取和報表生成...')
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)  # 30分鐘超時
 
@@ -475,6 +467,8 @@ def run_scheduler():
                     logger.info(f"  STDERR: {line}")
 
         if result.returncode == 0:
+            update_task_status('檢查結果', 90, '排程執行成功，檢查產生的檔案...')
+
             logger.info("✅ 排程任務執行成功")
 
             # 檢查報表檔案是否實際產生
@@ -493,27 +487,77 @@ def run_scheduler():
                         file_path = os.path.join(report_dir, f)
                         file_size = os.path.getsize(file_path)
                         file_mtime = os.path.getmtime(file_path)
-                        import datetime
-                        mtime_str = datetime.datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                        import datetime as dt
+                        mtime_str = dt.datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
                         logger.info(f"  📄 {f} ({file_size} bytes, {mtime_str})")
+
+                    # 檢查今日報表
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    today_reports = [f for f in files if f.startswith(f"report-{today}")]
+                    logger.info(f"📄 今日報表檔案: {today_reports}")
+
+                    if today_reports:
+                        update_task_status('完成', 100, f'成功產生 {len(today_reports)} 個今日報表檔案')
+                        task_status['is_running'] = False
+                        return True, "排程任務執行成功，報表已產生"
+                    else:
+                        update_task_status('警告', 95, '排程執行成功但未發現今日報表檔案')
+                        task_status['is_running'] = False
+                        return True, "排程任務執行成功，但請檢查報表檔案"
                 else:
                     logger.warning("⚠️ 報表目錄為空！")
+                    update_task_status('警告', 90, '排程執行成功但報表目錄為空')
             else:
                 logger.error(f"❌ 報表目錄不存在: {report_dir}")
+                update_task_status('錯誤', 85, '報表目錄不存在')
 
+            task_status['is_running'] = False
             return True, "排程任務執行成功"
         else:
             logger.error(f"❌ 排程任務執行失敗，返回碼: {result.returncode}")
+            update_task_status('失敗', 0, f'排程執行失敗: {result.stderr[:100]}...')
+            task_status['is_running'] = False
             return False, f"排程任務執行失敗: {result.stderr}"
 
     except subprocess.TimeoutExpired:
         logger.error("⏰ 排程任務執行超時")
+        update_task_status('超時', 0, '任務執行超過30分鐘超時')
+        task_status['is_running'] = False
         return False, "排程任務執行超時"
     except Exception as e:
         logger.error(f"💥 排程任務執行異常: {e}")
         import traceback
         logger.error(f"💥 異常堆疊: {traceback.format_exc()}")
+        update_task_status('異常', 0, f'執行異常: {str(e)[:100]}...')
+        task_status['is_running'] = False
         return False, f"排程任務執行異常: {e}"
+
+def run_scheduler():
+    """執行完整的排程任務 (保持同步介面兼容性)"""
+    return run_scheduler_async()
+
+def generate_report():
+    """產生新的報表"""
+    try:
+        logger.info("開始產生報表...")
+
+        # 檢查是否已有任務在運行
+        if task_status['is_running']:
+            elapsed = (datetime.now() - task_status['start_time']).total_seconds() if task_status['start_time'] else 0
+            return True, f"報表產生中... 已運行 {int(elapsed/60)} 分鐘，當前步驟: {task_status['current_step']}"
+
+        # 啟動異步任務
+        thread = threading.Thread(target=run_scheduler_async)
+        thread.daemon = True
+        thread.start()
+
+        return True, "報表產生任務已啟動，請稍後檢查進度"
+
+    except Exception as e:
+        logger.error(f"報表產生異常: {e}")
+        import traceback
+        logger.error(f"異常堆疊: {traceback.format_exc()}")
+        return False, f"報表產生異常: {e}"
 
 @app.route('/')
 def index():
@@ -561,13 +605,39 @@ def settings():
     available_dates = get_available_dates()
     return render_template('settings.html', available_dates=available_dates)
 
+@app.route('/api/task-status', methods=['GET'])
+def api_task_status():
+    """API端點：查詢任務狀態"""
+    if 'logged_in' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+
+    global task_status
+
+    # 計算運行時間
+    elapsed_seconds = 0
+    if task_status['start_time']:
+        elapsed_seconds = (datetime.now() - task_status['start_time']).total_seconds()
+
+    return jsonify({
+        'success': True,
+        'status': {
+            'is_running': task_status['is_running'],
+            'current_step': task_status['current_step'],
+            'progress': task_status['progress'],
+            'message': task_status['message'],
+            'elapsed_seconds': int(elapsed_seconds),
+            'elapsed_minutes': int(elapsed_seconds / 60),
+            'last_update': task_status['last_update'].isoformat() if task_status['last_update'] else None
+        }
+    })
+
 @app.route('/api/run-scheduler', methods=['POST'])
 def api_run_scheduler():
     """API端點：執行完整排程任務"""
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
 
-    success, message = run_scheduler()
+    success, message = generate_report()
     return jsonify({'success': success, 'message': message})
 
 @app.route('/login', methods=['GET', 'POST'])

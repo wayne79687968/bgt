@@ -41,11 +41,11 @@ def get_db_connection():
     if config['type'] == 'postgresql':
         try:
             import psycopg2
-            conn = psycopg2.connect(config['url'])
-            try:
-                yield conn
-            finally:
-                conn.close()
+        conn = psycopg2.connect(config['url'])
+        try:
+            yield conn
+        finally:
+            conn.close()
         except ImportError:
             raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
     else:

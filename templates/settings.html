@@ -3,149 +3,208 @@
 {% block title %}設定 - BGG 熱門遊戲報表{% endblock %}
 
 {% block content %}
-<div class="mt-4">
+<div class="container-fluid mt-3">
     <h2>⚙️ 系統設定</h2>
 
-    <!-- 排程控制區 -->
+    <!-- 任務狀態顯示 -->
     <div class="card mb-4">
         <div class="card-header">
-            <h5 class="mb-0">📅 排程管理</h5>
+            <h5>📊 報表產生狀態</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <p><strong>自動排程時間：</strong>每天早上 8:00 (台北時間)</p>
-                    <p class="text-muted">自動排程會執行以下任務：</p>
-                    <ul class="text-muted">
-                        <li>抓取 BGG 熱門遊戲榜單</li>
-                        <li>獲取遊戲詳細資訊</li>
-                        <li>抓取討論串並翻譯</li>
-                        <li>產生報表</li>
-                    </ul>
+            <div id="task-status" class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span id="status-text">檢查中...</span>
+                    <span id="status-time" class="text-muted"></span>
                 </div>
-                <div class="col-md-4">
-                    <button id="runSchedulerBtn" class="btn btn-warning btn-lg w-100" onclick="runScheduler()">
-                        🚀 立即執行完整排程
-                    </button>
-                    <small class="text-muted">此操作可能需要 10-30 分鐘</small>
+                <div class="progress mt-2" style="height: 20px; display: none;" id="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 0%">0%</div>
                 </div>
+                <div id="status-message" class="mt-2 text-muted" style="display: none;"></div>
             </div>
 
-            <!-- 執行狀態顯示 -->
-            <div id="schedulerStatus" class="mt-3" style="display: none;">
-                <div class="alert alert-info">
-                    <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                        <span>正在執行排程任務，請稍候...</span>
+            <div class="d-flex gap-2">
+                <button id="generate-btn" class="btn btn-success" onclick="generateReport()">
+                    🔄 重新產生報表
+                </button>
+                <button class="btn btn-info" onclick="checkStatus()">
+                    📊 檢查狀態
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.reload()">
+                    🔄 重新整理頁面
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 報表檔案列表 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📄 現有報表檔案</h5>
+        </div>
+        <div class="card-body">
+            {% if available_dates %}
+                <div class="row">
+                    {% for date in available_dates[:10] %}
+                    <div class="col-md-6 col-lg-4 mb-2">
+                        <a href="{{ url_for('index', date=date) }}" class="btn btn-outline-primary btn-sm">
+                            📅 {{ date }}{% if loop.first %} (最新){% endif %}
+                        </a>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
+                {% if available_dates|length > 10 %}
+                    <p class="text-muted mt-2">還有 {{ available_dates|length - 10 }} 個更舊的報表...</p>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">暫無報表檔案</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- 快速操作區 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">🔧 快速操作</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <a href="{{ url_for('generate') }}" class="btn btn-success mb-2 w-100">
-                        🔄 僅重新產生報表
-                    </a>
-                    <small class="text-muted">基於現有資料產生報表 (約1-2分鐘)</small>
-                </div>
-                <div class="col-md-6">
-                    <a href="{{ url_for('index') }}" class="btn btn-info mb-2 w-100">
-                        📊 回到報表頁面
-                    </a>
-                    <small class="text-muted">查看最新的報表內容</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 系統狀態區 -->
+    <!-- 系統資訊 -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">📈 系統狀態</h5>
+            <h5>🔧 系統資訊</h5>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <p><strong>可用報表數量：</strong>{{ available_dates|length }} 份</p>
-                    {% if available_dates %}
-                    <p><strong>最新報表日期：</strong>{{ available_dates[0] }}</p>
-                    <p><strong>最舊報表日期：</strong>{{ available_dates[-1] }}</p>
-                    {% endif %}
-                </div>
-                <div class="col-md-6">
-                    <p><strong>部署平台：</strong>Zeabur</p>
-                    <p><strong>排程狀態：</strong><span class="badge bg-success">正常運行</span></p>
-                </div>
-            </div>
+            <ul class="list-unstyled">
+                <li><strong>最後更新：</strong>{{ last_updated }}</li>
+                <li><strong>報表總數：</strong>{{ available_dates|length }}</li>
+                <li><strong>系統狀態：</strong><span class="text-success">正常運行</span></li>
+            </ul>
         </div>
     </div>
 </div>
 
 <script>
-async function runScheduler() {
-    const btn = document.getElementById('runSchedulerBtn');
-    const status = document.getElementById('schedulerStatus');
+let statusCheckInterval = null;
 
-    // 禁用按鈕並顯示載入狀態
+function generateReport() {
+    const btn = document.getElementById('generate-btn');
     btn.disabled = true;
-    btn.innerHTML = '🔄 執行中...';
-    status.style.display = 'block';
+    btn.innerHTML = '⏳ 啟動中...';
 
-    try {
-        const response = await fetch('/api/run-scheduler', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const result = await response.json();
-
-        // 隱藏載入狀態
-        status.style.display = 'none';
-
-        if (result.success) {
-            // 成功
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show';
-            alertDiv.innerHTML = `
-                ${result.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
-        } else {
-            // 失敗
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-            alertDiv.innerHTML = `
-                執行失敗：${result.message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
+    fetch('/api/run-scheduler', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
         }
-    } catch (error) {
-        // 網路錯誤
-        status.style.display = 'none';
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-        alertDiv.innerHTML = `
-            網路錯誤：${error.message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.querySelector('.mt-4').insertBefore(alertDiv, document.querySelector('.card'));
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            startStatusCheck();
+        } else {
+            showAlert('danger', data.message);
+            btn.disabled = false;
+            btn.innerHTML = '🔄 重新產生報表';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', '請求失敗，請稍後再試');
+        btn.disabled = false;
+        btn.innerHTML = '🔄 重新產生報表';
+    });
+}
+
+function checkStatus() {
+    fetch('/api/task-status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateStatusDisplay(data.status);
+        }
+    })
+    .catch(error => {
+        console.error('Status check error:', error);
+    });
+}
+
+function updateStatusDisplay(status) {
+    const statusText = document.getElementById('status-text');
+    const statusTime = document.getElementById('status-time');
+    const progressContainer = document.getElementById('progress-bar-container');
+    const progressBar = document.getElementById('progress-bar');
+    const statusMessage = document.getElementById('status-message');
+    const generateBtn = document.getElementById('generate-btn');
+
+    if (status.is_running) {
+        statusText.innerHTML = `🔄 ${status.current_step}`;
+        statusTime.innerHTML = `運行時間: ${status.elapsed_minutes} 分鐘`;
+
+        progressContainer.style.display = 'block';
+        progressBar.style.width = status.progress + '%';
+        progressBar.innerHTML = status.progress + '%';
+
+        statusMessage.style.display = 'block';
+        statusMessage.innerHTML = status.message;
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '⏳ 運行中...';
+
+        // 如果正在運行，開始定期檢查
+        if (!statusCheckInterval) {
+            startStatusCheck();
+        }
+    } else {
+        statusText.innerHTML = '⏸️ 無運行中的任務';
+        statusTime.innerHTML = '';
+        progressContainer.style.display = 'none';
+        statusMessage.style.display = 'none';
+
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '🔄 重新產生報表';
+
+        // 停止狀態檢查
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+            statusCheckInterval = null;
+        }
+
+        if (status.progress === 100) {
+            showAlert('success', '報表產生完成！');
+        } else if (status.message && status.message.includes('失敗')) {
+            showAlert('danger', '報表產生失敗：' + status.message);
+        }
+    }
+}
+
+function startStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
     }
 
-    // 恢復按鈕狀態
-    btn.disabled = false;
-    btn.innerHTML = '🚀 立即執行完整排程';
+    statusCheckInterval = setInterval(checkStatus, 5000); // 每5秒檢查一次
+    checkStatus(); // 立即檢查一次
 }
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    // 插入到頁面頂部
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+
+    // 3秒後自動消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
+}
+
+// 頁面載入時檢查狀態
+document.addEventListener('DOMContentLoaded', function() {
+    checkStatus();
+});
 </script>
 {% endblock %}
