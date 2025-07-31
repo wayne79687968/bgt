@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - BGG 桌遊時報{% endblock %}
+
+{% block content %}
+<style>
+/* 報紙樣式重置和基本設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Times New Roman', Times, serif;
+    background: #f5f5f0;
+    color: #000;
+    line-height: 1.4;
+}
+
+.newspaper-wrapper {
+    max-width: 1000px;
+    margin: 20px auto;
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    padding: 0;
+}
+
+/* 報紙頭部 */
+.newspaper-masthead {
+    text-align: center;
+    border-bottom: 4px double #000;
+    padding: 20px 40px;
+    background: #fff;
+}
+
+.newspaper-name {
+    font-size: 48px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    margin-bottom: 5px;
+    font-family: 'Times New Roman', Times, serif;
+    text-transform: uppercase;
+}
+
+.newspaper-tagline {
+    font-size: 14px;
+    font-style: italic;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.newspaper-date-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+/* 主要內容區域 - 改用column佈局自動平衡 */
+.newspaper-content {
+    column-count: 3;
+    column-gap: 25px;
+    column-rule: 1px solid #ddd;
+    padding: 20px;
+    column-fill: balance;
+}
+
+.newspaper-column {
+    display: none; /* 不再使用手動分欄 */
+}
+
+/* 為column佈局調整文章樣式 */
+.news-article {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    width: 100%;
+    display: inline-block;
+    page-break-inside: avoid;
+}
+
+/* 頭條新聞 */
+.headline-article {
+    column-span: all;
+    border-bottom: 2px solid #000;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.headline-title {
+    font-size: 32px;
+    font-weight: bold;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.headline-subtitle {
+    font-size: 16px;
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.headline-meta {
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.headline-content {
+    font-size: 14px;
+    line-height: 1.6;
+    text-align: justify;
+    column-count: 3;
+    column-gap: 25px;
+    column-rule: 1px solid #ddd;
+    overflow: hidden;
+    min-height: 200px;
+}
+
+.headline-content p {
+    margin-bottom: 8px;
+    break-inside: avoid;
+}
+
+/* 一般文章樣式 */
+.news-article {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ccc;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.news-article:last-child {
+    border-bottom: none;
+}
+
+.article-title {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    word-wrap: break-word;
+}
+
+.article-rank {
+    background: #000;
+    color: #fff;
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 8px;
+    margin-bottom: 5px;
+}
+
+.article-image {
+    width: 100%;
+    max-width: 140px;
+    height: auto;
+    float: right;
+    margin: 0 0 10px 15px;
+    border: 2px solid #999;
+    clear: right;
+}
+
+.game-info-block {
+    margin-bottom: 12px;
+}
+
+.info-line {
+    font-size: 11px;
+    line-height: 1.3;
+    margin: 3px 0;
+    color: #333;
+    text-align: left;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+
+.categories-info {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.3;
+    margin: 3px 0;
+    text-align: justify;
+}
+
+.article-analysis {
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: left;
+    margin-top: 10px;
+    color: #222;
+    font-style: italic;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+
+.category-link {
+    color: #000;
+    text-decoration: underline;
+}
+
+.category-link:hover {
+    text-decoration: none;
+}
+
+/* 排名變化標記 */
+.rank-change {
+    font-size: 10px;
+    padding: 2px 6px;
+    font-weight: bold;
+    margin-left: 8px;
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+}
+
+.rank-up {
+    background: #4CAF50;
+    color: white;
+}
+
+.rank-down {
+    background: #f44336;
+    color: white;
+}
+
+.rank-new {
+    background: #d32f2f;
+    color: white;
+}
+
+.rank-same {
+    background: #9E9E9E;
+    color: white;
+}
+
+/* 分欄平衡 */
+.column-break {
+    break-after: column;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .newspaper-content {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .newspaper-column:not(:last-child) {
+        border-right: none;
+        padding-right: 10px;
+    }
+    
+    .headline-content {
+        column-count: 1;
+    }
+    
+    .newspaper-name {
+        font-size: 36px;
+        letter-spacing: 2px;
+    }
+    
+    .headline-title {
+        font-size: 24px;
+    }
+}
+
+/* 打印樣式 */
+@media print {
+    .newspaper-wrapper {
+        box-shadow: none;
+        margin: 0;
+        max-width: none;
+    }
+    
+    body {
+        background: white;
+    }
+}
+</style>
+
+<div class="newspaper-wrapper">
+    <!-- 報紙標頭 -->
+    <header class="newspaper-masthead">
+        <h1 class="newspaper-name">BGG 桌遊時報</h1>
+        <p class="newspaper-tagline">BoardGameGeek 熱門遊戲日報</p>
+        <div class="newspaper-date-info">
+            <span>第1版</span>
+            <span>{{ selected_date }}</span>
+            <span>總計 {{ current_page_games|length }} 款遊戲</span>
+        </div>
+    </header>
+
+    <!-- 主要內容 -->
+    <main class="newspaper-content">
+        {% if current_page_games and current_page_games|length > 0 %}
+            <!-- 頭條：第一名遊戲 -->
+            {% set headline_game = current_page_games[0] %}
+            <article class="headline-article">
+                <h2 class="headline-title">{{ headline_game.name }} 榮登熱門榜首</h2>
+                <p class="headline-subtitle">BoardGameGeek熱門遊戲排行榜第一名</p>
+                <div class="headline-meta">
+                    發行年份：{{ headline_game.year }}年 | 
+                    評分：{{ headline_game.rating }}/10 | 
+                    {% if headline_game.bgg_rank %}BGG排名：{{ headline_game.bgg_rank }} | {% endif %}
+                    {% if headline_game.weight %}複雜度：{{ headline_game.weight }}/5{% endif %}
+                </div>
+                
+                <div class="headline-content">
+                    {% if headline_game.image %}
+                    <img src="{{ headline_game.image }}" alt="{{ headline_game.name }}" style="width: 180px; height: auto; float: left; margin: 0 15px 15px 0; border: 2px solid #000; clear: left;">
+                    {% endif %}
+                    
+                    <p><strong>{{ headline_game.name }}</strong> 在今日的BoardGameGeek熱門遊戲排行榜中勇奪第一名。這款發行於{{ headline_game.year }}年的遊戲，獲得了{{ headline_game.rating }}分（滿分10分）的高評價。</p>
+                    
+                    {% if headline_game.min_players and headline_game.max_players %}
+                    <p>適合{{ headline_game.min_players }}到{{ headline_game.max_players }}人遊玩{% if headline_game.bestplayers %}，最佳人數為{{ headline_game.bestplayers }}人{% endif %}。{% if headline_game.minplaytime and headline_game.maxplaytime %}遊戲時間約需{{ headline_game.minplaytime }}到{{ headline_game.maxplaytime }}分鐘。{% endif %}</p>
+                    {% endif %}
+                    
+                    {% if headline_game.categories and headline_game.categories|length > 0 %}
+                    <p>遊戲類型包括：{% for cat in headline_game.categories %}{{ cat.name }}{% if not loop.last %}、{% endif %}{% endfor %}。</p>
+                    {% endif %}
+                    
+                    {% if headline_game.mechanics and headline_game.mechanics|length > 0 %}
+                    <p>主要遊戲機制為：{% for mech in headline_game.mechanics %}{{ mech.name }}{% if not loop.last %}、{% endif %}{% endfor %}。</p>
+                    {% endif %}
+                    
+                    {% if headline_game.designers and headline_game.designers|length > 0 %}
+                    <p>由{% for designer in headline_game.designers %}{{ designer.name }}{% if not loop.last %}、{% endif %}{% endfor %}設計。</p>
+                    {% endif %}
+                    
+                    {% if headline_game.reason %}
+                    <p><strong>專家分析：</strong>{{ headline_game.reason }}</p>
+                    {% endif %}
+                </div>
+            </article>
+
+            <!-- 其他新聞使用CSS自動分欄 -->
+            {% for game in current_page_games[1:] %}
+                
+                <article class="news-article">
+                    <h3 class="article-title">
+                        <span class="article-rank">{{ game.rank }}</span>
+                        {{ game.name }}
+                        {% if game.is_new %}
+                            <span class="rank-change rank-new">11</span>
+                        {% elif game.rank_change > 0 %}
+                            <span class="rank-change rank-up">{{ game.rank_change }}</span>
+                        {% elif game.rank_change < 0 %}
+                            <span class="rank-change rank-down">{{ -game.rank_change }}</span>
+                        {% endif %}
+                    </h3>
+                    
+                    {% if game.image %}
+                    <img src="{{ game.image }}" alt="{{ game.name }}" class="article-image">
+                    {% endif %}
+                    
+                    <div class="game-info-block">
+                        <p class="info-line">{{ game.year }}年發行</p>
+                        <p class="info-line">評分：{{ game.rating }}/10</p>
+                        <p class="info-line">BGG排名：{{ game.bgg_rank if game.bgg_rank else 'N/A' }}</p>
+                        <p class="info-line">複雜度：{{ game.weight if game.weight else 'N/A' }}/5</p>
+                        <p class="info-line">遊戲規格：{{ game.min_players if game.min_players else '?' }}-{{ game.max_players if game.max_players else '?' }}人{% if game.bestplayers %}（最佳：{{ game.bestplayers }}）{% endif %}</p>
+                        <p class="info-line">遊戲時間：{{ game.minplaytime if game.minplaytime else game.playtime if game.playtime else '?' }}-{{ game.maxplaytime if game.maxplaytime else game.playtime if game.playtime else '?' }}分鐘</p>
+                        
+                        <p class="info-line">
+                            <strong>機制：</strong>
+                            {% if game.mechanics and game.mechanics|length > 0 %}
+                                {% for mech in game.mechanics %}
+                                <a href="https://boardgamegeek.com/boardgamemechanic/{{ mech.id }}" target="_blank" class="category-link">{{ mech.name }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                資料不足
+                            {% endif %}
+                        </p>
+                        
+                        <p class="info-line">
+                            <strong>分類：</strong>
+                            {% if game.categories and game.categories|length > 0 %}
+                                {% for cat in game.categories %}
+                                <a href="https://boardgamegeek.com/boardgamecategory/{{ cat.id }}" target="_blank" class="category-link">{{ cat.name }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                資料不足
+                            {% endif %}
+                        </p>
+                        
+                        <p class="info-line">
+                            <strong>設計師：</strong>
+                            {% if game.designers and game.designers|length > 0 %}
+                                {% for designer in game.designers %}
+                                <a href="https://boardgamegeek.com/boardgamedesigner/{{ designer.id }}" target="_blank" class="category-link">{{ designer.name }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                資料不足
+                            {% endif %}
+                        </p>
+                        
+                        <p class="info-line">
+                            <strong>美術：</strong>
+                            {% if game.artists and game.artists|length > 0 %}
+                                {% for artist in game.artists %}
+                                <a href="https://boardgamegeek.com/boardgameartist/{{ artist.id }}" target="_blank" class="category-link">{{ artist.name }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                資料不足
+                            {% endif %}
+                        </p>
+                        
+                        <p class="info-line">
+                            <strong>發行商：</strong>
+                            {% if game.publishers and game.publishers|length > 0 %}
+                                {% for pub in game.publishers %}
+                                <a href="https://boardgamegeek.com/boardgamepublisher/{{ pub.id }}" target="_blank" class="category-link">{{ pub.name }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                資料不足
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    {% if game.reason %}
+                    <div class="article-analysis">
+                        <strong>上榜分析：</strong>{{ game.reason }}
+                    </div>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        {% else %}
+            <div class="newspaper-column">
+                <article class="news-article">
+                    <h3 class="article-title">暫無遊戲資料</h3>
+                    <div class="article-body">目前沒有可顯示的遊戲資料。</div>
+                </article>
+            </div>
+        {% endif %}
+    </main>
+</div>
+
+<!-- 移除所有JavaScript互動功能 -->
+<script>
+// 日期選擇功能保留
+function changeDate() {
+    const selectedDate = document.getElementById('dateSelect').value;
+    window.location.href = '{{ url_for("newspaper") }}?date=' + selectedDate;
+}
+</script>
+{% endblock %}
