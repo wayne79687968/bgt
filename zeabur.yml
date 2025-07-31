@@ -1,4 +1,7 @@
 services:
+  database:
+    type: postgresql
+    
   app:
     type: python
     build:

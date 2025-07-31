@@ -1,21 +1,35 @@
-import sqlite3
 import os
 from datetime import datetime, date, timedelta
 import argparse
 import re
 import json
 import glob
+from database import get_db_connection
+
+def get_db_conn():
+    """相容性函數：取得資料庫連接"""
+    # 直接返回連接，在使用完畢後需要手動關閉
+    import sqlite3
+    from database import get_database_config
+    
+    config = get_database_config()
+    if config['type'] == 'postgresql':
+        import psycopg2
+        return psycopg2.connect(config['url'])
+    else:
+        import os
+        os.makedirs('data', exist_ok=True)
+        return sqlite3.connect(config['path'])
 
 def generate_single_report(target_date_str, detail_mode, lang):
     """
     為指定日期產生 BGG 熱門桌遊排行榜報告。
     """
-    db_path = "data/bgg_rag.db"
     yesterday = None
 
-    conn = sqlite3.connect(db_path)
+    conn = get_db_conn()
     cursor = conn.cursor()
-
+        
     # 報表用語多語言字典
     I18N = {
         'zh-tw': {
@@ -304,7 +318,7 @@ def main():
     if last_report_date is None:
         print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
         # Find the earliest date in the database
-        conn_check = sqlite3.connect("data/bgg_rag.db")
+        conn_check = get_db_conn()
         cursor_check = conn_check.cursor()
         cursor_check.execute("SELECT MIN(snapshot_date) FROM hot_games")
         earliest_date_str = cursor_check.fetchone()[0]
