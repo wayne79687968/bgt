@@ -393,27 +393,45 @@ def get_threads_by_objectid(objectid):
         return []
 
 def is_threads_expired_with_cursor(cursor, objectid, config):
-    if config['type'] == 'postgresql':
-        cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
-    else:
-        cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
-    row = cursor.fetchone()
-    if not row or not row[0]:
-        return True
-
-    # 檢查討論串內容是否為空
     try:
-        threads_data = json.loads(row[1]) if row[1] else []
-        if not threads_data:  # 如果討論串為空，也視為過期
+        if config['type'] == 'postgresql':
+            cursor.execute("""
+                SELECT created_at, threads_json
+                FROM forum_threads
+                WHERE objectid = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (objectid,))
+        else:
+            cursor.execute("""
+                SELECT created_at, threads_json
+                FROM forum_threads
+                WHERE objectid = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (objectid,))
+
+        row = cursor.fetchone()
+
+        if not row:
+            # 沒有資料，視為過期
             return True
-    except Exception:
-        return True
 
-    # 檢查時間是否過期
-    try:
-        dt = datetime.fromisoformat(row[0])
-        return (datetime.utcnow() - dt).days >= 7
-    except Exception:
+        last_updated_str, threads_json_str = row
+        last_updated = datetime.fromisoformat(last_updated_str)
+
+        # 檢查是否超過7天
+        if datetime.utcnow() - last_updated > timedelta(days=7):
+            return True
+
+        # 檢查 json 是否為空或無效
+        if not threads_json_str or threads_json_str.strip() in ('[]', '{}', ''):
+            return True
+
+        return False
+    except Exception as e:
+        print(f"⚠️ 在 is_threads_expired_with_cursor 中發生錯誤: {e}")
+        # 發生錯誤時，保守地返回 True，觸發重新抓取
         return True
 
 def delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config):
