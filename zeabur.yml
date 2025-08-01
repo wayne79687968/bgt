@@ -7,7 +7,7 @@ services:
     build:
       command: pip install -r requirements.txt
     start:
-      command: gunicorn --bind 0.0.0.0:$PORT --timeout 1800 --workers 1 start:app
+      command: gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --preload start:app
     env:
       PORT: 5000
       FLASK_ENV: production
@@ -15,11 +15,14 @@ services:
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: your-secure-password-here
       SECRET_KEY: your-secret-key-here
+      DATABASE_URL: ${{DATABASE.DATABASE_URL}}
+      OPENAI_API_KEY: your-openai-api-key-here
     healthcheck:
       endpoint: /health
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 120s
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs
@@ -33,6 +36,8 @@ services:
     env:
       FLASK_ENV: production
       TZ: Asia/Taipei
+      DATABASE_URL: ${{DATABASE.DATABASE_URL}}
+      OPENAI_API_KEY: your-openai-api-key-here
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs

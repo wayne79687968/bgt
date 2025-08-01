@@ -26,7 +26,7 @@ def ensure_directories():
             print(f"❌ 創建目錄失敗 {directory}: {e}")
 
 
-def wait_for_database(max_retries=10, delay=5):
+def wait_for_database(max_retries=6, delay=2):
     """等待數據庫可用，帶重試機制"""
     print(f"🔄 等待數據庫連接 (最多 {max_retries} 次重試)...")
 
@@ -35,8 +35,7 @@ def wait_for_database(max_retries=10, delay=5):
             from database import get_db_connection, get_database_config
 
             config = get_database_config()
-            print(f"🔍 嘗試連接數據庫 (第 {attempt + 1}/{max_retries} 次)...")
-            print(f"📊 數據庫類型: {config.get('type', 'unknown')}")
+            print(f"🔍 嘗試連接數據庫 (第 {attempt + 1}/{max_retries} 次) - {config.get('type', 'unknown')}")
 
             with get_db_connection() as conn:
                 cursor = conn.cursor()
@@ -47,7 +46,7 @@ def wait_for_database(max_retries=10, delay=5):
                     return True
 
         except Exception as e:
-            print(f"⚠️ 數據庫連接失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
+            print(f"⚠️ 數據庫連接失敗 (嘗試 {attempt + 1}/{max_retries}): {str(e)[:100]}")
             if attempt < max_retries - 1:
                 print(f"⏳ 等待 {delay} 秒後重試...")
                 time.sleep(delay)
@@ -92,10 +91,13 @@ def initialize_app():
             init_database()
             print("✅ 資料庫初始化成功")
         except Exception as e:
-            print(f"❌ 資料庫初始化失敗: {e}")
-            traceback.print_exc()
+            error_msg = str(e)[:200]
+            print(f"❌ 資料庫初始化失敗: {error_msg}")
             # 數據庫初始化失敗不一定是致命的，可能表結構已存在
-            print("⚠️ 繼續嘗試啟動應用...")
+            if "already exists" in error_msg.lower() or "duplicate" in error_msg.lower():
+                print("ℹ️ 表格可能已存在，繼續啟動...")
+            else:
+                print("⚠️ 繼續嘗試啟動應用...")
 
         # 嘗試導入 Flask 應用
         print("🌐 導入 Flask 應用...")
@@ -122,6 +124,7 @@ print("🔧 初始化應用以供 gunicorn 使用...")
 try:
     app = initialize_app()
     print("✅ 應用初始化完成，準備交給 gunicorn")
+        
 except Exception as e:
     print(f"💥 應用初始化失敗: {e}")
     sys.exit(1)
