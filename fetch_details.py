@@ -19,58 +19,116 @@ batch_size = 10
 today = datetime.utcnow().strftime("%Y-%m-%d")
 
 # 開啟資料庫連線
+print("🔗 開始處理遊戲詳細資料...")
 with get_db_connection() as conn:
     cursor = conn.cursor()
     config = get_database_config()
 
-    # 找出今天榜單的新進榜遊戲（不在昨天榜單中的項目）
-    cursor.execute("""
-        SELECT h.objectid
-        FROM hot_games h
-        WHERE h.snapshot_date = %s
-        AND h.objectid NOT IN (
-            SELECT DISTINCT objectid
-            FROM game_detail
-            WHERE last_updated IS NOT NULL
-            AND last_updated >= %s
-        )
-        ORDER BY h.rank
-    """ if config['type'] == 'postgresql' else """
-        SELECT h.objectid
-        FROM hot_games h
-        WHERE h.snapshot_date = ?
-        AND h.objectid NOT IN (
-            SELECT DISTINCT objectid
-            FROM game_detail
-            WHERE last_updated IS NOT NULL
-            AND last_updated >= ?
-        )
-        ORDER BY h.rank
-    """, (today, today))
+    print(f"📅 目標日期: {today}")
+    print("🔍 開始查詢需要抓取詳細資料的遊戲...")
 
-    games_to_fetch = [row[0] for row in cursor.fetchall()]
+    import time
+    query_start_time = time.time()
+
+    # 找出今天榜單的新進榜遊戲（不在昨天榜單中的項目）
+    if config['type'] == 'postgresql':
+        query = """
+            SELECT h.objectid
+            FROM hot_games h
+            WHERE h.snapshot_date = %s
+            AND h.objectid NOT IN (
+                SELECT DISTINCT objectid
+                FROM game_detail
+                WHERE last_updated IS NOT NULL
+                AND last_updated >= %s
+            )
+            ORDER BY h.rank
+        """
+        params = (today, today)
+    else:
+        query = """
+            SELECT h.objectid
+            FROM hot_games h
+            WHERE h.snapshot_date = ?
+            AND h.objectid NOT IN (
+                SELECT DISTINCT objectid
+                FROM game_detail
+                WHERE last_updated IS NOT NULL
+                AND last_updated >= ?
+            )
+            ORDER BY h.rank
+        """
+        params = (today, today)
+
+    print(f"📋 執行查詢: {query[:100]}...")
+    print(f"📋 查詢參數: {params}")
+
+    try:
+        cursor.execute(query, params)
+        query_time = time.time() - query_start_time
+        print(f"✅ 查詢執行成功 (耗時: {query_time:.2f}秒)")
+
+        print("📊 正在獲取查詢結果...")
+        fetch_start_time = time.time()
+        games_to_fetch = [row[0] for row in cursor.fetchall()]
+        fetch_time = time.time() - fetch_start_time
+        print(f"✅ 結果獲取完成 (耗時: {fetch_time:.2f}秒)")
+
+    except Exception as e:
+        query_time = time.time() - query_start_time
+        print(f"❌ 查詢執行失敗 (耗時: {query_time:.2f}秒): {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
 
     if not games_to_fetch:
         print("✅ 沒有需要抓取詳細資料的遊戲。")
     else:
         print(f"📊 找到 {len(games_to_fetch)} 個遊戲需要抓取詳細資料。")
+        print(f"🎮 遊戲 ID 列表: {games_to_fetch[:10]}{'...' if len(games_to_fetch) > 10 else ''}")
 
         # 分批處理
+        total_batches = (len(games_to_fetch) + batch_size - 1) // batch_size
+        print(f"📦 將分 {total_batches} 批處理，每批 {batch_size} 個遊戲")
+
         for i in range(0, len(games_to_fetch), batch_size):
             batch = games_to_fetch[i:i+batch_size]
             object_ids = ",".join(map(str, batch))
+            batch_num = i//batch_size + 1
 
-            print(f"🔄 處理第 {i//batch_size + 1} 批，共 {len(batch)} 個遊戲...")
+            print(f"🔄 處理第 {batch_num}/{total_batches} 批，共 {len(batch)} 個遊戲...")
+            print(f"🎲 本批遊戲 ID: {batch}")
 
             # 呼叫 BGG API
+            print(f"🌐 正在請求 BGG API...")
+            api_start_time = time.time()
             url = f"https://boardgamegeek.com/xmlapi2/thing?id={object_ids}&stats=1"
-            response = requests.get(url)
+            print(f"🔗 API URL: {url}")
+
+            try:
+                response = requests.get(url, timeout=30)
+                api_time = time.time() - api_start_time
+                print(f"✅ API 請求完成 (耗時: {api_time:.2f}秒，狀態碼: {response.status_code})")
+            except Exception as e:
+                api_time = time.time() - api_start_time
+                print(f"❌ API 請求失敗 (耗時: {api_time:.2f}秒): {e}")
+                continue
 
             if response.status_code != 200:
                 print(f"❌ API 請求失敗: {response.status_code}")
                 continue
 
-            root = ET.fromstring(response.content)
+            print(f"📄 響應內容長度: {len(response.content)} 字節")
+            print("🔍 開始解析 XML 響應...")
+
+            try:
+                parse_start_time = time.time()
+                root = ET.fromstring(response.content)
+                parse_time = time.time() - parse_start_time
+                print(f"✅ XML 解析完成 (耗時: {parse_time:.2f}秒)")
+            except Exception as e:
+                print(f"❌ XML 解析失敗: {e}")
+                continue
 
             # 處理每個遊戲
             for item in root.findall("item"):
