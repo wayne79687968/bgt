@@ -223,13 +223,52 @@ def main():
     if args.run_now:
         logger.info("🚀 立即執行報表產生任務...")
 
-        # 確保資料庫已初始化
-        logger.info("🗃️ 確保資料庫已初始化...")
+        # 檢查並初始化資料庫
+        logger.info("🗃️ 檢查資料庫表格結構...")
         try:
-            init_database()
-            logger.info("✅ 資料庫初始化完成")
+            from database import get_db_connection, get_database_config
+            
+            # 檢查必要的表格是否存在
+            required_tables = ['hot_games', 'game_detail', 'forum_threads', 'forum_threads_i18n']
+            missing_tables = []
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                config = get_database_config()
+                
+                for table in required_tables:
+                    try:
+                        if config['type'] == 'postgresql':
+                            cursor.execute("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_schema = 'public' 
+                                    AND table_name = %s
+                                )
+                            """, (table,))
+                        else:
+                            cursor.execute("""
+                                SELECT name FROM sqlite_master 
+                                WHERE type='table' AND name=?
+                            """, (table,))
+                        
+                        result = cursor.fetchone()
+                        if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                            missing_tables.append(table)
+                    except Exception as check_error:
+                        logger.warning(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
+                        missing_tables.append(table)
+            
+            if missing_tables:
+                logger.info(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
+                logger.info("🔧 開始初始化資料庫...")
+                init_database()
+                logger.info("✅ 資料庫初始化完成")
+            else:
+                logger.info("✅ 所有必要的資料庫表格都已存在")
+                
         except Exception as e:
-            logger.error(f"❌ 資料庫初始化失敗: {e}")
+            logger.error(f"❌ 資料庫檢查/初始化失敗: {e}")
             return
 
         success = fetch_and_generate_report(args.detail, args.lang, args.force)
@@ -241,13 +280,52 @@ def main():
 
     logger.info("🚀 啟動 BGG 報表排程器...")
 
-    # 確保資料庫已初始化
-    logger.info("🗃️ 確保資料庫已初始化...")
+    # 檢查並初始化資料庫
+    logger.info("🗃️ 檢查資料庫表格結構...")
     try:
-        init_database()
-        logger.info("✅ 資料庫初始化完成")
+        from database import get_db_connection, get_database_config
+        
+        # 檢查必要的表格是否存在
+        required_tables = ['hot_games', 'game_detail', 'forum_threads', 'forum_threads_i18n']
+        missing_tables = []
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+            
+            for table in required_tables:
+                try:
+                    if config['type'] == 'postgresql':
+                        cursor.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_schema = 'public' 
+                                AND table_name = %s
+                            )
+                        """, (table,))
+                    else:
+                        cursor.execute("""
+                            SELECT name FROM sqlite_master 
+                            WHERE type='table' AND name=?
+                        """, (table,))
+                    
+                    result = cursor.fetchone()
+                    if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                        missing_tables.append(table)
+                except Exception as check_error:
+                    logger.warning(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
+                    missing_tables.append(table)
+        
+        if missing_tables:
+            logger.info(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
+            logger.info("🔧 開始初始化資料庫...")
+            init_database()
+            logger.info("✅ 資料庫初始化完成")
+        else:
+            logger.info("✅ 所有必要的資料庫表格都已存在")
+            
     except Exception as e:
-        logger.error(f"❌ 資料庫初始化失敗: {e}")
+        logger.error(f"❌ 資料庫檢查/初始化失敗: {e}")
         return
 
     # 設定時區

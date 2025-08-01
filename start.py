@@ -85,19 +85,79 @@ def initialize_app():
             print("❌ 無法連接到數據庫，應用啟動失敗")
             sys.exit(1)
 
-        # 初始化資料庫
-        print("🗃️ 初始化資料庫結構...")
+        # 檢查並初始化資料庫表格
+        print("🗃️ 檢查資料庫表格結構...")
         try:
-            init_database()
-            print("✅ 資料庫初始化成功")
+            # 檢查必要的表格是否存在
+            required_tables = ['hot_games', 'game_detail', 'forum_threads', 'forum_threads_i18n']
+            missing_tables = []
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                config = get_database_config()
+                
+                for table in required_tables:
+                    try:
+                        if config['type'] == 'postgresql':
+                            cursor.execute("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_schema = 'public' 
+                                    AND table_name = %s
+                                )
+                            """, (table,))
+                        else:
+                            cursor.execute("""
+                                SELECT name FROM sqlite_master 
+                                WHERE type='table' AND name=?
+                            """, (table,))
+                        
+                        result = cursor.fetchone()
+                        if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                            missing_tables.append(table)
+                    except Exception as check_error:
+                        print(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
+                        missing_tables.append(table)
+            
+            if missing_tables:
+                print(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
+                print("🔧 開始初始化資料庫...")
+                init_database()
+                print("✅ 資料庫初始化完成")
+                
+                # 再次驗證表格是否成功創建
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    config = get_database_config()
+                    created_tables = []
+                    
+                    for table in required_tables:
+                        try:
+                            if config['type'] == 'postgresql':
+                                cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s)", (table,))
+                            else:
+                                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+                            
+                            result = cursor.fetchone()
+                            if result and ((config['type'] == 'postgresql' and result[0]) or (config['type'] == 'sqlite' and result)):
+                                created_tables.append(table)
+                        except:
+                            pass
+                    
+                    print(f"✅ 成功創建表格: {', '.join(created_tables)}")
+                    if len(created_tables) != len(required_tables):
+                        print(f"⚠️ 部分表格創建可能失敗，將在運行時重試")
+            else:
+                print("✅ 所有必要的資料庫表格都已存在")
+                
         except Exception as e:
             error_msg = str(e)[:200]
-            print(f"❌ 資料庫初始化失敗: {error_msg}")
+            print(f"❌ 資料庫檢查/初始化失敗: {error_msg}")
             # 數據庫初始化失敗不一定是致命的，可能表結構已存在
             if "already exists" in error_msg.lower() or "duplicate" in error_msg.lower():
                 print("ℹ️ 表格可能已存在，繼續啟動...")
             else:
-                print("⚠️ 繼續嘗試啟動應用...")
+                print("⚠️ 繼續嘗試啟動應用，運行時會重試初始化...")
 
         # 嘗試導入 Flask 應用
         print("🌐 導入 Flask 應用...")
