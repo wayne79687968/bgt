@@ -39,7 +39,7 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         cmd1 = ['python3', 'fetch_hotgames.py']
         logger.info(f"🚀 執行命令: {' '.join(cmd1)}")
 
-        result = subprocess.run(cmd1, capture_output=True, text=True, timeout=300)
+        result = subprocess.run(cmd1, capture_output=True, text=True, timeout=600)
         step1_duration = (datetime.now() - step1_start).total_seconds()
         logger.info(f"📊 步驟 1 返回碼: {result.returncode}, 耗時: {step1_duration:.1f}秒")
 
@@ -64,7 +64,7 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         cmd2 = ['python3', 'fetch_details.py']
         logger.info(f"🚀 執行命令: {' '.join(cmd2)}")
 
-        result = subprocess.run(cmd2, capture_output=True, text=True, timeout=600)
+        result = subprocess.run(cmd2, capture_output=True, text=True, timeout=1200)
         step2_duration = (datetime.now() - step2_start).total_seconds()
         logger.info(f"📊 步驟 2 返回碼: {result.returncode}, 耗時: {step2_duration:.1f}秒")
 
@@ -90,7 +90,7 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         logger.info(f"🚀 執行命令: {' '.join(cmd3)}")
         logger.info("⚠️ 此步驟通常是最耗時的，預估需要20-40分鐘...")
 
-        result = subprocess.run(cmd3, capture_output=True, text=True, timeout=1800)
+        result = subprocess.run(cmd3, capture_output=True, text=True, timeout=3600)
         step3_duration = (datetime.now() - step3_start).total_seconds()
         logger.info(f"📊 步驟 3 返回碼: {result.returncode}, 耗時: {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
 
@@ -119,7 +119,7 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
 
         logger.info(f"🚀 執行命令: {' '.join(generate_cmd)}")
 
-        result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=300)
+        result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=600)
         step4_duration = (datetime.now() - step4_start).total_seconds()
         logger.info(f"📊 步驟 4 返回碼: {result.returncode}, 耗時: {step4_duration:.1f}秒")
 

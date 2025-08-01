@@ -604,8 +604,8 @@ def run_scheduler_async():
         error_lines = []
         start_time = datetime.now()
         last_progress_update = start_time
-        max_runtime = 3600  # 60分鐘超時（之前是30分鐘太短）
-        warning_runtime = 2700  # 45分鐘警告
+        max_runtime = 7200  # 120分鐘（2小時）超時
+        warning_runtime = 5400  # 90分鐘警告
 
         while process.poll() is None:  # 進程還在運行
             current_time = datetime.now()
