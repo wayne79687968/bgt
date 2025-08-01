@@ -667,50 +667,40 @@ def main():
                 print(f"📊 進度統計: 平均每遊戲 {avg_time:.1f}秒, 預估剩餘 {int(estimated_remaining/60)}分{int(estimated_remaining%60)}秒")
                 print(f"{'='*80}")
 
+                # 在成功處理完一個遊戲後提交
+                conn.commit()
+                print(f"✅ 事務已提交: {name}")
+
             except Exception as e:
-                end_time = time.time()
-                duration = end_time - start_time
                 print(f"❌ ⚠️ [{i}/{len(games_to_process)}] 處理遊戲 {name} ({objectid}) 時發生錯誤!")
                 print(f"❌ 錯誤訊息: {e}")
+
                 import traceback
                 print(f"❌ 錯誤詳情: {traceback.format_exc()}")
-                print(f"⏱️ 錯誤發生時間: {duration:.1f}秒")
-                print(f"{'='*80}")
-                continue
 
-        conn.commit()
-        print(f"\n💾 數據庫提交完成")
+                end_time = time.time()
+                duration = end_time - start_time
+                print(f"⏱️ 錯誤發生於處理 {duration:.1f}秒 後")
 
-    # 計算處理統計
-    total_processed = len(all_results)
-    total_games = len(games_to_process)
-    success_rate = (total_processed / total_games * 100) if total_games > 0 else 0
+                # 關鍵修復：回滾失敗的事務
+                print("🔄 正在回滾當前事務...")
+                try:
+                    conn.rollback()
+                    print("✅ 事務已成功回滾")
+                except Exception as rb_e:
+                    print(f"❌ 事務回滾失敗: {rb_e}")
 
-    print(f"\n🎉 討論串翻譯任務完成！")
-    print(f"{'='*80}")
-    print(f"📊 處理統計:")
-    print(f"  🎮 總遊戲數量: {total_games} 款")
-    print(f"  ✅ 成功處理: {total_processed} 款 ({success_rate:.1f}%)")
-    print(f"  ❌ 處理失敗: {total_games - total_processed} 款")
-    print(f"  🌐 目標語言: {lang}")
-    print(f"  📅 完成時間: {datetime.now().strftime('%H:%M:%S')}")
+                all_results[objectid] = {"name": name, "status": "error", "error": str(e)}
 
-    if all_results:
-        print(f"📝 成功處理的遊戲:")
-        for idx, (objectid, data) in enumerate(list(all_results.items())[:5], 1):
-            reason_preview = data['reason'][:80] + "..." if len(data['reason']) > 80 else data['reason']
-            print(f"  {idx}. {data['name']}: {reason_preview}")
-        if len(all_results) > 5:
-            print(f"  ... 還有 {len(all_results) - 5} 款遊戲分析完成")
+        print("\n" + "="*80)
+        print("✅ 所有遊戲處理循環已完成")
+        print("="*80)
 
-    print(f"{'='*80}")
+        # 保存處理結果
+        with open(f"outputs/forum_threads/forum_threads_{today}.json", "w", encoding="utf-8") as f:
+            json.dump(all_results, f, ensure_ascii=False, indent=4)
 
-    # 儲存 debug 檔案
-    print(f"💾 儲存結果到 {output_path}")
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(all_results, f, ensure_ascii=False, indent=2)
-
-    print(f"🎉 討論串處理完成，共處理 {len(all_results)} 個遊戲")
+        print(f"✅ 結果已保存到 outputs/forum_threads/forum_threads_{today}.json")
 
 if __name__ == "__main__":
     main()
