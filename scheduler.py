@@ -224,49 +224,49 @@ def main():
     # 如果指定 --run-now，立即執行任務
     if args.run_now:
         print("🎯 檢測到 --run-now 參數，即將執行立即任務...")
-        logger.info("🚀 立即執行報表產生任務...")
+        print("🚀 立即執行報表產生任務...")
 
         # 檢查並初始化資料庫
-        logger.info("🗃️ [SCHEDULER] 檢查資料庫表格結構...")
-        logger.info(f"🗃️ [SCHEDULER] 當前時間: {datetime.now().strftime('%H:%M:%S')}")
+        print("🗃️ [SCHEDULER] 檢查資料庫表格結構...")
+        print(f"🗃️ [SCHEDULER] 當前時間: {datetime.now().strftime('%H:%M:%S')}")
 
         try:
-            logger.info("📦 [SCHEDULER] 正在導入數據庫函數...")
-            from database import get_db_connection, get_database_config
-            logger.info("✅ [SCHEDULER] 數據庫函數導入成功")
+            print("📦 [SCHEDULER] 正在導入數據庫函數...")
+            from database import get_db_connection, get_database_config, init_database
+            print("✅ [SCHEDULER] 數據庫函數導入成功")
 
             # 檢查必要的表格是否存在
             required_tables = ['hot_games', 'game_detail', 'forum_threads', 'forum_threads_i18n']
             missing_tables = []
 
-            logger.info(f"📋 [SCHEDULER] 需要檢查 {len(required_tables)} 個必要表格: {required_tables}")
-            logger.info("🔗 [SCHEDULER] 正在建立數據庫連接...")
+            print(f"📋 [SCHEDULER] 需要檢查 {len(required_tables)} 個必要表格: {required_tables}")
+            print("🔗 [SCHEDULER] 正在建立數據庫連接...")
 
             import time
             check_start_time = time.time()
 
             with get_db_connection() as conn:
                 connection_time = time.time() - check_start_time
-                logger.info(f"✅ [SCHEDULER] 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
+                print(f"✅ [SCHEDULER] 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
 
-                logger.info("🗃️ [SCHEDULER] 正在創建游標...")
+                print("🗃️ [SCHEDULER] 正在創建游標...")
                 cursor = conn.cursor()
-                logger.info("✅ [SCHEDULER] 游標創建成功")
+                print("✅ [SCHEDULER] 游標創建成功")
 
-                logger.info("🔍 [SCHEDULER] 正在獲取數據庫配置...")
+                print("🔍 [SCHEDULER] 正在獲取數據庫配置...")
                 config_start_time = time.time()
                 config = get_database_config()
                 config_time = time.time() - config_start_time
-                logger.info(f"✅ [SCHEDULER] 數據庫配置獲取成功 (耗時: {config_time:.2f}秒): {config['type']}")
+                print(f"✅ [SCHEDULER] 數據庫配置獲取成功 (耗時: {config_time:.2f}秒): {config['type']}")
 
-                logger.info("🔍 [SCHEDULER] 開始逐個檢查表格...")
+                print("🔍 [SCHEDULER] 開始逐個檢查表格...")
                 for i, table in enumerate(required_tables, 1):
-                    logger.info(f"🔍 [SCHEDULER] 檢查第 {i}/{len(required_tables)} 個表格: {table}")
+                    print(f"🔍 [SCHEDULER] 檢查第 {i}/{len(required_tables)} 個表格: {table}")
                     table_check_start = time.time()
 
                     try:
                         if config['type'] == 'postgresql':
-                            logger.info(f"🔍 [SCHEDULER] 執行 PostgreSQL 表格檢查查詢: {table}")
+                            print(f"🔍 [SCHEDULER] 執行 PostgreSQL 表格檢查查詢: {table}")
                             cursor.execute("""
                                 SELECT EXISTS (
                                     SELECT FROM information_schema.tables
@@ -275,62 +275,63 @@ def main():
                                 )
                             """, (table,))
                         else:
-                            logger.info(f"🔍 [SCHEDULER] 執行 SQLite 表格檢查查詢: {table}")
+                            print(f"🔍 [SCHEDULER] 執行 SQLite 表格檢查查詢: {table}")
                             cursor.execute("""
                                 SELECT name FROM sqlite_master
                                 WHERE type='table' AND name=?
                             """, (table,))
 
-                        logger.info(f"🔍 [SCHEDULER] 正在獲取查詢結果: {table}")
+                        print(f"🔍 [SCHEDULER] 正在獲取查詢結果: {table}")
                         result = cursor.fetchone()
                         table_check_time = time.time() - table_check_start
 
                         if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
-                            logger.info(f"❌ [SCHEDULER] 表格 {table} 不存在 (耗時: {table_check_time:.2f}秒)")
+                            print(f"❌ [SCHEDULER] 表格 {table} 不存在 (耗時: {table_check_time:.2f}秒)")
                             missing_tables.append(table)
                         else:
-                            logger.info(f"✅ [SCHEDULER] 表格 {table} 存在 (耗時: {table_check_time:.2f}秒)")
+                            print(f"✅ [SCHEDULER] 表格 {table} 存在 (耗時: {table_check_time:.2f}秒)")
 
                     except Exception as check_error:
                         table_check_time = time.time() - table_check_start if 'table_check_start' in locals() else 0
-                        logger.warning(f"⚠️ [SCHEDULER] 檢查表格 {table} 時發生錯誤 (耗時: {table_check_time:.2f}秒): {check_error}")
-                        logger.warning(f"⚠️ [SCHEDULER] 錯誤類型: {type(check_error).__name__}")
+                        print(f"⚠️ [SCHEDULER] 檢查表格 {table} 時發生錯誤 (耗時: {table_check_time:.2f}秒): {check_error}")
+                        print(f"⚠️ [SCHEDULER] 錯誤類型: {type(check_error).__name__}")
                         missing_tables.append(table)
 
             total_check_time = time.time() - check_start_time
-            logger.info(f"📊 [SCHEDULER] 表格檢查完成 (總耗時: {total_check_time:.2f}秒)")
-            logger.info(f"📊 [SCHEDULER] 缺少的表格: {missing_tables}")
+            print(f"📊 [SCHEDULER] 表格檢查完成 (總耗時: {total_check_time:.2f}秒)")
+            print(f"📊 [SCHEDULER] 缺少的表格: {missing_tables}")
 
             if missing_tables:
-                logger.info(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
-                logger.info("🔧 [SCHEDULER] 開始初始化資料庫...")
+                print(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
+                print("🔧 [SCHEDULER] 開始初始化資料庫...")
                 init_start_time = time.time()
                 init_database()
                 init_time = time.time() - init_start_time
-                logger.info(f"✅ [SCHEDULER] 資料庫初始化完成 (耗時: {init_time:.2f}秒)")
+                print(f"✅ [SCHEDULER] 資料庫初始化完成 (耗時: {init_time:.2f}秒)")
             else:
-                logger.info("✅ 所有必要的資料庫表格都已存在")
+                print("✅ 所有必要的資料庫表格都已存在")
 
         except Exception as e:
-            logger.error(f"❌ [SCHEDULER] 資料庫檢查/初始化失敗: {e}")
-            logger.error(f"❌ [SCHEDULER] 錯誤類型: {type(e).__name__}")
+            print(f"❌ [SCHEDULER] 資料庫檢查/初始化失敗: {e}")
+            print(f"❌ [SCHEDULER] 錯誤類型: {type(e).__name__}")
             import traceback
-            logger.error(f"❌ [SCHEDULER] 錯誤詳情: {traceback.format_exc()}")
+            print(f"❌ [SCHEDULER] 錯誤詳情: {traceback.format_exc()}")
             return
 
-        logger.info("🎯 [SCHEDULER] 數據庫檢查完成，開始執行報表生成任務...")
-        logger.info(f"🎯 [SCHEDULER] 任務參數: detail={args.detail}, lang={args.lang}, force={args.force}")
+        print("🎯 [SCHEDULER] 數據庫檢查完成，開始執行報表生成任務...")
+        print(f"🎯 [SCHEDULER] 任務參數: detail={args.detail}, lang={args.lang}, force={args.force}")
 
         task_start_time = time.time()
         success = fetch_and_generate_report(args.detail, args.lang, args.force)
         task_time = time.time() - task_start_time
 
         if success:
-            logger.info(f"✅ [SCHEDULER] 任務執行成功 (總耗時: {task_time:.2f}秒)")
+            print(f"✅ [SCHEDULER] 任務執行成功 (總耗時: {task_time:.2f}秒)")
         else:
-            logger.error(f"❌ [SCHEDULER] 任務執行失敗 (總耗時: {task_time:.2f}秒)")
+            print(f"❌ [SCHEDULER] 任務執行失敗 (總耗時: {task_time:.2f}秒)")
         return
 
+    # 以下為排程器邏輯，保持使用 logger
     logger.info("🚀 啟動 BGG 報表排程器...")
 
     # 檢查並初始化資料庫
@@ -381,22 +382,20 @@ def main():
         logger.error(f"❌ 資料庫檢查/初始化失敗: {e}")
         return
 
-    # 設定時區
+    # 設定排程器
     timezone = pytz.timezone(os.getenv('TZ', 'Asia/Taipei'))
-    logger.info(f"⏰ 時區設定: {timezone}")
-
     scheduler = BlockingScheduler(timezone=timezone)
 
-    # 每天早上 8:00 執行
+    # 添加每日任務
     scheduler.add_job(
-        lambda: fetch_and_generate_report(args.detail, args.lang, force=False),
-        CronTrigger(hour=8, minute=0, timezone=timezone),
+        lambda: fetch_and_generate_report(args.detail, args.lang, False),
+        trigger=CronTrigger(hour=os.getenv('SCHEDULE_HOUR', 23), minute=os.getenv('SCHEDULE_MINUTE', 0)),
         id='daily_report',
-        name='每日 BGG 報表產生',
-        replace_existing=True
+        name='每日BGG報表產生任務',
+        replace_existing=True,
+        misfire_grace_time=3600  # 1 小時
     )
 
-    logger.info("📅 排程器已設定：每天早上 8:00 (台北時間) 執行報表產生")
     logger.info("🔄 排程器開始運行，等待執行時間...")
 
     try:

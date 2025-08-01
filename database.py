@@ -76,33 +76,31 @@ def get_db_connection():
         except ImportError:
             raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
 
-        # 添加連接超時設置
+        # 添加連接超時設置 和 SSL 模式
         try:
-            print("🔗 正在建立 PostgreSQL 連接...")
+            print("🔗 正在建立 PostgreSQL 連接 (sslmode=require)...")
             conn = psycopg2.connect(
                 config['url'],
-                connect_timeout=10  # 連接超時 10 秒
+                connect_timeout=10,  # 連接超時 10 秒
+                sslmode='require'    # 強制使用 SSL
             )
             print("✅ PostgreSQL 連接建立成功")
+            yield conn
         except psycopg2.OperationalError as e:
             print(f"❌ PostgreSQL 連接失敗: {e}")
             raise
-        except Exception as e:
-            print(f"❌ 意外的連接錯誤: {e}")
-            raise
-
-        try:
-            yield conn
         finally:
-            conn.close()
+            if 'conn' in locals() and conn:
+                conn.close()
     else:
         # SQLite 連接
-        os.makedirs('data', exist_ok=True)
-        conn = sqlite3.connect(config['path'])
         try:
+            import sqlite3
+            conn = sqlite3.connect(config['path'])
             yield conn
         finally:
-            conn.close()
+            if 'conn' in locals() and conn:
+                conn.close()
 
 def init_database():
     """初始化資料庫結構"""
@@ -387,7 +385,7 @@ def init_database():
 
     total_time = time.time() - config_start_time
     print("=" * 80)
-    print(f"🎉 [INIT_DATABASE] 資料庫初始化完成！")
+    print(f"�� [INIT_DATABASE] 資料庫初始化完成！")
     print(f"⏱️ [INIT_DATABASE] 總執行時間: {total_time:.2f}秒")
     print("=" * 80)
 
