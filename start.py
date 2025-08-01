@@ -28,25 +28,42 @@ def ensure_directories():
 
 def wait_for_database(max_retries=6, delay=2):
     """等待數據庫可用，帶重試機制"""
-    print(f"🔄 等待數據庫連接 (最多 {max_retries} 次重試)...")
+    print(f"🔄 等待數據庫連接 (最多 {max_retries} 次重試，每次間隔 {delay} 秒)")
 
     for attempt in range(max_retries):
         try:
             from database import get_db_connection, get_database_config
 
             config = get_database_config()
-            print(f"🔍 嘗試連接數據庫 (第 {attempt + 1}/{max_retries} 次) - {config.get('type', 'unknown')}")
+            print(f"🔍 第 {attempt + 1}/{max_retries} 次連接嘗試 ({config.get('type', 'unknown')})")
+
+            # 添加連接測試的開始時間
+            import time
+            start_time = time.time()
 
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 result = cursor.fetchone()
+
+                connection_time = time.time() - start_time
+                print(f"✅ 數據庫連接成功 (耗時: {connection_time:.2f}秒)")
+
                 if result:
-                    print("✅ 數據庫連接成功")
                     return True
 
+        except ImportError as e:
+            print(f"❌ 數據庫模組導入失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                print(f"⏳ 等待 {delay} 秒後重試...")
+                time.sleep(delay)
+            continue
         except Exception as e:
-            print(f"⚠️ 數據庫連接失敗 (嘗試 {attempt + 1}/{max_retries}): {str(e)[:100]}")
+            connection_time = time.time() - start_time if 'start_time' in locals() else 0
+            error_msg = str(e)[:200]  # 限制錯誤訊息長度
+            print(f"⚠️ 數據庫連接失敗 (嘗試 {attempt + 1}/{max_retries}, 耗時 {connection_time:.2f}秒)")
+            print(f"   錯誤詳情: {error_msg}")
+
             if attempt < max_retries - 1:
                 print(f"⏳ 等待 {delay} 秒後重試...")
                 time.sleep(delay)
@@ -91,65 +108,65 @@ def initialize_app():
             # 檢查必要的表格是否存在
             required_tables = ['hot_games', 'game_detail', 'forum_threads', 'forum_threads_i18n']
             missing_tables = []
-            
+
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 config = get_database_config()
-                
+
                 for table in required_tables:
                     try:
                         if config['type'] == 'postgresql':
                             cursor.execute("""
                                 SELECT EXISTS (
-                                    SELECT FROM information_schema.tables 
-                                    WHERE table_schema = 'public' 
+                                    SELECT FROM information_schema.tables
+                                    WHERE table_schema = 'public'
                                     AND table_name = %s
                                 )
                             """, (table,))
                         else:
                             cursor.execute("""
-                                SELECT name FROM sqlite_master 
+                                SELECT name FROM sqlite_master
                                 WHERE type='table' AND name=?
                             """, (table,))
-                        
+
                         result = cursor.fetchone()
                         if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
                             missing_tables.append(table)
                     except Exception as check_error:
                         print(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
                         missing_tables.append(table)
-            
+
             if missing_tables:
                 print(f"📋 發現缺少的表格: {', '.join(missing_tables)}")
                 print("🔧 開始初始化資料庫...")
                 init_database()
                 print("✅ 資料庫初始化完成")
-                
+
                 # 再次驗證表格是否成功創建
                 with get_db_connection() as conn:
                     cursor = conn.cursor()
                     config = get_database_config()
                     created_tables = []
-                    
+
                     for table in required_tables:
                         try:
                             if config['type'] == 'postgresql':
                                 cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s)", (table,))
                             else:
                                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
-                            
+
                             result = cursor.fetchone()
                             if result and ((config['type'] == 'postgresql' and result[0]) or (config['type'] == 'sqlite' and result)):
                                 created_tables.append(table)
                         except:
                             pass
-                    
+
                     print(f"✅ 成功創建表格: {', '.join(created_tables)}")
                     if len(created_tables) != len(required_tables):
                         print(f"⚠️ 部分表格創建可能失敗，將在運行時重試")
             else:
                 print("✅ 所有必要的資料庫表格都已存在")
-                
+
         except Exception as e:
             error_msg = str(e)[:200]
             print(f"❌ 資料庫檢查/初始化失敗: {error_msg}")
@@ -184,7 +201,7 @@ print("🔧 初始化應用以供 gunicorn 使用...")
 try:
     app = initialize_app()
     print("✅ 應用初始化完成，準備交給 gunicorn")
-        
+
 except Exception as e:
     print(f"💥 應用初始化失敗: {e}")
     sys.exit(1)

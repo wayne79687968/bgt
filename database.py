@@ -74,7 +74,21 @@ def get_db_connection():
         except ImportError:
             raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
 
-        conn = psycopg2.connect(config['url'])
+        # 添加連接超時設置
+        try:
+            print("🔗 正在建立 PostgreSQL 連接...")
+            conn = psycopg2.connect(
+                config['url'],
+                connect_timeout=10  # 連接超時 10 秒
+            )
+            print("✅ PostgreSQL 連接建立成功")
+        except psycopg2.OperationalError as e:
+            print(f"❌ PostgreSQL 連接失敗: {e}")
+            raise
+        except Exception as e:
+            print(f"❌ 意外的連接錯誤: {e}")
+            raise
+
         try:
             yield conn
         finally:
