@@ -404,17 +404,10 @@ def main():
 
     print(f"🔧 執行參數: detail={detail_mode}, lang={lang}, force={force_generate}")
 
-    # 確保數據庫已初始化
-    try:
-        from database import init_database
-        print("🗃️ 確保數據庫已初始化...")
-        init_database()
-        print("✅ 數據庫初始化完成")
-    except Exception as e:
-        print(f"❌ 數據庫初始化失敗: {e}")
-        import traceback
-        print(f"❌ 錯誤詳情: {traceback.format_exc()}")
-        return
+    # 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
+    print("🗃️ [GENERATE_REPORT] 跳過數據庫初始化（由 scheduler.py 負責）")
+    print(f"🗃️ [GENERATE_REPORT] 當前時間: {datetime.utcnow().strftime('%H:%M:%S')}")
+    print("🗃️ [GENERATE_REPORT] 開始主要處理...")
 
     output_dir = "frontend/public/outputs"
     print(f"📁 檢查輸出目錄: {output_dir}")

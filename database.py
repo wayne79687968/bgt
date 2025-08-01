@@ -8,6 +8,8 @@ import os
 import sqlite3
 from urllib.parse import urlparse
 from contextlib import contextmanager
+import time
+from datetime import datetime
 
 def get_database_config():
     """取得資料庫配置"""
@@ -104,26 +106,55 @@ def get_db_connection():
 
 def init_database():
     """初始化資料庫結構"""
-    config = get_database_config()
-    print(f"🗃️ 初始化 {config['type']} 資料庫...")
+    print("🗃️ [INIT_DATABASE] 函數開始執行...")
+    print(f"🗃️ [INIT_DATABASE] 當前時間: {datetime.utcnow().strftime('%H:%M:%S') if 'datetime' in globals() else 'unknown'}")
 
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
+    print("🗃️ [INIT_DATABASE] 正在獲取數據庫配置...")
+    import time
+    config_start_time = time.time()
+    try:
+        config = get_database_config()
+        config_time = time.time() - config_start_time
+        print(f"✅ [INIT_DATABASE] 數據庫配置獲取成功 (耗時: {config_time:.2f}秒): {config['type']}")
+    except Exception as e:
+        config_time = time.time() - config_start_time
+        print(f"❌ [INIT_DATABASE] 數據庫配置獲取失敗 (耗時: {config_time:.2f}秒): {e}")
+        raise
 
-        # PostgreSQL 和 SQLite 的 SQL 語法稍有不同
-        if config['type'] == 'postgresql':
-            # PostgreSQL 使用 SERIAL 代替 AUTOINCREMENT
-            autoincrement_type = "SERIAL PRIMARY KEY"
-            text_type = "TEXT"
-            timestamp_type = "TIMESTAMP"
-        else:
-            # SQLite
-            autoincrement_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
-            text_type = "TEXT"
-            timestamp_type = "TIMESTAMP"
+    print(f"🗃️ [INIT_DATABASE] 初始化 {config['type']} 資料庫...")
 
-        # 創建所有資料表
-        tables = [
+    print("🗃️ [INIT_DATABASE] 正在建立數據庫連接...")
+    connection_start_time = time.time()
+
+    try:
+        with get_db_connection() as conn:
+            connection_time = time.time() - connection_start_time
+            print(f"✅ [INIT_DATABASE] 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
+
+            print("🗃️ [INIT_DATABASE] 正在創建游標...")
+            cursor = conn.cursor()
+            print("✅ [INIT_DATABASE] 游標創建成功")
+
+            # PostgreSQL 和 SQLite 的 SQL 語法稍有不同
+            print("🗃️ [INIT_DATABASE] 設置 SQL 語法類型...")
+            if config['type'] == 'postgresql':
+                # PostgreSQL 使用 SERIAL 代替 AUTOINCREMENT
+                autoincrement_type = "SERIAL PRIMARY KEY"
+                text_type = "TEXT"
+                timestamp_type = "TIMESTAMP"
+                print("✅ [INIT_DATABASE] PostgreSQL SQL 語法設置完成")
+            else:
+                # SQLite
+                autoincrement_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
+                text_type = "TEXT"
+                timestamp_type = "TIMESTAMP"
+                print("✅ [INIT_DATABASE] SQLite SQL 語法設置完成")
+
+            # 創建所有資料表
+            print("🗃️ [INIT_DATABASE] 開始創建資料表...")
+            table_start_time = time.time()
+
+            tables = [
             # 收藏資料表
             f"""
             CREATE TABLE IF NOT EXISTS collection (
@@ -283,26 +314,82 @@ def init_database():
             """
         ]
 
-        for table_sql in tables:
-            cursor.execute(table_sql)
+        print(f"🗃️ [INIT_DATABASE] 準備創建 {len(tables)} 個資料表...")
+
+        for i, table_sql in enumerate(tables, 1):
+            table_name = "unknown"
+            try:
+                # 嘗試從 SQL 中提取表名
+                if "CREATE TABLE IF NOT EXISTS" in table_sql:
+                    table_name = table_sql.split("CREATE TABLE IF NOT EXISTS")[1].split("(")[0].strip()
+            except:
+                pass
+
+            print(f"🗃️ [INIT_DATABASE] 創建第 {i}/{len(tables)} 個表: {table_name}")
+
+            try:
+                table_exec_start = time.time()
+                cursor.execute(table_sql)
+                table_exec_time = time.time() - table_exec_start
+                print(f"✅ [INIT_DATABASE] 表 {table_name} 創建成功 (耗時: {table_exec_time:.2f}秒)")
+            except Exception as e:
+                table_exec_time = time.time() - table_exec_start if 'table_exec_start' in locals() else 0
+                print(f"❌ [INIT_DATABASE] 表 {table_name} 創建失敗 (耗時: {table_exec_time:.2f}秒): {e}")
+                raise
+
+        table_time = time.time() - table_start_time
+        print(f"✅ [INIT_DATABASE] 所有資料表創建完成 (總耗時: {table_time:.2f}秒)")
 
         # PostgreSQL 需要額外處理 UNIQUE 約束
         if config['type'] == 'postgresql':
+            print("🗃️ [INIT_DATABASE] 處理 PostgreSQL 特有約束...")
+            index_start_time = time.time()
+
             try:
+                print("🗃️ [INIT_DATABASE] 創建 forum_threads 唯一索引...")
                 cursor.execute("""
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_forum_threads_unique
                     ON forum_threads (objectid, snapshot_date)
                 """)
+                print("✅ [INIT_DATABASE] forum_threads 唯一索引創建成功")
+
+                print("🗃️ [INIT_DATABASE] 創建 bgg_items 唯一索引...")
                 cursor.execute("""
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_bgg_items_unique
                     ON bgg_items (id, category)
                 """)
-            except:
+                print("✅ [INIT_DATABASE] bgg_items 唯一索引創建成功")
+
+            except Exception as e:
+                print(f"⚠️ [INIT_DATABASE] 索引創建警告 (可能已存在): {e}")
                 pass  # 約束可能已存在
 
-        conn.commit()
+            index_time = time.time() - index_start_time
+            print(f"✅ [INIT_DATABASE] PostgreSQL 約束處理完成 (耗時: {index_time:.2f}秒)")
 
-    print("✅ 資料庫初始化完成")
+        print("🗃️ [INIT_DATABASE] 開始提交事務...")
+        commit_start_time = time.time()
+        try:
+            conn.commit()
+            commit_time = time.time() - commit_start_time
+            print(f"✅ [INIT_DATABASE] 事務提交成功 (耗時: {commit_time:.2f}秒)")
+        except Exception as e:
+            commit_time = time.time() - commit_start_time
+            print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
+            raise
+
+    except Exception as e:
+        connection_time = time.time() - connection_start_time
+        print(f"❌ [INIT_DATABASE] 數據庫連接或操作失敗 (耗時: {connection_time:.2f}秒): {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+    total_time = time.time() - config_start_time
+    print("=" * 80)
+    print(f"🎉 [INIT_DATABASE] 資料庫初始化完成！")
+    print(f"⏱️ [INIT_DATABASE] 總執行時間: {total_time:.2f}秒")
+    print("=" * 80)
 
 if __name__ == '__main__':
     init_database()

@@ -11,14 +11,10 @@ import time
 import argparse
 from database import get_db_connection, get_database_config, init_database
 
-# 確保數據庫已初始化
-print("🗃️ 確保數據庫已初始化...")
-try:
-    init_database()
-    print("✅ 數據庫初始化完成")
-except Exception as e:
-    print(f"❌ 數據庫初始化失敗: {e}")
-    exit(1)
+# 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
+print("🗃️ [FETCH_BGG_FORUM_THREADS] 跳過數據庫初始化（由 scheduler.py 負責）")
+print(f"🗃️ [FETCH_BGG_FORUM_THREADS] 當前時間: {datetime.utcnow().strftime('%H:%M:%S')}")
+print("🗃️ [FETCH_BGG_FORUM_THREADS] 開始主要處理...")
 
 # 設定日誌
 import logging
