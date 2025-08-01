@@ -1054,43 +1054,82 @@ def api_check_database():
         return jsonify({'success': False, 'message': '未登入'}), 401
     
     try:
+        # 先檢查資料庫配置
+        config = get_database_config()
+        
+        # 檢查環境變數
+        env_vars = {
+            'DATABASE_URL': os.getenv('DATABASE_URL', 'Not set'),
+            'POSTGRES_CONNECTION_STRING': os.getenv('POSTGRES_CONNECTION_STRING', 'Not set'),
+            'POSTGRES_HOST': os.getenv('POSTGRES_HOST', 'Not set'),
+            'POSTGRES_PORT': os.getenv('POSTGRES_PORT', 'Not set'),
+            'POSTGRES_DATABASE': os.getenv('POSTGRES_DATABASE', 'Not set'),
+            'POSTGRES_USERNAME': os.getenv('POSTGRES_USERNAME', 'Not set'),
+            'POSTGRES_PASSWORD': os.getenv('POSTGRES_PASSWORD', 'Not set')
+        }
+        
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            config = get_database_config()
             
-            # 檢查 hot_games 表
+            # 檢查現有表格
+            existing_tables = []
             if config['type'] == 'postgresql':
-                cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
+                cursor.execute("""
+                    SELECT table_name FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    ORDER BY table_name
+                """)
             else:
-                cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
             
-            hot_games_data = cursor.fetchall()
+            existing_tables = [row[0] for row in cursor.fetchall()]
             
-            # 檢查 game_detail 表
-            if config['type'] == 'postgresql':
-                cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
-            else:
-                cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
+            # 嘗試檢查 hot_games 表（如果存在）
+            hot_games_data = []
+            game_detail_count = 0
+            forum_threads_count = 0
             
-            game_detail_count = cursor.fetchone()[0]
+            if 'hot_games' in existing_tables:
+                try:
+                    cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
+                    hot_games_data = [{'date': row[0], 'count': row[1]} for row in cursor.fetchall()]
+                except Exception as e:
+                    hot_games_data = [{'error': f'Query failed: {str(e)}'}]
             
-            # 檢查 forum_threads 表
-            if config['type'] == 'postgresql':
-                cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
-            else:
-                cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
+            if 'game_detail' in existing_tables:
+                try:
+                    cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
+                    game_detail_count = cursor.fetchone()[0]
+                except:
+                    pass
             
-            forum_threads_count = cursor.fetchone()[0]
+            if 'forum_threads' in existing_tables:
+                try:
+                    cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
+                    forum_threads_count = cursor.fetchone()[0]
+                except:
+                    pass
             
             return jsonify({
                 'success': True,
                 'database_type': config['type'],
-                'hot_games_by_date': [{'date': row[0], 'count': row[1]} for row in hot_games_data],
+                'database_url_masked': config.get('url', 'Not available')[:50] + '...' if config.get('url') else 'Not available',
+                'environment_variables': env_vars,
+                'existing_tables': existing_tables,
+                'hot_games_by_date': hot_games_data,
                 'total_game_details': game_detail_count,
                 'total_forum_threads': forum_threads_count
             })
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({
+            'success': False, 
+            'message': str(e),
+            'database_type': config.get('type', 'unknown') if 'config' in locals() else 'unknown',
+            'environment_variables': {
+                'DATABASE_URL': os.getenv('DATABASE_URL', 'Not set'),
+                'POSTGRES_CONNECTION_STRING': os.getenv('POSTGRES_CONNECTION_STRING', 'Not set')
+            }
+        })
 
 @app.route('/health')
 def health():
