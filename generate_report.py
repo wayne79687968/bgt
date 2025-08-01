@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 import os
 import markdown
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import argparse
 from database import get_db_connection, get_database_config, execute_query
 import json
 import glob
+import sys
 
 def get_db_connection_sqlite(config):
     """SQLite 連接（備用）"""
