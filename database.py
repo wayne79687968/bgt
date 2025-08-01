@@ -76,13 +76,12 @@ def get_db_connection():
         except ImportError:
             raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
 
-        # 添加連接超時設置 和 SSL 模式
+        # 添加連接超時設置
         try:
-            print("🔗 正在建立 PostgreSQL 連接 (sslmode=require)...")
+            print("🔗 正在建立 PostgreSQL 連接...")
             conn = psycopg2.connect(
                 config['url'],
-                connect_timeout=10,  # 連接超時 10 秒
-                sslmode='require'    # 強制使用 SSL
+                connect_timeout=10  # 連接超時 10 秒
             )
             print("✅ PostgreSQL 連接建立成功")
             yield conn
