@@ -313,25 +313,43 @@ def get_game_details_from_db(objectid):
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            config = get_database_config()
 
             # 獲取遊戲基本資料
-            cursor.execute("""
-                SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
-                       minplaytime, maxplaytime, image
-                FROM game_detail
-                WHERE objectid = ?
-            """, (objectid,))
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
+                           minplaytime, maxplaytime, image
+                    FROM game_detail
+                    WHERE objectid = %s
+                """, (objectid,))
+            else:
+                cursor.execute("""
+                    SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
+                           minplaytime, maxplaytime, image
+                    FROM game_detail
+                    WHERE objectid = ?
+                """, (objectid,))
 
             game_detail = cursor.fetchone()
 
             # 獲取所有類型的分類資料
-            cursor.execute("""
-                SELECT bi.id, bi.name, bi.category
-                FROM bgg_items bi
-                JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
-                WHERE gc.objectid = ?
-                ORDER BY bi.category, bi.name
-            """, (objectid,))
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT bi.id, bi.name, bi.category
+                    FROM bgg_items bi
+                    JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
+                    WHERE gc.objectid = %s
+                    ORDER BY bi.category, bi.name
+                """, (objectid,))
+            else:
+                cursor.execute("""
+                    SELECT bi.id, bi.name, bi.category
+                    FROM bgg_items bi
+                    JOIN game_categories gc ON bi.id = gc.category_id AND bi.category = gc.category_type
+                    WHERE gc.objectid = ?
+                    ORDER BY bi.category, bi.name
+                """, (objectid,))
 
             category_results = cursor.fetchall()
 
