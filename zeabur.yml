@@ -15,8 +15,10 @@ services:
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: your-secure-password-here
       SECRET_KEY: your-secret-key-here
-      DATABASE_URL: ${{DATABASE.DATABASE_URL}}
+      DATABASE_URL: ${POSTGRES_CONNECTION_STRING}
       OPENAI_API_KEY: your-openai-api-key-here
+    dependencies:
+      - database
     healthcheck:
       endpoint: /health
       interval: 60s
@@ -36,8 +38,10 @@ services:
     env:
       FLASK_ENV: production
       TZ: Asia/Taipei
-      DATABASE_URL: ${{DATABASE.DATABASE_URL}}
+      DATABASE_URL: ${POSTGRES_CONNECTION_STRING}
       OPENAI_API_KEY: your-openai-api-key-here
+    dependencies:
+      - database
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs
