@@ -604,7 +604,8 @@ def run_scheduler_async():
         error_lines = []
         start_time = datetime.now()
         last_progress_update = start_time
-        max_runtime = 1800  # 30分鐘超時
+        max_runtime = 3600  # 60分鐘超時（之前是30分鐘太短）
+        warning_runtime = 2700  # 45分鐘警告
 
         while process.poll() is None:  # 進程還在運行
             current_time = datetime.now()
@@ -628,6 +629,10 @@ def run_scheduler_async():
                     update_task_status('錯誤', 0, '終止超時任務時發生錯誤')
                     task_status['is_running'] = False
                     return False, f"終止超時任務時發生錯誤: {timeout_error}"
+
+            # 45分鐘警告
+            elif elapsed > warning_runtime and elapsed % 300 < 2:  # 每5分鐘提醒一次
+                logger.warning(f"⚠️ 任務已運行{int(elapsed/60)}分鐘，接近超時限制")
 
             # 檢查是否需要停止
             if check_if_should_stop():
@@ -662,29 +667,32 @@ def run_scheduler_async():
             # 短暫休眠，避免過度消耗 CPU
             time.sleep(2)
 
-            # 更新進度（改進的進度計算）
-            if (current_time - last_progress_update).total_seconds() >= 10:  # 每10秒更新一次
-                if elapsed < 300:  # 前5分鐘：10-30%
-                    estimated_progress = 10 + (elapsed / 300) * 20
-                elif elapsed < 900:  # 5-15分鐘：30-70%
-                    estimated_progress = 30 + ((elapsed - 300) / 600) * 40
-                elif elapsed < 1500:  # 15-25分鐘：70-90%
-                    estimated_progress = 70 + ((elapsed - 900) / 600) * 20
-                else:  # 超過25分鐘：保持90%，但顯示警告
-                    estimated_progress = 90
-                    if elapsed > 1800:  # 超過30分鐘顯示警告
-                        warning_msg = f'任務運行時間過長 ({int(elapsed/60)} 分鐘)，可能需要停止'
+            # 更新進度（改進的進度計算，基於60分鐘總時間）
+            if (current_time - last_progress_update).total_seconds() >= 15:  # 每15秒更新一次
+                if elapsed < 300:  # 前5分鐘：步驟1 (10-20%)
+                    estimated_progress = 10 + (elapsed / 300) * 10
+                    status_msg = f'步驟1/4: 抓取熱門遊戲榜單... ({int(elapsed/60)} 分鐘)'
+                elif elapsed < 900:  # 5-15分鐘：步驟2 (20-40%)
+                    estimated_progress = 20 + ((elapsed - 300) / 600) * 20
+                    status_msg = f'步驟2/4: 抓取遊戲詳細資訊... ({int(elapsed/60)} 分鐘)'
+                elif elapsed < 2700:  # 15-45分鐘：步驟3 (40-80%) - 最耗時的討論串翻譯
+                    estimated_progress = 40 + ((elapsed - 900) / 1800) * 40
+                    status_msg = f'步驟3/4: 抓取討論串並翻譯... ({int(elapsed/60)} 分鐘)'
+                elif elapsed < 3000:  # 45-50分鐘：步驟4 (80-95%)
+                    estimated_progress = 80 + ((elapsed - 2700) / 300) * 15
+                    status_msg = f'步驟4/4: 產生報表... ({int(elapsed/60)} 分鐘)'
+                else:  # 超過50分鐘：95-99%，顯示警告
+                    estimated_progress = min(95 + ((elapsed - 3000) / 600) * 4, 99)
+                    if elapsed > warning_runtime:
+                        status_msg = f'⚠️ 任務運行時間較長 ({int(elapsed/60)} 分鐘)，請耐心等待...'
                     else:
-                        warning_msg = f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)'
-                    update_task_status('執行中', int(estimated_progress), warning_msg)
-                    last_progress_update = current_time
-                    continue
+                        status_msg = f'正在完成最後步驟... ({int(elapsed/60)} 分鐘)'
 
-                update_task_status('執行中', int(estimated_progress), f'正在執行數據抓取和報表生成... ({int(elapsed/60)} 分鐘)')
+                update_task_status('執行中', int(estimated_progress), status_msg)
                 last_progress_update = current_time
 
                 # 記錄詳細狀態
-                if elapsed % 300 == 0:  # 每5分鐘記錄一次詳細狀態
+                if int(elapsed) % 600 == 0 and elapsed > 0:  # 每10分鐘記錄一次詳細狀態
                     logger.info(f"🕐 任務已運行 {int(elapsed/60)} 分鐘，進度 {int(estimated_progress)}%")
                     try:
                         # 檢查進程是否還活著

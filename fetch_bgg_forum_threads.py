@@ -182,6 +182,10 @@ def summarize_reason_with_llm(game_name, threads):
 
     # 否則呼叫 LLM
     print(f"🤖 準備調用 OpenAI API 分析 {game_name}...")
+    print(f"🎯 遊戲名稱: {game_name}")
+    print(f"🌐 目標語言: {lang}")
+    print(f"📊 討論串數量: {len(threads)}")
+
     prompt = PROMPT_HEADER[lang] + f"\n\nGame: {game_name}\nForum thread summary:\n"
     for t in threads:
         prompt += f"\n- {t['title']} ({t['postdate']})"
@@ -189,19 +193,20 @@ def summarize_reason_with_llm(game_name, threads):
             prompt += f"\n  - {p['author']}：{p['body'][:80]}"
 
     print(f"📝 Prompt 長度: {len(prompt)} 字符")
+    print(f"🔧 模型: {os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')}")
 
     # 重試機制
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            print(f"🔄 第 {attempt + 1}/{max_retries} 次嘗試調用 OpenAI API...")
+            print(f"🔄 [{game_name}] 第 {attempt + 1}/{max_retries} 次嘗試調用 OpenAI API...")
 
             client = openai.OpenAI(
                 api_key=os.getenv("OPENAI_API_KEY"),
                 timeout=60.0  # 設置 60 秒超時
             )
 
-            print(f"⏰ 開始 API 調用... (超時: 60秒)")
+            print(f"⏰ [{game_name}] 開始 API 調用... (超時: 60秒)")
             start_time = time.time()
 
             response = client.chat.completions.create(
@@ -214,35 +219,46 @@ def summarize_reason_with_llm(game_name, threads):
 
             end_time = time.time()
             duration = end_time - start_time
-            print(f"✅ API 調用成功！耗時: {duration:.2f} 秒")
+            print(f"✅ [{game_name}] API 調用成功！耗時: {duration:.2f} 秒")
 
             reason = response.choices[0].message.content.strip()
-            print(f"📝 {game_name} 分析結果: {reason[:100]}...")
+            print(f"📝 [{game_name}] 分析結果: {reason[:100]}...")
+            print(f"🎉 [{game_name}] LLM 分析完成！")
             return reason
 
-        except openai.APITimeoutError as e:
-            print(f"⏰ OpenAI API 超時 (嘗試 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 10
-                print(f"⏳ 等待 {wait_time} 秒後重試...")
-                time.sleep(wait_time)
-            continue
+        except openai.APITimeoutError as timeout_error:
+            print(f"⏰ [{game_name}] 第 {attempt + 1} 次嘗試 - API 超時: {timeout_error}")
+            if attempt == max_retries - 1:
+                print(f"❌ [{game_name}] 所有重試都超時，返回預設訊息")
+                if lang == 'zh-tw':
+                    return f"由於 API 超時，無法分析 {game_name} 的上榜原因。"
+                else:
+                    return f"Unable to analyze {game_name} due to API timeout."
+            print(f"⏳ [{game_name}] 等待 {2 ** attempt} 秒後重試...")
+            time.sleep(2 ** attempt)  # 指數退避
 
-        except openai.RateLimitError as e:
-            print(f"🚫 OpenAI API 速率限制 (嘗試 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 30
-                print(f"⏳ 等待 {wait_time} 秒後重試...")
-                time.sleep(wait_time)
-            continue
+        except openai.RateLimitError as rate_error:
+            print(f"🚫 [{game_name}] 第 {attempt + 1} 次嘗試 - API 速率限制: {rate_error}")
+            if attempt == max_retries - 1:
+                print(f"❌ [{game_name}] 所有重試都遇到速率限制，返回預設訊息")
+                if lang == 'zh-tw':
+                    return f"由於 API 速率限制，無法分析 {game_name} 的上榜原因。"
+                else:
+                    return f"Unable to analyze {game_name} due to API rate limit."
+            wait_time = 5 * (attempt + 1)
+            print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
+            time.sleep(wait_time)
 
         except Exception as e:
-            print(f"❌ OpenAI API 調用失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
-            if attempt < max_retries - 1:
-                wait_time = (attempt + 1) * 5
-                print(f"⏳ 等待 {wait_time} 秒後重試...")
-                time.sleep(wait_time)
-            continue
+            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試失敗: {e}")
+            if attempt == max_retries - 1:
+                print(f"❌ [{game_name}] 所有重試都失敗，返回預設訊息")
+                if lang == 'zh-tw':
+                    return f"由於技術問題，無法分析 {game_name} 的上榜原因。"
+                else:
+                    return f"Unable to analyze {game_name} due to technical issues."
+            print(f"⏳ [{game_name}] 等待 {2 * (attempt + 1)} 秒後重試...")
+            time.sleep(2 * (attempt + 1))
 
     # 所有重試都失敗了
     print(f"❌ {game_name} 的 LLM 分析完全失敗，使用預設回應")
@@ -323,11 +339,11 @@ def fetch_and_save_threads(objectid, name):
         threads = []
         # 2. 從前幾個討論區抓取討論串
         for forum in forums[:3]:  # 只抓前3個討論區
-            time.sleep(1)  # 避免請求過快
+            time.sleep(0.3)  # 避免請求過快（優化：從1秒減少到0.3秒）
             forum_threads = fetch_forum_threads(forum['id'], max_threads=3)
 
             for thread_info in forum_threads:
-                time.sleep(1)  # 避免請求過快
+                time.sleep(0.3)  # 避免請求過快（優化：從1秒減少到0.3秒）
                 posts = fetch_thread_posts(thread_info['id'], max_posts=3)
 
                 if posts:  # 只保留有內容的討論串
@@ -415,22 +431,27 @@ def delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config):
 
 def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
     """實際抓取並儲存討論串內容"""
-    print(f"🔍 正在抓取 {name} ({objectid}) 的討論串...")
+    print(f"🔍 [{name}] 正在抓取討論串...")
 
     # 1. 抓取討論區列表
+    print(f"📋 [{name}] 步驟1: 獲取討論區列表...")
     forums = fetch_forum_list(objectid)
     if not forums:
-        print(f"⚠️ 無討論區資料 objectid={objectid}")
+        print(f"⚠️ [{name}] 無討論區資料 objectid={objectid}")
         threads = []
     else:
+        print(f"📋 [{name}] 找到 {len(forums)} 個討論區，將抓取前3個")
         threads = []
         # 2. 從前幾個討論區抓取討論串
-        for forum in forums[:3]:  # 只抓前3個討論區
-            time.sleep(1)  # 避免請求過快
+        for i, forum in enumerate(forums[:3], 1):  # 只抓前3個討論區
+            print(f"📋 [{name}] 正在處理討論區 {i}/3: {forum.get('name', forum['id'])}")
+            time.sleep(0.3)  # 避免請求過快（優化：從1秒減少到0.3秒）
             forum_threads = fetch_forum_threads(forum['id'], max_threads=3)
+            print(f"📄 [{name}] 討論區 {i} 找到 {len(forum_threads)} 個討論串")
 
-            for thread_info in forum_threads:
-                time.sleep(1)  # 避免請求過快
+            for j, thread_info in enumerate(forum_threads, 1):
+                print(f"📄 [{name}] 處理討論串 {j}/{len(forum_threads)}: {thread_info['subject'][:40]}...")
+                time.sleep(0.3)  # 避免請求過快（優化：從1秒減少到0.3秒）
                 posts = fetch_thread_posts(thread_info['id'], max_posts=3)
 
                 if posts:  # 只保留有內容的討論串
@@ -439,14 +460,17 @@ def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
                         'postdate': thread_info['lastpostdate'],
                         'posts': posts
                     })
+                    print(f"✅ [{name}] 討論串已保存，共 {len(posts)} 個留言")
 
                 if len(threads) >= 5:  # 限制總討論串數量
+                    print(f"📄 [{name}] 已達到討論串上限 (5個)，停止抓取")
                     break
 
             if len(threads) >= 5:
                 break
 
     # 3. 儲存到資料庫
+    print(f"💾 [{name}] 保存討論串到數據庫...")
     if config['type'] == 'postgresql':
         cursor.execute("""
             INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
@@ -459,7 +483,7 @@ def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
         """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
     conn.commit()
 
-    print(f"✅ 已抓取 {len(threads)} 個討論串 objectid={objectid}")
+    print(f"✅ [{name}] 已抓取 {len(threads)} 個討論串")
     return threads
 
 def get_threads_by_objectid_with_cursor(cursor, objectid, config):
@@ -551,22 +575,40 @@ def main():
             print("✅ 沒有遊戲需要處理，任務完成")
             return
 
+        print(f"\n🎯 開始批量處理 {len(games_to_process)} 款遊戲的討論串翻譯")
+        print(f"🌐 目標語言: {lang}")
+        print(f"📅 處理開始時間: {datetime.now().strftime('%H:%M:%S')}")
+        print(f"⏱️ 預估總耗時: {len(games_to_process) * 30 / 60:.1f} 分鐘")
+        print(f"🎮 遊戲列表:")
+        for idx, (objectid, name) in enumerate(games_to_process[:10], 1):
+            print(f"  {idx:2d}. {name} ({objectid})")
+        if len(games_to_process) > 10:
+            print(f"  ... 還有 {len(games_to_process) - 10} 款遊戲")
+        print(f"{'='*80}")
+
         for i, (objectid, name) in enumerate(games_to_process, 1):
             start_time = time.time()
-            print(f"\n🎮 [{i}/{len(games_to_process)}] 開始處理 {name} ({objectid}) ...")
+            print(f"\n{'='*80}")
+            print(f"🎮 [{i}/{len(games_to_process)}] 📍 正在處理遊戲: {name}")
+            print(f"🆔 ObjectID: {objectid}")
             print(f"🔧 目標語言: {lang}")
+            print(f"📅 開始時間: {datetime.now().strftime('%H:%M:%S')}")
+            print(f"⏱️ 預估完成時間: {datetime.now() + timedelta(seconds=(len(games_to_process) - i + 1) * 30)}")
+            print(f"{'='*80}")
 
             try:
                 # 1. 判斷討論串是否過期或不存在
-                print(f"🔍 檢查 {name} 的討論串是否需要更新...")
+                print(f"🔍 [步驟1/3] 檢查 {name} 的討論串是否需要更新...")
                 if is_threads_expired_with_cursor(cursor, objectid, config):
                     print(f"⏩ {name} 討論串已過期或不存在，重抓並刪除所有語言 reason")
                     delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config)
-                    print(f"📥 開始抓取 {name} 的新討論串...")
+                    print(f"📥 [步驟2/3] 開始抓取 {name} 的新討論串...")
+                    threads_start = time.time()
                     threads = fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config)
-                    print(f"📥 {name} 討論串抓取完成，共 {len(threads) if threads else 0} 個")
+                    threads_time = time.time() - threads_start
+                    print(f"📥 ✅ {name} 討論串抓取完成，共 {len(threads) if threads else 0} 個 (耗時: {threads_time:.1f}秒)")
                 else:
-                    print(f"✅ {name} 使用現有討論串資料")
+                    print(f"✅ [步驟2/3] {name} 使用現有討論串資料")
                     threads = get_threads_by_objectid_with_cursor(cursor, objectid, config)
 
                 # 2. 若該語言 reason 不存在，才丟給 LLM
@@ -578,12 +620,26 @@ def main():
                 reason_exists = cursor.fetchone() is not None
 
                 if reason_exists:
-                    print(f"⏩ {name} 已有新鮮 {lang} reason，跳過")
+                    print(f"⏩ ✅ {name} 已有新鮮 {lang} reason，跳過")
+                    print(f"🎉 [{i}/{len(games_to_process)}] {name} 處理完成 (使用現有分析)")
                     continue
 
                 # 3. 用現有 threads 產生 reason
-                print(f"🤖 開始為 {name} 產生 {lang} 語言分析...")
+                print(f"🤖 [步驟3/3] 開始為 {name} 產生 {lang} 語言分析...")
+                print(f"📊 討論串資料: {len(threads) if threads else 0} 個討論串")
+
+                if threads:
+                    total_posts = sum(len(t.get('posts', [])) for t in threads)
+                    print(f"📊 總留言數: {total_posts} 個")
+                    print(f"🔍 討論串標題預覽:")
+                    for idx, thread in enumerate(threads[:3], 1):
+                        print(f"  {idx}. {thread.get('title', 'N/A')[:60]}...")
+
+                llm_start = time.time()
                 reason = summarize_reason_with_llm(name, threads)
+                llm_time = time.time() - llm_start
+                print(f"🤖 ✅ {name} LLM 分析完成！(耗時: {llm_time:.1f}秒)")
+                print(f"📝 分析結果摘要: {reason[:120]}...")
 
                 print(f"💾 保存 {name} 的分析結果到數據庫...")
                 if config['type'] == 'postgresql':
@@ -607,19 +663,51 @@ def main():
 
                 end_time = time.time()
                 duration = end_time - start_time
-                print(f"✅ [{i}/{len(games_to_process)}] 完成處理 {name} (耗時: {duration:.2f} 秒)")
+                avg_time = duration / i if i > 0 else duration
+                remaining_games = len(games_to_process) - i
+                estimated_remaining = remaining_games * avg_time
+
+                print(f"🎉 ✅ [{i}/{len(games_to_process)}] {name} 完成處理！(總耗時: {duration:.1f}秒)")
+                print(f"📊 進度統計: 平均每遊戲 {avg_time:.1f}秒, 預估剩餘 {int(estimated_remaining/60)}分{int(estimated_remaining%60)}秒")
+                print(f"{'='*80}")
 
             except Exception as e:
                 end_time = time.time()
                 duration = end_time - start_time
-                print(f"❌ [{i}/{len(games_to_process)}] 處理遊戲 {name} ({objectid}) 時發生錯誤: {e}")
+                print(f"❌ ⚠️ [{i}/{len(games_to_process)}] 處理遊戲 {name} ({objectid}) 時發生錯誤!")
+                print(f"❌ 錯誤訊息: {e}")
                 import traceback
                 print(f"❌ 錯誤詳情: {traceback.format_exc()}")
-                print(f"⏱️ 錯誤發生時間: {duration:.2f} 秒")
+                print(f"⏱️ 錯誤發生時間: {duration:.1f}秒")
+                print(f"{'='*80}")
                 continue
 
         conn.commit()
         print(f"\n💾 數據庫提交完成")
+
+    # 計算處理統計
+    total_processed = len(all_results)
+    total_games = len(games_to_process)
+    success_rate = (total_processed / total_games * 100) if total_games > 0 else 0
+
+    print(f"\n🎉 討論串翻譯任務完成！")
+    print(f"{'='*80}")
+    print(f"📊 處理統計:")
+    print(f"  🎮 總遊戲數量: {total_games} 款")
+    print(f"  ✅ 成功處理: {total_processed} 款 ({success_rate:.1f}%)")
+    print(f"  ❌ 處理失敗: {total_games - total_processed} 款")
+    print(f"  🌐 目標語言: {lang}")
+    print(f"  📅 完成時間: {datetime.now().strftime('%H:%M:%S')}")
+
+    if all_results:
+        print(f"📝 成功處理的遊戲:")
+        for idx, (objectid, data) in enumerate(list(all_results.items())[:5], 1):
+            reason_preview = data['reason'][:80] + "..." if len(data['reason']) > 80 else data['reason']
+            print(f"  {idx}. {data['name']}: {reason_preview}")
+        if len(all_results) > 5:
+            print(f"  ... 還有 {len(all_results) - 5} 款遊戲分析完成")
+
+    print(f"{'='*80}")
 
     # 儲存 debug 檔案
     print(f"💾 儲存結果到 {output_path}")

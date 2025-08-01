@@ -30,13 +30,18 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         start_time = datetime.now()
         logger.info(f"🕐 開始時間: {start_time}")
 
+        # 初始化步驟時間變量
+        step1_duration = step2_duration = step3_duration = step4_duration = 0
+
         # 1. 抓取熱門遊戲榜單
         logger.info("📊 步驟 1/4: 抓取熱門遊戲榜單...")
+        step1_start = datetime.now()
         cmd1 = ['python3', 'fetch_hotgames.py']
         logger.info(f"🚀 執行命令: {' '.join(cmd1)}")
 
         result = subprocess.run(cmd1, capture_output=True, text=True, timeout=300)
-        logger.info(f"📊 步驟 1 返回碼: {result.returncode}")
+        step1_duration = (datetime.now() - step1_start).total_seconds()
+        logger.info(f"📊 步驟 1 返回碼: {result.returncode}, 耗時: {step1_duration:.1f}秒")
 
         if result.stdout:
             for line in result.stdout.split('\n'):
@@ -51,15 +56,17 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         if result.returncode != 0:
             logger.error(f"❌ 抓取熱門遊戲榜單失敗: {result.stderr}")
             return False
-        logger.info("✅ 熱門遊戲榜單抓取完成")
+        logger.info(f"✅ 熱門遊戲榜單抓取完成 (耗時: {step1_duration:.1f}秒)")
 
         # 2. 抓取遊戲詳細資訊
         logger.info("🎮 步驟 2/4: 抓取遊戲詳細資訊...")
+        step2_start = datetime.now()
         cmd2 = ['python3', 'fetch_details.py']
         logger.info(f"🚀 執行命令: {' '.join(cmd2)}")
 
         result = subprocess.run(cmd2, capture_output=True, text=True, timeout=600)
-        logger.info(f"📊 步驟 2 返回碼: {result.returncode}")
+        step2_duration = (datetime.now() - step2_start).total_seconds()
+        logger.info(f"📊 步驟 2 返回碼: {result.returncode}, 耗時: {step2_duration:.1f}秒")
 
         if result.stdout:
             for line in result.stdout.split('\n'):
@@ -74,15 +81,18 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         if result.returncode != 0:
             logger.error(f"❌ 抓取遊戲詳細資訊失敗: {result.stderr}")
             return False
-        logger.info("✅ 遊戲詳細資訊抓取完成")
+        logger.info(f"✅ 遊戲詳細資訊抓取完成 (耗時: {step2_duration:.1f}秒)")
 
         # 3. 抓取討論串並翻譯
         logger.info("💬 步驟 3/4: 抓取討論串並翻譯...")
+        step3_start = datetime.now()
         cmd3 = ['python3', 'fetch_bgg_forum_threads.py', '--lang', lang]
         logger.info(f"🚀 執行命令: {' '.join(cmd3)}")
+        logger.info("⚠️ 此步驟通常是最耗時的，預估需要20-40分鐘...")
 
         result = subprocess.run(cmd3, capture_output=True, text=True, timeout=1800)
-        logger.info(f"📊 步驟 3 返回碼: {result.returncode}")
+        step3_duration = (datetime.now() - step3_start).total_seconds()
+        logger.info(f"📊 步驟 3 返回碼: {result.returncode}, 耗時: {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
 
         if result.stdout:
             for line in result.stdout.split('\n'):
@@ -97,10 +107,11 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         if result.returncode != 0:
             logger.error(f"❌ 抓取討論串失敗: {result.stderr}")
             return False
-        logger.info("✅ 討論串抓取和翻譯完成")
+        logger.info(f"✅ 討論串抓取和翻譯完成 (耗時: {step3_duration:.1f}秒)")
 
         # 4. 產生報表
         logger.info("📝 步驟 4/4: 產生報表...")
+        step4_start = datetime.now()
         generate_cmd = ['python3', 'generate_report.py', '--lang', lang, '--detail', detail_mode]
         if force:
             generate_cmd.append('--force')
@@ -109,7 +120,8 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         logger.info(f"🚀 執行命令: {' '.join(generate_cmd)}")
 
         result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=300)
-        logger.info(f"📊 步驟 4 返回碼: {result.returncode}")
+        step4_duration = (datetime.now() - step4_start).total_seconds()
+        logger.info(f"📊 步驟 4 返回碼: {result.returncode}, 耗時: {step4_duration:.1f}秒")
 
         if result.stdout:
             for line in result.stdout.split('\n'):
@@ -168,6 +180,17 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
 
         end_time = datetime.now()
         duration = end_time - start_time
+
+        # 統計各步驟耗時
+        logger.info("📊 執行統計總結:")
+        logger.info(f"  步驟1 (抓取熱門榜單): {step1_duration:.1f}秒")
+        logger.info(f"  步驟2 (抓取遊戲詳情): {step2_duration:.1f}秒")
+        logger.info(f"  步驟3 (討論串翻譯):   {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
+        logger.info(f"  步驟4 (產生報表):     {step4_duration:.1f}秒")
+        total_steps_time = step1_duration + step2_duration + step3_duration + step4_duration
+        logger.info(f"  各步驟總計:         {total_steps_time:.1f}秒 ({total_steps_time/60:.1f}分鐘)")
+        logger.info(f"  實際總耗時:         {duration.total_seconds():.1f}秒 ({duration.total_seconds()/60:.1f}分鐘)")
+
         logger.info(f"🎉 每日報表產生任務完成！耗時: {duration}")
         logger.info(f"🕐 結束時間: {end_time}")
         return True
