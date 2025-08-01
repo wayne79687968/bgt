@@ -22,186 +22,196 @@ logger = logging.getLogger(__name__)
 
 def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
     """抓取資料並產生報表"""
+    # 使用 print 進行即時調試，繞過可能的日誌緩衝問題
     try:
-        logger.info("🎲 開始執行每日報表產生任務...")
-        logger.info(f"🔧 參數: detail_mode={detail_mode}, lang={lang}, force={force}")
-        logger.info(f"🔧 當前工作目錄: {os.getcwd()}")
+        print("\n" + "="*50)
+        print("🎲 [TASK] fetch_and_generate_report 函數開始執行...")
+        print(f"🔧 [TASK] 參數: detail_mode={detail_mode}, lang={lang}, force={force}")
+        print(f"🔧 [TASK] 當前工作目錄: {os.getcwd()}")
+        print("="*50 + "\n")
 
-        start_time = datetime.now()
-        logger.info(f"🕐 開始時間: {start_time}")
+        overall_start_time = datetime.now()
+        print(f"🕐 [TASK] 開始時間: {overall_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
         # 初始化步驟時間變量
         step1_duration = step2_duration = step3_duration = step4_duration = 0
 
         # 1. 抓取熱門遊戲榜單
-        logger.info("📊 步驟 1/4: 抓取熱門遊戲榜單...")
+        print("\n--- 📊 步驟 1/4: 抓取熱門遊戲榜單 ---")
         step1_start = datetime.now()
         cmd1 = ['python3', 'fetch_hotgames.py']
-        logger.info(f"🚀 執行命令: {' '.join(cmd1)}")
+        print(f"🚀 [STEP 1] 準備執行命令: {' '.join(cmd1)}")
+        print("⏳ [STEP 1] 即將執行 subprocess.run...")
 
-        result = subprocess.run(cmd1, capture_output=True, text=True, timeout=600)
+        try:
+            result = subprocess.run(cmd1, capture_output=True, text=True, timeout=600)
+            print("✅ [STEP 1] subprocess.run 已完成")
+        except Exception as e:
+            print(f"❌ [STEP 1] subprocess.run 執行失敗: {e}")
+            return False
+
         step1_duration = (datetime.now() - step1_start).total_seconds()
-        logger.info(f"📊 步驟 1 返回碼: {result.returncode}, 耗時: {step1_duration:.1f}秒")
+        print(f"📊 [STEP 1] 返回碼: {result.returncode}, 耗時: {step1_duration:.1f}秒")
 
         if result.stdout:
+            print("--- [STEP 1] STDOUT ---")
             for line in result.stdout.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟1 STDOUT: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 1] END STDOUT ---")
 
         if result.stderr:
+            print("--- [STEP 1] STDERR ---")
             for line in result.stderr.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟1 STDERR: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 1] END STDERR ---")
 
         if result.returncode != 0:
-            logger.error(f"❌ 抓取熱門遊戲榜單失敗: {result.stderr}")
+            print(f"❌ [STEP 1] 抓取熱門遊戲榜單失敗")
             return False
-        logger.info(f"✅ 熱門遊戲榜單抓取完成 (耗時: {step1_duration:.1f}秒)")
+        print(f"✅ [STEP 1] 熱門遊戲榜單抓取完成 (耗時: {step1_duration:.1f}秒)")
 
         # 2. 抓取遊戲詳細資訊
-        logger.info("🎮 步驟 2/4: 抓取遊戲詳細資訊...")
+        print("\n--- 🎮 步驟 2/4: 抓取遊戲詳細資訊 ---")
         step2_start = datetime.now()
         cmd2 = ['python3', 'fetch_details.py']
-        logger.info(f"🚀 執行命令: {' '.join(cmd2)}")
+        print(f"🚀 [STEP 2] 準備執行命令: {' '.join(cmd2)}")
+        print("⏳ [STEP 2] 即將執行 subprocess.run...")
 
-        result = subprocess.run(cmd2, capture_output=True, text=True, timeout=1200)
+        try:
+            result = subprocess.run(cmd2, capture_output=True, text=True, timeout=1200)
+            print("✅ [STEP 2] subprocess.run 已完成")
+        except Exception as e:
+            print(f"❌ [STEP 2] subprocess.run 執行失敗: {e}")
+            return False
+
         step2_duration = (datetime.now() - step2_start).total_seconds()
-        logger.info(f"📊 步驟 2 返回碼: {result.returncode}, 耗時: {step2_duration:.1f}秒")
+        print(f"📊 [STEP 2] 返回碼: {result.returncode}, 耗時: {step2_duration:.1f}秒")
 
         if result.stdout:
+            print("--- [STEP 2] STDOUT ---")
             for line in result.stdout.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟2 STDOUT: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 2] END STDOUT ---")
 
         if result.stderr:
+            print("--- [STEP 2] STDERR ---")
             for line in result.stderr.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟2 STDERR: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 2] END STDERR ---")
 
         if result.returncode != 0:
-            logger.error(f"❌ 抓取遊戲詳細資訊失敗: {result.stderr}")
+            print(f"❌ [STEP 2] 抓取遊戲詳細資訊失敗")
             return False
-        logger.info(f"✅ 遊戲詳細資訊抓取完成 (耗時: {step2_duration:.1f}秒)")
+        print(f"✅ [STEP 2] 遊戲詳細資訊抓取完成 (耗時: {step2_duration:.1f}秒)")
 
         # 3. 抓取討論串並翻譯
-        logger.info("💬 步驟 3/4: 抓取討論串並翻譯...")
+        print("\n--- 💬 步驟 3/4: 抓取討論串並翻譯 ---")
         step3_start = datetime.now()
         cmd3 = ['python3', 'fetch_bgg_forum_threads.py', '--lang', lang]
-        logger.info(f"🚀 執行命令: {' '.join(cmd3)}")
-        logger.info("⚠️ 此步驟通常是最耗時的，預估需要20-40分鐘...")
+        print(f"🚀 [STEP 3] 準備執行命令: {' '.join(cmd3)}")
+        print("⏳ [STEP 3] 即將執行 subprocess.run... (此步驟耗時較長)")
 
-        result = subprocess.run(cmd3, capture_output=True, text=True, timeout=3600)
+        try:
+            result = subprocess.run(cmd3, capture_output=True, text=True, timeout=3600)
+            print("✅ [STEP 3] subprocess.run 已完成")
+        except Exception as e:
+            print(f"❌ [STEP 3] subprocess.run 執行失敗: {e}")
+            return False
+
         step3_duration = (datetime.now() - step3_start).total_seconds()
-        logger.info(f"📊 步驟 3 返回碼: {result.returncode}, 耗時: {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
+        print(f"📊 [STEP 3] 返回碼: {result.returncode}, 耗時: {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
 
         if result.stdout:
+            print("--- [STEP 3] STDOUT ---")
             for line in result.stdout.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟3 STDOUT: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 3] END STDOUT ---")
 
         if result.stderr:
+            print("--- [STEP 3] STDERR ---")
             for line in result.stderr.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟3 STDERR: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 3] END STDERR ---")
 
         if result.returncode != 0:
-            logger.error(f"❌ 抓取討論串失敗: {result.stderr}")
+            print(f"❌ [STEP 3] 抓取討論串失敗")
             return False
-        logger.info(f"✅ 討論串抓取和翻譯完成 (耗時: {step3_duration:.1f}秒)")
+        print(f"✅ [STEP 3] 討論串抓取和翻譯完成 (耗時: {step3_duration:.1f}秒)")
 
         # 4. 產生報表
-        logger.info("📝 步驟 4/4: 產生報表...")
+        print("\n--- 📝 步驟 4/4: 產生報表 ---")
         step4_start = datetime.now()
         generate_cmd = ['python3', 'generate_report.py', '--lang', lang, '--detail', detail_mode]
         if force:
             generate_cmd.append('--force')
-            logger.info("🔄 使用強制模式產生報表")
+            print("🔄 [STEP 4] 使用強制模式產生報表")
 
-        logger.info(f"🚀 執行命令: {' '.join(generate_cmd)}")
+        print(f"🚀 [STEP 4] 準備執行命令: {' '.join(generate_cmd)}")
+        print("⏳ [STEP 4] 即將執行 subprocess.run...")
 
-        result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=600)
+        try:
+            result = subprocess.run(generate_cmd, capture_output=True, text=True, timeout=600)
+            print("✅ [STEP 4] subprocess.run 已完成")
+        except Exception as e:
+            print(f"❌ [STEP 4] subprocess.run 執行失敗: {e}")
+            return False
+
         step4_duration = (datetime.now() - step4_start).total_seconds()
-        logger.info(f"📊 步驟 4 返回碼: {result.returncode}, 耗時: {step4_duration:.1f}秒")
+        print(f"📊 [STEP 4] 返回碼: {result.returncode}, 耗時: {step4_duration:.1f}秒")
 
         if result.stdout:
+            print("--- [STEP 4] STDOUT ---")
             for line in result.stdout.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟4 STDOUT: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 4] END STDOUT ---")
 
         if result.stderr:
+            print("--- [STEP 4] STDERR ---")
             for line in result.stderr.split('\n'):
                 if line.strip():
-                    logger.info(f"  步驟4 STDERR: {line}")
+                    print(f"  > {line}")
+            print("--- [STEP 4] END STDERR ---")
 
         if result.returncode != 0:
-            logger.error(f"❌ 產生報表失敗: {result.stderr}")
+            print(f"❌ [STEP 4] 產生報表失敗")
             return False
 
         # 檢查報表檔案是否真的產生了
-        logger.info("🔍 檢查產生的報表檔案...")
+        print("\n🔍 [TASK] 檢查產生的報表檔案...")
         report_dir = "frontend/public/outputs"
         today = datetime.now().strftime("%Y-%m-%d")
         expected_file = f"report-{today}-{lang}.md"
         expected_path = os.path.join(report_dir, expected_file)
 
-        logger.info(f"🔍 檢查預期檔案: {expected_path}")
-
-        if os.path.exists(expected_path):
-            file_size = os.path.getsize(expected_path)
-            file_mtime = os.path.getmtime(expected_path)
-            mtime_str = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
-            logger.info(f"✅ 發現報表檔案: {expected_file} ({file_size} bytes, 修改時間: {mtime_str})")
-
-            # 讀取檔案的前幾行來驗證內容
-            try:
-                with open(expected_path, 'r', encoding='utf-8') as f:
-                    first_lines = [f.readline().strip() for _ in range(3)]
-                logger.info("📝 檔案內容預覽:")
-                for i, line in enumerate(first_lines, 1):
-                    if line:
-                        logger.info(f"  第{i}行: {line[:100]}...")
-            except Exception as e:
-                logger.error(f"❌ 讀取檔案內容失敗: {e}")
+        if os.path.exists(expected_path) and os.path.getsize(expected_path) > 0:
+            print(f"✅ [TASK] 成功驗證報表檔案存在且非空: {expected_path}")
         else:
-            logger.error(f"❌ 預期的報表檔案不存在: {expected_path}")
+            print(f"❌ [TASK] 報表檔案不存在或為空: {expected_path}")
+            return False
 
-            # 列出目錄中的所有檔案
-            if os.path.exists(report_dir):
-                files = os.listdir(report_dir)
-                logger.info(f"📂 報表目錄中現有檔案 ({len(files)} 個):")
-                for f in sorted(files, reverse=True)[:10]:
-                    file_path = os.path.join(report_dir, f)
-                    file_size = os.path.getsize(file_path)
-                    file_mtime = os.path.getmtime(file_path)
-                    mtime_str = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
-                    logger.info(f"  📄 {f} ({file_size} bytes, {mtime_str})")
-            else:
-                logger.error(f"❌ 報表目錄不存在: {report_dir}")
+        overall_duration = (datetime.now() - overall_start_time).total_seconds()
+        print("\n" + "="*50)
+        print("🎉 [TASK] fetch_and_generate_report 任務成功完成！")
+        print(f"⏱️  總耗時: {overall_duration:.1f}秒 ({overall_duration/60:.1f}分鐘)")
+        print(f"📊 各步驟耗時:")
+        print(f"  - 步驟1 (熱門榜單): {step1_duration:.1f}秒")
+        print(f"  - 步驟2 (遊戲詳情): {step2_duration:.1f}秒")
+        print(f"  - 步驟3 (討論翻譯): {step3_duration:.1f}秒")
+        print(f"  - 步驟4 (產生報表): {step4_duration:.1f}秒")
+        print("="*50)
 
-        end_time = datetime.now()
-        duration = end_time - start_time
-
-        # 統計各步驟耗時
-        logger.info("📊 執行統計總結:")
-        logger.info(f"  步驟1 (抓取熱門榜單): {step1_duration:.1f}秒")
-        logger.info(f"  步驟2 (抓取遊戲詳情): {step2_duration:.1f}秒")
-        logger.info(f"  步驟3 (討論串翻譯):   {step3_duration:.1f}秒 ({step3_duration/60:.1f}分鐘)")
-        logger.info(f"  步驟4 (產生報表):     {step4_duration:.1f}秒")
-        total_steps_time = step1_duration + step2_duration + step3_duration + step4_duration
-        logger.info(f"  各步驟總計:         {total_steps_time:.1f}秒 ({total_steps_time/60:.1f}分鐘)")
-        logger.info(f"  實際總耗時:         {duration.total_seconds():.1f}秒 ({duration.total_seconds()/60:.1f}分鐘)")
-
-        logger.info(f"🎉 每日報表產生任務完成！耗時: {duration}")
-        logger.info(f"🕐 結束時間: {end_time}")
         return True
-
-    except subprocess.TimeoutExpired:
-        logger.error("⏰ 任務執行超時")
-        return False
     except Exception as e:
-        logger.error(f"💥 任務執行異常: {e}")
+        print(f"\n💥 [TASK] fetch_and_generate_report 發生未預期的嚴重錯誤: {e}")
         import traceback
-        logger.error(f"💥 異常堆疊: {traceback.format_exc()}")
+        print(f" traceback: {traceback.format_exc()}")
         return False
 
 def main():
