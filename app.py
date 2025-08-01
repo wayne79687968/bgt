@@ -44,6 +44,71 @@ def request_task_stop():
         return True
     return False
 
+def parse_execution_progress(line, elapsed):
+    """解析執行輸出，返回進度和狀態訊息"""
+    line = line.strip()
+    
+    # 步驟1: 抓取熱門遊戲榜單
+    if "抓取熱門桌遊榜單" in line or "找到" in line and "個遊戲" in line:
+        if "完成詳細資料抓取" in line:
+            return 20, f"✅ 步驟1完成: {line}"
+        return 15, f"📊 步驟1/4: {line}"
+    
+    # 步驟2: 抓取遊戲詳細資訊
+    elif "處理第" in line and "批" in line:
+        return 25, f"🎲 步驟2/4: {line}"
+    elif "已更新遊戲:" in line:
+        game_name = line.split("已更新遊戲:")[-1].split("(")[0].strip() if "已更新遊戲:" in line else ""
+        return 30, f"🎮 步驟2/4: 已更新 {game_name}"
+    elif "完成詳細資料抓取" in line:
+        return 40, f"✅ 步驟2完成: {line}"
+    
+    # 步驟3: 抓取討論串
+    elif "開始抓取遊戲的討論串" in line:
+        game_name = line.split(":")[-1].strip() if ":" in line else "遊戲"
+        return 45, f"💬 步驟3/4: 開始抓取 {game_name} 的討論串"
+    elif "抓取討論串列表" in line:
+        return 50, f"📋 步驟3/4: {line}"
+    elif "抓取討論串文章內容" in line:
+        return 55, f"📝 步驟3/4: {line}"
+    elif "翻譯討論串" in line or "翻譯完成" in line:
+        game_name = ""
+        if "翻譯討論串" in line:
+            parts = line.split()
+            for i, part in enumerate(parts):
+                if "翻譯討論串" in part and i > 0:
+                    game_name = parts[i-1]
+                    break
+        return 70, f"🌍 步驟3/4: 正在翻譯 {game_name}".strip()
+    elif "處理完成遊戲" in line:
+        game_name = line.split(":")[-1].strip() if ":" in line else ""
+        return 75, f"✅ 步驟3進度: 已完成 {game_name}"
+    
+    # 步驟4: 產生報表
+    elif "開始產生" in line and "報表" in line:
+        return 80, f"📄 步驟4/4: {line}"
+    elif "已產出" in line and "報告" in line:
+        return 95, f"✅ 步驟4完成: {line}"
+    elif "報表產生完成" in line:
+        return 100, f"🎉 任務完成: {line}"
+    
+    # 資料庫相關訊息
+    elif "數據庫" in line or "資料庫" in line:
+        if "初始化" in line:
+            return 5, f"🗃️ 初始化: {line}"
+        return None, f"🗃️ 資料庫: {line}"
+    
+    # 錯誤訊息
+    elif "錯誤" in line or "失敗" in line or "❌" in line:
+        return None, f"⚠️ {line}"
+    
+    # 其他重要訊息
+    elif any(keyword in line for keyword in ["✅", "📊", "🎲", "💬", "📋", "📝", "🌍", "📄"]):
+        return None, line
+    
+    # 預設情況：顯示原始訊息但不更新進度
+    return None, line if line else None
+
 def reset_task_status():
     """重置任務狀態"""
     global task_status
@@ -663,45 +728,72 @@ def run_scheduler_async():
                     task_status['is_running'] = False
                     return False, f"停止任務時發生錯誤: {stop_error}"
 
-            # 短暫休眠，避免過度消耗 CPU
-            time.sleep(2)
-
-            # 更新進度（改進的進度計算，基於60分鐘總時間）
-            if (current_time - last_progress_update).total_seconds() >= 15:  # 每15秒更新一次
-                if elapsed < 300:  # 前5分鐘：步驟1 (10-20%)
-                    estimated_progress = 10 + (elapsed / 300) * 10
-                    status_msg = f'步驟1/4: 抓取熱門遊戲榜單... ({int(elapsed/60)} 分鐘)'
-                elif elapsed < 900:  # 5-15分鐘：步驟2 (20-40%)
-                    estimated_progress = 20 + ((elapsed - 300) / 600) * 20
-                    status_msg = f'步驟2/4: 抓取遊戲詳細資訊... ({int(elapsed/60)} 分鐘)'
-                elif elapsed < 2700:  # 15-45分鐘：步驟3 (40-80%) - 最耗時的討論串翻譯
-                    estimated_progress = 40 + ((elapsed - 900) / 1800) * 40
-                    status_msg = f'步驟3/4: 抓取討論串並翻譯... ({int(elapsed/60)} 分鐘)'
-                elif elapsed < 3000:  # 45-50分鐘：步驟4 (80-95%)
-                    estimated_progress = 80 + ((elapsed - 2700) / 300) * 15
-                    status_msg = f'步驟4/4: 產生報表... ({int(elapsed/60)} 分鐘)'
-                else:  # 超過50分鐘：95-99%，顯示警告
-                    estimated_progress = min(95 + ((elapsed - 3000) / 600) * 4, 99)
-                    if elapsed > warning_runtime:
-                        status_msg = f'⚠️ 任務運行時間較長 ({int(elapsed/60)} 分鐘)，請耐心等待...'
-                    else:
-                        status_msg = f'正在完成最後步驟... ({int(elapsed/60)} 分鐘)'
-
-                update_task_status('執行中', int(estimated_progress), status_msg)
+            # 讀取和解析子進程輸出
+            try:
+                # 讀取 stdout 輸出
+                while True:
+                    try:
+                        line = process.stdout.readline()
+                        if not line:
+                            break
+                        
+                        line = line.strip()
+                        if line:
+                            output_lines.append(line)
+                            logger.info(f"📋 子進程輸出: {line}")
+                            
+                            # 解析實際執行狀態
+                            progress, status_msg = parse_execution_progress(line, elapsed)
+                            if progress is not None and status_msg:
+                                update_task_status('執行中', progress, status_msg)
+                                last_progress_update = current_time
+                                task_status['last_specific_update'] = current_time
+                            elif status_msg:
+                                # 即使沒有進度數字，也更新狀態訊息
+                                current_progress = task_status.get('progress', 0)
+                                update_task_status('執行中', current_progress, status_msg)
+                                last_progress_update = current_time
+                        
+                    except Exception as stdout_error:
+                        break
+                
+                # 讀取 stderr 輸出
+                while True:
+                    try:
+                        error_line = process.stderr.readline()
+                        if not error_line:
+                            break
+                            
+                        error_line = error_line.strip()
+                        if error_line:
+                            error_lines.append(error_line)
+                            logger.warning(f"⚠️ 子進程錯誤: {error_line}")
+                            
+                            # 解析錯誤中的有用訊息
+                            progress, status_msg = parse_execution_progress(error_line, elapsed)
+                            if status_msg:
+                                current_progress = task_status.get('progress', 0)
+                                update_task_status('執行中', current_progress, status_msg)
+                                last_progress_update = current_time
+                        
+                    except Exception as stderr_error:
+                        break
+                        
+            except Exception as read_error:
+                logger.warning(f"讀取子進程輸出時發生錯誤: {read_error}")
+            
+            # 如果超過30秒沒有具體更新，顯示時間狀態
+            if (current_time - last_progress_update).total_seconds() >= 30:
+                time_status = f'運行中... ({int(elapsed/60)} 分鐘 {int(elapsed%60)} 秒)'
+                if elapsed > warning_runtime:
+                    time_status = f'⚠️ 任務運行時間較長 ({int(elapsed/60)} 分鐘)，請耐心等待...'
+                
+                current_progress = task_status.get('progress', 0)
+                update_task_status('執行中', current_progress, time_status)
                 last_progress_update = current_time
 
-                # 記錄詳細狀態
-                if int(elapsed) % 600 == 0 and elapsed > 0:  # 每10分鐘記錄一次詳細狀態
-                    logger.info(f"🕐 任務已運行 {int(elapsed/60)} 分鐘，進度 {int(estimated_progress)}%")
-                    try:
-                        # 檢查進程是否還活著
-                        if process.poll() is None:
-                            logger.info("📊 子進程仍在運行中...")
-                        else:
-                            logger.info("⚠️ 子進程似乎已結束，但監控循環仍在運行")
-                            break
-                    except Exception as check_error:
-                        logger.error(f"❌ 檢查進程狀態時出錯: {check_error}")
+            # 短暫休眠，避免過度消耗 CPU
+            time.sleep(0.5)
 
         # 子進程已完成，獲取輸出
         stdout, stderr = process.communicate()
