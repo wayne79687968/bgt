@@ -582,8 +582,7 @@ def run_scheduler_async():
         cmd = [
             'python3', 'scheduler.py', '--run-now',
             '--detail', 'all',
-            '--lang', 'zh-tw',
-            '--force'
+            '--lang', 'zh-tw'
         ]
         logger.info(f"🚀 執行命令: {' '.join(cmd)}")
 
@@ -1016,6 +1015,82 @@ def newspaper():
                          available_dates=available_dates,
                          total_games=total_games,
                          last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+@app.route('/api/check-files', methods=['GET'])
+def api_check_files():
+    """API端點：檢查報表目錄檔案"""
+    if 'logged_in' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+    
+    try:
+        report_dir = 'frontend/public/outputs'
+        files_info = []
+        
+        if os.path.exists(report_dir):
+            files = sorted(os.listdir(report_dir), reverse=True)
+            for filename in files:
+                if filename.endswith('.md'):
+                    filepath = os.path.join(report_dir, filename)
+                    stat = os.stat(filepath)
+                    files_info.append({
+                        'name': filename,
+                        'size': stat.st_size,
+                        'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    })
+        
+        return jsonify({
+            'success': True,
+            'directory': report_dir,
+            'files': files_info,
+            'total_files': len(files_info)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/check-database', methods=['GET'])
+def api_check_database():
+    """API端點：檢查資料庫內容"""
+    if 'logged_in' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+    
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+            
+            # 檢查 hot_games 表
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
+            else:
+                cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
+            
+            hot_games_data = cursor.fetchall()
+            
+            # 檢查 game_detail 表
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
+            else:
+                cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
+            
+            game_detail_count = cursor.fetchone()[0]
+            
+            # 檢查 forum_threads 表
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
+            else:
+                cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
+            
+            forum_threads_count = cursor.fetchone()[0]
+            
+            return jsonify({
+                'success': True,
+                'database_type': config['type'],
+                'hot_games_by_date': [{'date': row[0], 'count': row[1]} for row in hot_games_data],
+                'total_game_details': game_detail_count,
+                'total_forum_threads': forum_threads_count
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/health')
 def health():

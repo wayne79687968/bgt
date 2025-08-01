@@ -258,7 +258,7 @@ def main():
 
     # 每天早上 8:00 執行
     scheduler.add_job(
-        lambda: fetch_and_generate_report(args.detail, args.lang),
+        lambda: fetch_and_generate_report(args.detail, args.lang, force=False),
         CronTrigger(hour=8, minute=0, timezone=timezone),
         id='daily_report',
         name='每日 BGG 報表產生',

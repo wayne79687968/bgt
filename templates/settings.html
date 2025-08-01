@@ -34,6 +34,12 @@
                 <button class="btn btn-info" onclick="checkStatus()">
                     📊 檢查狀態
                 </button>
+                <button class="btn btn-warning" onclick="checkFiles()">
+                    📄 檢查報表檔案
+                </button>
+                <button class="btn btn-primary" onclick="checkDatabase()">
+                    🗃️ 檢查資料庫
+                </button>
                 <button class="btn btn-secondary" onclick="window.location.reload()">
                     🔄 重新整理頁面
                 </button>
@@ -240,6 +246,63 @@ function stopTask() {
         showAlert('danger', '停止任務失敗，請稍後再試');
         stopBtn.disabled = false;
         stopBtn.innerHTML = '🛑 停止任務';
+    });
+}
+
+function checkFiles() {
+    fetch('/api/check-files')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let message = `📂 報表目錄: ${data.directory}\n`;
+            message += `📊 檔案總數: ${data.total_files}\n\n`;
+            
+            if (data.files.length > 0) {
+                message += '📄 檔案列表:\n';
+                data.files.forEach(file => {
+                    message += `• ${file.name} (${file.size} bytes, ${file.modified})\n`;
+                });
+            } else {
+                message += '暫無報表檔案';
+            }
+            
+            alert(message);
+        } else {
+            showAlert('danger', '檢查檔案失敗: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Check files error:', error);
+        showAlert('danger', '檢查檔案失敗，請稍後再試');
+    });
+}
+
+function checkDatabase() {
+    fetch('/api/check-database')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let message = `🗃️ 資料庫類型: ${data.database_type}\n`;
+            message += `🎲 遊戲詳情總數: ${data.total_game_details}\n`;
+            message += `💬 論壇討論串總數: ${data.total_forum_threads}\n\n`;
+            
+            message += '📊 熱門榜單記錄:\n';
+            if (data.hot_games_by_date.length > 0) {
+                data.hot_games_by_date.forEach(record => {
+                    message += `• ${record.date}: ${record.count} 個遊戲\n`;
+                });
+            } else {
+                message += '暫無熱門榜單記錄';
+            }
+            
+            alert(message);
+        } else {
+            showAlert('danger', '檢查資料庫失敗: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Check database error:', error);
+        showAlert('danger', '檢查資料庫失敗，請稍後再試');
     });
 }
 

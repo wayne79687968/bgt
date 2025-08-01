@@ -480,6 +480,19 @@ def main():
     dates_to_generate = []
     start_date = None
 
+    # 檢查今日報表是否已存在
+    today_report_file = f"report-{today_date}-{lang}.md"
+    today_report_path = os.path.join(output_dir, today_report_file)
+    
+    if os.path.exists(today_report_path) and not force_generate:
+        print(f"✅ 今日報表已存在: {today_report_path}")
+        file_size = os.path.getsize(today_report_path)
+        file_mtime = os.path.getmtime(today_report_path)
+        mtime_str = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
+        print(f"📊 檔案資訊: {file_size} bytes，修改時間: {mtime_str}")
+        print("ℹ️ 如需重新產生，請使用 --force 參數")
+        return
+    
     if force_generate:
         # 強制模式：直接產生今日報表
         print("🔄 強制模式：將產生今日報表")
