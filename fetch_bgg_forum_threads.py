@@ -245,7 +245,12 @@ def summarize_reason_with_llm(game_name, threads):
                 print(f"❌ [{game_name}] 所有重試均失敗，放棄處理。")
                 return None
         except Exception as e:
-            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試時發生未預期錯誤: {e}")
+            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試時發生未預期錯誤: {type(e).__name__} - {e}")
+
+            # 打印完整的錯誤堆疊追蹤以進行深入調試
+            import traceback
+            print(f"詳細錯誤追蹤: {traceback.format_exc()}")
+
             # 對於非預期的錯誤，可以選擇立即放棄或同樣重試
             if attempt < max_retries - 1:
                 wait_time = base_wait_time * (2 ** attempt)
