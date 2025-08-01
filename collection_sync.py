@@ -3,15 +3,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import os
 import time
-from database import get_db_connection, get_database_config
-
-def execute_query(cursor, query, params, config_type):
-    """執行相容性查詢"""
-    if config_type == 'postgresql':
-        query_pg = query.replace('?', '%s')
-        cursor.execute(query_pg, params)
-    else:
-        cursor.execute(query, params)
+from database import get_db_connection, get_database_config, execute_query
 
 # 用戶設定
 username = "wayne79687968"

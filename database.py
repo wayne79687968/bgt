@@ -14,10 +14,14 @@ def get_database_config():
     # Zeabur 會自動提供 DATABASE_URL 環境變數
     database_url = os.getenv('DATABASE_URL')
 
+    print(f"🔍 環境檢測: DATABASE_URL = {'存在' if database_url else '不存在'}")
+    if database_url:
+        print(f"🔍 DATABASE_URL 前綴: {database_url[:20]}...")
+
     if database_url:
         # 生產環境使用 PostgreSQL
         parsed = urlparse(database_url)
-        return {
+        config = {
             'type': 'postgresql',
             'host': parsed.hostname,
             'port': parsed.port,
@@ -26,12 +30,37 @@ def get_database_config():
             'password': parsed.password,
             'url': database_url
         }
+        print(f"✅ 配置 PostgreSQL: {parsed.hostname}:{parsed.port}/{parsed.path[1:]}")
+        return config
     else:
         # 本地開發使用 SQLite
-        return {
+        config = {
             'type': 'sqlite',
             'path': 'data/bgg_rag.db'
         }
+        print(f"✅ 配置 SQLite: {config['path']}")
+        return config
+
+def execute_query(cursor, query, params=(), config_type=None):
+    """
+    執行相容性查詢，自動處理參數占位符
+
+    Args:
+        cursor: 數據庫游標
+        query: SQL 查詢語句（使用 ? 作為占位符）
+        params: 查詢參數
+        config_type: 數據庫類型，如果不提供會自動獲取
+    """
+    if config_type is None:
+        config_type = get_database_config()['type']
+
+    if config_type == 'postgresql':
+        # PostgreSQL 使用 %s
+        query_pg = query.replace('?', '%s')
+        return cursor.execute(query_pg, params)
+    else:
+        # SQLite 使用 ?
+        return cursor.execute(query, params)
 
 @contextmanager
 def get_db_connection():

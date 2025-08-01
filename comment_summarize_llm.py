@@ -18,7 +18,14 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-# DB 連線將在需要時建立
+# 確保數據庫已初始化
+print("🗃️ 確保數據庫已初始化...")
+try:
+    init_database()
+    print("✅ 數據庫初始化完成")
+except Exception as e:
+    print(f"❌ 數據庫初始化失敗: {e}")
+    exit(1)
 
 # 解析參數
 parser = argparse.ArgumentParser()
@@ -53,28 +60,6 @@ session.mount("http://", adapter)
 pagesize = 100
 min_per_group = 10
 max_per_group = 30
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS game_comments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    objectid INTEGER,
-    comment TEXT,
-    rating REAL,
-    sentiment TEXT,
-    source TEXT,
-    created_at TEXT
-)
-""")
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS game_comments_i18n (
-    comment_id INTEGER,
-    lang TEXT,
-    translated TEXT,
-    updated_at TEXT,
-    PRIMARY KEY (comment_id, lang)
-)
-""")
 
 def fetch_page_comments(objectid, page, total_pages=None):
     retry_count = 0
@@ -202,16 +187,24 @@ def fetch_all_rating_comments_by_zone(objectid):
 
 # 查詢 i18n 是否已有翻譯且未過期
 def is_i18n_fresh(comment_id, lang, days=7):
-    cursor.execute("SELECT updated_at FROM game_comments_i18n WHERE comment_id = ? AND lang = ?", (comment_id, lang))
-    row = cursor.fetchone()
-    if row and row[0]:
-        try:
-            dt = datetime.fromisoformat(row[0])
-            if datetime.utcnow() - dt < timedelta(days=days):
-                return True
-        except Exception:
-            pass
-    return False
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT updated_at FROM game_comments_i18n WHERE comment_id = %s AND lang = %s", (comment_id, lang))
+        else:
+            cursor.execute("SELECT updated_at FROM game_comments_i18n WHERE comment_id = ? AND lang = ?", (comment_id, lang))
+        
+        row = cursor.fetchone()
+        if row and row[0]:
+            try:
+                dt = datetime.fromisoformat(row[0])
+                if datetime.utcnow() - dt < timedelta(days=days):
+                    return True
+            except Exception:
+                pass
+        return False
 
 def build_prompt(low, mid, high):
     def format_section(title, lst):
@@ -322,7 +315,12 @@ def parse_gpt_output(output):
 
 def analyze_with_gpt(objectid, low, mid, high):
     prompt = build_prompt(low, mid, high)
-    try:
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        try:
         if lang == 'en':
             # 只 summary 用 LLM，評論翻譯直接用原文
             # 先組出正評/中立/負評
@@ -377,72 +375,138 @@ def analyze_with_gpt(objectid, low, mid, high):
                     continue
 
                 # 檢查是否已經存在相同的評論
-                cursor.execute("""
-                    SELECT id FROM game_comments
-                    WHERE objectid = ? AND comment = ? AND sentiment = ? AND rating = ?
-                """, (objectid, original, sentiment, rating))
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        SELECT id FROM game_comments
+                        WHERE objectid = %s AND comment = %s AND sentiment = %s AND rating = %s
+                    """, (objectid, original, sentiment, rating))
+                else:
+                    cursor.execute("""
+                        SELECT id FROM game_comments
+                        WHERE objectid = ? AND comment = ? AND sentiment = ? AND rating = ?
+                    """, (objectid, original, sentiment, rating))
                 existing = cursor.fetchone()
 
                 if existing:
                     comment_id = existing[0]
                     print(f"⚠️ 評論已存在，跳過插入：{objectid} - {sentiment}")
                 else:
-                    cursor.execute("""
-                        INSERT INTO game_comments
-                        (objectid, comment, rating, sentiment, source, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        objectid,
-                        original,
-                        rating,
-                        sentiment,
-                        "bgg-rating",
-                        datetime.utcnow().isoformat()
-                    ))
-                    comment_id = cursor.lastrowid
+                    if config['type'] == 'postgresql':
+                        cursor.execute("""
+                            INSERT INTO game_comments
+                            (objectid, comment, rating, sentiment, source, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            RETURNING id
+                        """, (
+                            objectid,
+                            original,
+                            rating,
+                            sentiment,
+                            "bgg-rating",
+                            datetime.utcnow().isoformat()
+                        ))
+                        comment_id = cursor.fetchone()[0]
+                    else:
+                        cursor.execute("""
+                            INSERT INTO game_comments
+                            (objectid, comment, rating, sentiment, source, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (
+                            objectid,
+                            original,
+                            rating,
+                            sentiment,
+                            "bgg-rating",
+                            datetime.utcnow().isoformat()
+                        ))
+                        comment_id = cursor.lastrowid
 
                 # 寫入/更新 i18n
-                cursor.execute("""
-                    INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
-                """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
-        # 儲存總結
-        if data["summary"]:
-            cursor.execute("""
-                INSERT INTO game_comments (objectid, comment, rating, sentiment, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (objectid, '', None, "summary", "bgg-rating", datetime.utcnow().isoformat()))
-            comment_id = cursor.lastrowid
-            cursor.execute("""
-                INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
-            """, (comment_id, lang, data["summary"], datetime.utcnow().isoformat()))
-        conn.commit()
-        print(f"✅ GPT 分析完成：{objectid} ({lang})")
-    except Exception as e:
-        print(f"❌ GPT 處理錯誤：{e}")
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=EXCLUDED.translated, updated_at=EXCLUDED.updated_at
+                    """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+                else:
+                    cursor.execute("""
+                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
+                    """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+            # 儲存總結
+            if data["summary"]:
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        INSERT INTO game_comments (objectid, comment, rating, sentiment, source, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    """, (objectid, '', None, "summary", "bgg-rating", datetime.utcnow().isoformat()))
+                    comment_id = cursor.fetchone()[0]
+                    cursor.execute("""
+                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=EXCLUDED.translated, updated_at=EXCLUDED.updated_at
+                    """, (comment_id, lang, data["summary"], datetime.utcnow().isoformat()))
+                else:
+                    cursor.execute("""
+                        INSERT INTO game_comments (objectid, comment, rating, sentiment, source, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (objectid, '', None, "summary", "bgg-rating", datetime.utcnow().isoformat()))
+                    comment_id = cursor.lastrowid
+                    cursor.execute("""
+                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
+                    """, (comment_id, lang, data["summary"], datetime.utcnow().isoformat()))
+            conn.commit()
+            print(f"✅ GPT 分析完成：{objectid} ({lang})")
+        except Exception as e:
+            print(f"❌ GPT 處理錯誤：{e}")
 
 def is_comments_expired(objectid, days=7):
-    cursor.execute("SELECT MAX(created_at) FROM game_comments WHERE objectid = ?", (objectid,))
-    row = cursor.fetchone()
-    if not row or not row[0]:
-        return True
-    try:
-        dt = datetime.fromisoformat(row[0])
-        return (datetime.utcnow() - dt).days >= days
-    except Exception:
-        return True
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT MAX(created_at) FROM game_comments WHERE objectid = %s", (objectid,))
+        else:
+            cursor.execute("SELECT MAX(created_at) FROM game_comments WHERE objectid = ?", (objectid,))
+        
+        row = cursor.fetchone()
+        if not row or not row[0]:
+            return True
+        try:
+            dt = datetime.fromisoformat(row[0])
+            return (datetime.utcnow() - dt).days >= days
+        except Exception:
+            return True
 
 def delete_all_comments_and_i18n(objectid):
-    # 先找出所有 comment_id
-    cursor.execute("SELECT id FROM game_comments WHERE objectid = ?", (objectid,))
-    ids = [r[0] for r in cursor.fetchall()]
-    if ids:
-        cursor.executemany("DELETE FROM game_comments_i18n WHERE comment_id = ?", [(cid,) for cid in ids])
-    cursor.execute("DELETE FROM game_comments WHERE objectid = ?", (objectid,))
-    conn.commit()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        # 先找出所有 comment_id
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT id FROM game_comments WHERE objectid = %s", (objectid,))
+        else:
+            cursor.execute("SELECT id FROM game_comments WHERE objectid = ?", (objectid,))
+        
+        ids = [r[0] for r in cursor.fetchall()]
+        if ids:
+            if config['type'] == 'postgresql':
+                cursor.executemany("DELETE FROM game_comments_i18n WHERE comment_id = %s", [(cid,) for cid in ids])
+            else:
+                cursor.executemany("DELETE FROM game_comments_i18n WHERE comment_id = ?", [(cid,) for cid in ids])
+        
+        if config['type'] == 'postgresql':
+            cursor.execute("DELETE FROM game_comments WHERE objectid = %s", (objectid,))
+        else:
+            cursor.execute("DELETE FROM game_comments WHERE objectid = ?", (objectid,))
+        
+        conn.commit()
 
 def fetch_and_save_comments(objectid):
     # 這個函數現在只負責重新抓取評論，不儲存到資料庫
@@ -450,97 +514,144 @@ def fetch_and_save_comments(objectid):
     pass
 
 def get_comments_by_objectid(objectid):
-    cursor.execute("SELECT id, comment, rating, sentiment FROM game_comments WHERE objectid = ?", (objectid,))
-    return cursor.fetchall()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        if config['type'] == 'postgresql':
+            cursor.execute("SELECT id, comment, rating, sentiment FROM game_comments WHERE objectid = %s", (objectid,))
+        else:
+            cursor.execute("SELECT id, comment, rating, sentiment FROM game_comments WHERE objectid = ?", (objectid,))
+        
+        return cursor.fetchall()
 
 def main(force: bool = False, skip_llm: bool = False):
-    cursor.execute("SELECT DISTINCT objectid FROM hot_games WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)")
-    new_ids = [row[0] for row in cursor.fetchall()]
-    for objectid in new_ids:
-        print(f"📌 分析遊戲 {objectid} 的有評分留言 ({lang})")
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        config = get_database_config()
+        
+        cursor.execute("SELECT DISTINCT objectid FROM hot_games WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)")
+        new_ids = [row[0] for row in cursor.fetchall()]
+        
+        for objectid in new_ids:
+            print(f"📌 分析遊戲 {objectid} 的有評分留言 ({lang})")
 
-        # 檢查是否已有該語言的 summary
-        cursor.execute("SELECT id FROM game_comments WHERE objectid = ? AND sentiment = 'summary' ORDER BY id DESC LIMIT 1", (objectid,))
-        row = cursor.fetchone()
-        summary_comment_id = row[0] if row else None
-        summary_exists = False
-        if summary_comment_id:
-            cursor.execute("SELECT 1 FROM game_comments_i18n WHERE comment_id = ? AND lang = ?", (summary_comment_id, lang))
-            summary_exists = cursor.fetchone() is not None
+            # 檢查是否已有該語言的 summary
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT id FROM game_comments WHERE objectid = %s AND sentiment = 'summary' ORDER BY id DESC LIMIT 1", (objectid,))
+            else:
+                cursor.execute("SELECT id FROM game_comments WHERE objectid = ? AND sentiment = 'summary' ORDER BY id DESC LIMIT 1", (objectid,))
+            
+            row = cursor.fetchone()
+            summary_comment_id = row[0] if row else None
+            summary_exists = False
+            if summary_comment_id:
+                if config['type'] == 'postgresql':
+                    cursor.execute("SELECT 1 FROM game_comments_i18n WHERE comment_id = %s AND lang = %s", (summary_comment_id, lang))
+                else:
+                    cursor.execute("SELECT 1 FROM game_comments_i18n WHERE comment_id = ? AND lang = ?", (summary_comment_id, lang))
+                summary_exists = cursor.fetchone() is not None
 
-        # 檢查是否有未翻譯的評論
-        cursor.execute("""
-            SELECT COUNT(*) FROM game_comments gc
-            WHERE gc.objectid = ?
-            AND gc.id NOT IN (
-                SELECT gci.comment_id FROM game_comments_i18n gci
-                WHERE gci.comment_id = gc.id AND gci.lang = ?
-            )
-        """, (objectid, lang))
-        untranslated_count = cursor.fetchone()[0]
+            # 檢查是否有未翻譯的評論
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT COUNT(*) FROM game_comments gc
+                    WHERE gc.objectid = %s
+                    AND gc.id NOT IN (
+                        SELECT gci.comment_id FROM game_comments_i18n gci
+                        WHERE gci.comment_id = gc.id AND gci.lang = %s
+                    )
+                """, (objectid, lang))
+            else:
+                cursor.execute("""
+                    SELECT COUNT(*) FROM game_comments gc
+                    WHERE gc.objectid = ?
+                    AND gc.id NOT IN (
+                        SELECT gci.comment_id FROM game_comments_i18n gci
+                        WHERE gci.comment_id = gc.id AND gci.lang = ?
+                    )
+                """, (objectid, lang))
+            untranslated_count = cursor.fetchone()[0]
 
-        if summary_exists and untranslated_count == 0:
-            print(f"⏩ 已有 {lang} 翻譯和 summary，跳過 objectid={objectid}")
-            continue
+            if summary_exists and untranslated_count == 0:
+                print(f"⏩ 已有 {lang} 翻譯和 summary，跳過 objectid={objectid}")
+                continue
 
-        # 如果有未翻譯的評論，只處理翻譯，不重新抓取
-        if summary_exists and untranslated_count > 0:
-            print(f"🔄 發現 {untranslated_count} 個未翻譯評論，補充翻譯：objectid={objectid}")
-            # 獲取未翻譯的評論
-            cursor.execute("""
-                SELECT gc.id, gc.comment, gc.rating, gc.sentiment
-                FROM game_comments gc
-                WHERE gc.objectid = ?
-                AND gc.id NOT IN (
-                    SELECT gci.comment_id FROM game_comments_i18n gci
-                    WHERE gci.comment_id = gc.id AND gci.lang = ?
-                )
-            """, (objectid, lang))
-            untranslated_comments = cursor.fetchall()
+            # 如果有未翻譯的評論，只處理翻譯，不重新抓取
+            if summary_exists and untranslated_count > 0:
+                print(f"🔄 發現 {untranslated_count} 個未翻譯評論，補充翻譯：objectid={objectid}")
+                # 獲取未翻譯的評論
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        SELECT gc.id, gc.comment, gc.rating, gc.sentiment
+                        FROM game_comments gc
+                        WHERE gc.objectid = %s
+                        AND gc.id NOT IN (
+                            SELECT gci.comment_id FROM game_comments_i18n gci
+                            WHERE gci.comment_id = gc.id AND gci.lang = %s
+                        )
+                    """, (objectid, lang))
+                else:
+                    cursor.execute("""
+                        SELECT gc.id, gc.comment, gc.rating, gc.sentiment
+                        FROM game_comments gc
+                        WHERE gc.objectid = ?
+                        AND gc.id NOT IN (
+                            SELECT gci.comment_id FROM game_comments_i18n gci
+                            WHERE gci.comment_id = gc.id AND gci.lang = ?
+                        )
+                    """, (objectid, lang))
+                untranslated_comments = cursor.fetchall()
 
-            # 為每個未翻譯的評論補充翻譯
-            for comment_id, comment, rating, sentiment in untranslated_comments:
-                if comment and sentiment != 'summary':  # 跳過空評論和 summary
-                    try:
-                        if lang == 'en':
-                            translated = comment  # 英文直接使用原文
-                        else:
-                            # 使用 GPT 翻譯單個評論
-                            res = client.chat.completions.create(
-                                model=OPENAI_MODEL,
-                                messages=[
-                                    {"role": "system", "content": "你是一位專業的桌遊評論翻譯師，請將以下英文評論翻譯成繁體中文，保持原意和語調。"},
-                                    {"role": "user", "content": comment}
-                                ],
-                                temperature=0.3
-                            )
-                            translated = res.choices[0].message.content.strip()
+                # 為每個未翻譯的評論補充翻譯
+                for comment_id, comment, rating, sentiment in untranslated_comments:
+                    if comment and sentiment != 'summary':  # 跳過空評論和 summary
+                        try:
+                            if lang == 'en':
+                                translated = comment  # 英文直接使用原文
+                            else:
+                                # 使用 GPT 翻譯單個評論
+                                res = client.chat.completions.create(
+                                    model=OPENAI_MODEL,
+                                    messages=[
+                                        {"role": "system", "content": "你是一位專業的桌遊評論翻譯師，請將以下英文評論翻譯成繁體中文，保持原意和語調。"},
+                                        {"role": "user", "content": comment}
+                                    ],
+                                    temperature=0.3
+                                )
+                                translated = res.choices[0].message.content.strip()
 
-                        # 儲存翻譯
-                        cursor.execute("""
-                            INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
-                            VALUES (?, ?, ?, ?)
-                            ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
-                        """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
-                        print(f"✅ 已翻譯評論 {comment_id}")
-                    except Exception as e:
-                        print(f"⚠️ 翻譯評論 {comment_id} 失敗：{e}")
+                            # 儲存翻譯
+                            if config['type'] == 'postgresql':
+                                cursor.execute("""
+                                    INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                                    VALUES (%s, %s, %s, %s)
+                                    ON CONFLICT(comment_id, lang) DO UPDATE SET translated=EXCLUDED.translated, updated_at=EXCLUDED.updated_at
+                                """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+                            else:
+                                cursor.execute("""
+                                    INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                                    VALUES (?, ?, ?, ?)
+                                    ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
+                                """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+                            print(f"✅ 已翻譯評論 {comment_id}")
+                        except Exception as e:
+                            print(f"⚠️ 翻譯評論 {comment_id} 失敗：{e}")
 
-            conn.commit()
-            continue
+                conn.commit()
+                continue
 
-        # 判斷留言是否過期，如果過期就重新處理
-        if is_comments_expired(objectid):
-            print(f"⏩ 留言已過期，重新處理：objectid={objectid}")
-            delete_all_comments_and_i18n(objectid)
+            # 判斷留言是否過期，如果過期就重新處理
+            if is_comments_expired(objectid):
+                print(f"⏩ 留言已過期，重新處理：objectid={objectid}")
+                delete_all_comments_and_i18n(objectid)
 
-        # 直接從 BGG 抓取評論並分組
-        print(f"🔍 從 BGG 抓取評論...")
-        low, mid, high = fetch_all_rating_comments_by_zone(objectid)
+            # 直接從 BGG 抓取評論並分組
+            print(f"🔍 從 BGG 抓取評論...")
+            low, mid, high = fetch_all_rating_comments_by_zone(objectid)
 
-        if not skip_llm:
-            analyze_with_gpt(objectid, low, mid, high)
-    conn.close()
+            if not skip_llm:
+                analyze_with_gpt(objectid, low, mid, high)
 
 if __name__ == "__main__":
     force = "--force" in sys.argv
