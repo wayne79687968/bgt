@@ -142,27 +142,41 @@ def is_i18n_fresh(objectid, lang, days=7):
         return False
 
 def summarize_reason_with_llm(game_name, threads):
-    """使用 LLM 分析討論串並產生上榜原因"""
-    print(f"🤖 開始為 {game_name} 分析討論串...")
+    """使用 LLM 總結為何遊戲會熱門"""
+    print(f"🤖 [LLM] 開始為 {game_name} 產生原因...")
 
-    # 若沒有討論串，產生預設回應
     if not threads:
-        print(f"⚠️ {game_name} 沒有討論串資料")
-        if lang == 'zh-tw':
-            return f"因為討論資料過少，無法推論 {game_name} 的上榜原因。"
-        else:
-            return f"Unable to infer the reason for {game_name}'s popularity due to insufficient discussion data."
+        print("⚠️ [LLM] 沒有提供討論串，無法產生原因。")
+        return None
 
-    # 檢查討論串內容是否過少（例如：討論串數量少於2個，或總留言數少於3個）
-    total_posts = sum(len(t.get('posts', [])) for t in threads)
-    print(f"📊 {game_name}: {len(threads)} 個討論串，共 {total_posts} 個留言")
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        print("❌ [LLM] 未設定 OPENAI_API_KEY 環境變數")
+        return None
 
-    if len(threads) < 2 or total_posts < 3:
-        print(f"⚠️ {game_name} 討論資料過少（討論串: {len(threads)}, 留言: {total_posts}）")
-        if lang == 'zh-tw':
-            return f"因為討論資料過少，無法推論 {game_name} 的上榜原因。"
-        else:
-            return f"Unable to infer the reason for {game_name}'s popularity due to insufficient discussion data."
+    proxy_url = os.getenv("PROXY_URL")
+
+    # 根據新版 OpenAI SDK (v1.0+) 的要求來設定代理
+    http_client = None
+    if proxy_url:
+        try:
+            import httpx
+            print(f"🔧 [LLM] 使用代理伺服器: {proxy_url}")
+            http_client = httpx.Client(proxies=proxy_url)
+        except ImportError:
+            print("⚠️ [LLM] 需要安裝 httpx 套件來使用代理功能。`pip install httpx`")
+            # 不使用代理繼續，或者可以選擇直接返回
+            pass
+
+    try:
+        from openai import OpenAI, APITimeoutError, RateLimitError
+        client = OpenAI(
+            api_key=api_key,
+            http_client=http_client  # 傳遞配置好的 httpx 客戶端
+        )
+    except ImportError:
+        print("❌ [LLM] 未安裝 openai 套件，請執行 pip install openai")
+        return None
 
     # 若 lang == 'en' 且 threads 全為英文，直接組合 reason
     if lang == 'en' and threads and all(is_english_thread(t) for t in threads):
@@ -191,78 +205,57 @@ def summarize_reason_with_llm(game_name, threads):
     print(f"📝 Prompt 長度: {len(prompt)} 字符")
     print(f"🔧 模型: {os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')}")
 
-    # 重試機制
+    system_prompt = PROMPT_HEADER[lang] + f"\n\nGame: {game_name}\nForum thread summary:\n"
+    for t in threads:
+        system_prompt += f"\n- {t['title']} ({t['postdate']})"
+        for p in t['posts'][:2]:
+            system_prompt += f"\n  - {p['author']}：{p['body'][:80]}"
+
+    user_prompt = prompt
+
     max_retries = 3
+    base_wait_time = 2  # 秒
+
     for attempt in range(max_retries):
         try:
             print(f"🔄 [{game_name}] 第 {attempt + 1}/{max_retries} 次嘗試調用 OpenAI API...")
 
-            client = openai.OpenAI(
-                api_key=os.getenv("OPENAI_API_KEY"),
-                timeout=60.0  # 設置 60 秒超時
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=500,
+                timeout=60.0,
             )
 
-            print(f"⏰ [{game_name}] 開始 API 調用... (超時: 60秒)")
-            start_time = time.time()
+            reason = completion.choices[0].message.content
+            print(f"✅ [{game_name}] OpenAI API 調用成功")
+            return reason.strip()
 
-            response = client.chat.completions.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=512,
-                temperature=0.5,
-                timeout=60.0  # 額外的超時設置
-            )
-
-            end_time = time.time()
-            duration = end_time - start_time
-            print(f"✅ [{game_name}] API 調用成功！耗時: {duration:.2f} 秒")
-
-            reason = response.choices[0].message.content.strip()
-            print(f"📝 [{game_name}] 分析結果: {reason[:100]}...")
-            print(f"🎉 [{game_name}] LLM 分析完成！")
-            return reason
-
-        except openai.APITimeoutError as timeout_error:
-            print(f"⏰ [{game_name}] 第 {attempt + 1} 次嘗試 - API 超時: {timeout_error}")
-            if attempt == max_retries - 1:
-                print(f"❌ [{game_name}] 所有重試都超時，返回預設訊息")
-                if lang == 'zh-tw':
-                    return f"由於 API 超時，無法分析 {game_name} 的上榜原因。"
-                else:
-                    return f"Unable to analyze {game_name} due to API timeout."
-            print(f"⏳ [{game_name}] 等待 {2 ** attempt} 秒後重試...")
-            time.sleep(2 ** attempt)  # 指數退避
-
-        except openai.RateLimitError as rate_error:
-            print(f"🚫 [{game_name}] 第 {attempt + 1} 次嘗試 - API 速率限制: {rate_error}")
-            if attempt == max_retries - 1:
-                print(f"❌ [{game_name}] 所有重試都遇到速率限制，返回預設訊息")
-                if lang == 'zh-tw':
-                    return f"由於 API 速率限制，無法分析 {game_name} 的上榜原因。"
-                else:
-                    return f"Unable to analyze {game_name} due to API rate limit."
-            wait_time = 5 * (attempt + 1)
-            print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
-            time.sleep(wait_time)
-
+        except (APITimeoutError, RateLimitError) as e:
+            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試失敗: {type(e).__name__}")
+            if attempt < max_retries - 1:
+                wait_time = base_wait_time * (2 ** attempt)
+                print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ [{game_name}] 所有重試均失敗，放棄處理。")
+                return None
         except Exception as e:
-            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試失敗: {e}")
-            if attempt == max_retries - 1:
-                print(f"❌ [{game_name}] 所有重試都失敗，返回預設訊息")
-                if lang == 'zh-tw':
-                    return f"由於技術問題，無法分析 {game_name} 的上榜原因。"
-                else:
-                    return f"Unable to analyze {game_name} due to technical issues."
-            print(f"⏳ [{game_name}] 等待 {2 * (attempt + 1)} 秒後重試...")
-            time.sleep(2 * (attempt + 1))
+            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試時發生未預期錯誤: {e}")
+            # 對於非預期的錯誤，可以選擇立即放棄或同樣重試
+            if attempt < max_retries - 1:
+                wait_time = base_wait_time * (2 ** attempt)
+                print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ [{game_name}] 所有重試均失敗，放棄處理。")
+                return None
 
-    # 所有重試都失敗了
-    print(f"❌ {game_name} 的 LLM 分析完全失敗，使用預設回應")
-    if lang == 'zh-tw':
-        reason = f"因為 API 調用失敗，無法推論 {game_name} 的上榜原因。"
-    else:
-        reason = f"Unable to infer the reason for {game_name}'s popularity due to API failure."
-    return reason
+    return None
 
 def is_english_thread(thread):
     # 判斷討論串標題與留言是否為英文（簡單判斷，遇到非英文字母比例過高則視為非英文）
