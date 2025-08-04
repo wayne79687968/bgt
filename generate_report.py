@@ -7,6 +7,7 @@ from database import get_db_connection, get_database_config, execute_query
 import json
 import glob
 import sys
+import re
 
 def get_db_connection_sqlite(config):
     """SQLite 連接（備用）"""
