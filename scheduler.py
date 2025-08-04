@@ -20,13 +20,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
+def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False, force_llm_analysis=False):
     """抓取資料並產生報表"""
     # 使用 print 進行即時調試，繞過可能的日誌緩衝問題
     try:
         print("\n" + "="*50)
         print("🎲 [TASK] fetch_and_generate_report 函數開始執行...")
-        print(f"🔧 [TASK] 參數: detail_mode={detail_mode}, lang={lang}, force={force}")
+        print(f"🔧 [TASK] 參數: detail_mode={detail_mode}, lang={lang}, force={force}, force_llm_analysis={force_llm_analysis}")
         print(f"🔧 [TASK] 當前工作目錄: {os.getcwd()}")
         print("="*50 + "\n")
 
@@ -112,6 +112,12 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False):
         print("\n--- 💬 步驟 3/4: 抓取討論串並翻譯 ---")
         step3_start = datetime.now()
         cmd3 = ['python3', 'fetch_bgg_forum_threads.py', '--lang', lang]
+        
+        # 如果啟用強制 LLM 分析，添加對應參數
+        if force_llm_analysis:
+            cmd3.append('--force-analysis')
+            print("🤖 [STEP 3] 啟用強制 LLM 分析模式")
+        
         print(f"🚀 [STEP 3] 準備執行命令: {' '.join(cmd3)}")
         print("⏳ [STEP 3] 即將執行 subprocess.run... (此步驟耗時較長)")
 
@@ -227,9 +233,10 @@ def main():
     parser.add_argument('--detail', choices=['all', 'simple'], default='all', help='報表詳細程度')
     parser.add_argument('--lang', default='zh-tw', help='語言設定')
     parser.add_argument('--force', action='store_true', help='強制產生今日報表')
+    parser.add_argument('--force-llm-analysis', action='store_true', help='強制重新進行 LLM 分析')
 
     args = parser.parse_args()
-    print(f"📋 解析的參數: run_now={args.run_now}, detail={args.detail}, lang={args.lang}, force={args.force}")
+    print(f"📋 解析的參數: run_now={args.run_now}, detail={args.detail}, lang={args.lang}, force={args.force}, force_llm_analysis={args.force_llm_analysis}")
 
     # 如果指定 --run-now，立即執行任務
     if args.run_now:
@@ -332,7 +339,7 @@ def main():
         print(f"🎯 [SCHEDULER] 任務參數: detail={args.detail}, lang={args.lang}, force={args.force}")
 
         task_start_time = time.time()
-        success = fetch_and_generate_report(args.detail, args.lang, args.force)
+        success = fetch_and_generate_report(args.detail, args.lang, args.force, args.force_llm_analysis)
         task_time = time.time() - task_start_time
 
         if success:
@@ -398,7 +405,7 @@ def main():
 
     # 添加每日任務
     scheduler.add_job(
-        lambda: fetch_and_generate_report(args.detail, args.lang, False),
+        lambda: fetch_and_generate_report(args.detail, args.lang, False, False),
         trigger=CronTrigger(hour=os.getenv('SCHEDULE_HOUR', 23), minute=os.getenv('SCHEDULE_MINUTE', 0)),
         id='daily_report',
         name='每日BGG報表產生任務',

@@ -741,6 +741,19 @@ def run_scheduler_async():
             '--detail', 'all',
             '--lang', 'zh-tw'
         ]
+        
+        # 根據設定添加額外參數
+        force_llm_analysis = task_status.get('force_llm_analysis', False)
+        force_regenerate = task_status.get('force_regenerate', False)
+        
+        if force_llm_analysis:
+            cmd.append('--force-llm-analysis')
+            logger.info("🤖 啟用強制LLM分析模式")
+        
+        if force_regenerate:
+            cmd.append('--force')
+            logger.info("🔄 啟用強制重新產生模式")
+        
         logger.info(f"🚀 執行命令: {' '.join(cmd)}")
 
         update_task_status('執行中', 10, '正在執行數據抓取和報表生成...')
@@ -978,10 +991,10 @@ def run_scheduler():
     """執行完整的排程任務 (保持同步介面兼容性)"""
     return run_scheduler_async()
 
-def generate_report():
+def generate_report(force_llm_analysis=False, force_regenerate=False):
     """產生新的報表"""
     try:
-        logger.info("開始產生報表...")
+        logger.info(f"開始產生報表... 強制LLM分析: {force_llm_analysis}, 強制重新產生: {force_regenerate}")
 
         # 檢查是否已有任務在運行
         if task_status['is_running']:
@@ -990,13 +1003,28 @@ def generate_report():
 
         # 重置任務狀態，清除之前的停止標誌
         reset_task_status()
+        
+        # 儲存設定參數到全域變數
+        task_status['force_llm_analysis'] = force_llm_analysis
+        task_status['force_regenerate'] = force_regenerate
 
         # 啟動異步任務
         thread = threading.Thread(target=run_scheduler_async)
         thread.daemon = True
         thread.start()
 
-        return True, "報表產生任務已啟動，請稍後檢查進度"
+        options_text = []
+        if force_llm_analysis:
+            options_text.append("強制LLM分析")
+        if force_regenerate:
+            options_text.append("強制重新產生")
+        
+        message = "報表產生任務已啟動"
+        if options_text:
+            message += f"（{', '.join(options_text)}）"
+        message += "，請稍後檢查進度"
+        
+        return True, message
 
     except Exception as e:
         logger.error(f"報表產生異常: {e}")
@@ -1084,7 +1112,14 @@ def api_run_scheduler():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
 
-    success, message = generate_report()
+    # 解析請求參數
+    data = request.get_json() or {}
+    force_llm_analysis = data.get('force_llm_analysis', False)
+    force_regenerate = data.get('force_regenerate', False)
+    
+    logger.info(f"收到報表產生請求 - 強制LLM分析: {force_llm_analysis}, 強制重新產生: {force_regenerate}")
+
+    success, message = generate_report(force_llm_analysis=force_llm_analysis, force_regenerate=force_regenerate)
     return jsonify({'success': success, 'message': message})
 
 @app.route('/api/stop-task', methods=['POST'])

@@ -28,8 +28,12 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # 解析參數
 parser = argparse.ArgumentParser()
 parser.add_argument('--lang', choices=['zh-tw', 'en'], default='zh-tw', help='推論語言')
+parser.add_argument('--force-analysis', action='store_true', help='強制重新進行 LLM 分析，即使已有結果')
 args = parser.parse_args()
 lang = args.lang
+force_analysis = args.force_analysis
+
+print(f"🔧 [FETCH_BGG_FORUM_THREADS] 參數: lang={lang}, force_analysis={force_analysis}")
 
 PROMPT_HEADER = {
     'zh-tw': "你是一位桌遊分析師，請根據下列討論串內容，推論該遊戲近期上榜的可能原因。可參考的常見原因有：1. 新遊戲且有潛力 2. 新版本 3. 公司倒閉 4. 出貨 5. 各種爭議(美術、抄襲、公關問題等等)\n請用繁體中文簡潔、專業地以一段流暢敘述，直接說明最關鍵的上榜原因，避免條列式、避免贅詞與開場白。",
@@ -631,10 +635,12 @@ def main():
                     cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
                 reason_exists = cursor.fetchone() is not None
 
-                if reason_exists:
+                if reason_exists and not force_analysis:
                     print(f"⏩ ✅ {name} 已有新鮮 {lang} reason，跳過")
                     print(f"🎉 [{i}/{len(games_to_process)}] {name} 處理完成 (使用現有分析)")
                     continue
+                elif reason_exists and force_analysis:
+                    print(f"🔄 ⚠️ {name} 已有 {lang} reason，但啟用強制分析模式，將重新處理")
 
                 # 3. 用現有 threads 產生 reason
                 print(f"🤖 [步驟3/3] 開始為 {name} 產生 {lang} 語言分析...")
