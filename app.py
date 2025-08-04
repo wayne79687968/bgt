@@ -645,6 +645,7 @@ def parse_game_data_from_report(content):
                 reason_match = re.search(r'\*\*📈 上榜原因推論：\*\*\s*>\s*(.*?)(?=\n---|\n###|\n##|$)', section_content, re.DOTALL)
                 if reason_match:
                     reason_text = reason_match.group(1).strip()
+                    logger.info(f"✅ 找到 {game['name']} 的原始推論文字: {reason_text[:100]}...")
                     # 清理多餘的空白和換行並移除前綴
                     reason_text = re.sub(r'\s+', ' ', reason_text)
                     # 移除《遊戲名》近期上榜的主要原因是 這類前綴
@@ -652,7 +653,25 @@ def parse_game_data_from_report(content):
                     # 移除其他可能的前綴
                     reason_text = re.sub(r'^[^，。]*?主要原因是', '', reason_text)
                     reason_text = reason_text.strip()
+                    logger.info(f"✅ {game['name']} 清理後的推論文字: {reason_text[:100]}...")
                     game['reason'] = reason_text
+                else:
+                    logger.warning(f"⚠️ 未找到 {game['name']} 的上榜原因推論")
+                    # 顯示區段內容以便除錯
+                    logger.debug(f"📝 {game['name']} 的區段內容前200字元: {section_content[:200]}...")
+                    # 檢查是否包含推論關鍵字
+                    if '📈 上榜原因推論' in section_content:
+                        logger.info(f"🔍 {game['name']} 的區段包含推論關鍵字，但正則表達式無法匹配")
+                    elif '因為技術問題' in section_content:
+                        logger.info(f"🔍 {game['name']} 顯示技術問題訊息")
+                    else:
+                        # 為沒有詳細分析區段的遊戲提供預設訊息
+                        game['reason'] = "此遊戲未包含在詳細分析範圍內，可能是因為討論熱度較低或為常駐榜單遊戲。"
+                        logger.info(f"🔄 為 {game['name']} 設定預設上榜原因說明")
+            else:
+                # 沒有找到詳細區段的遊戲，提供預設訊息
+                game['reason'] = "此遊戲未包含在詳細分析範圍內，可能是因為討論熱度較低或為常駐榜單遊戲。"
+                logger.info(f"🔄 為 {game['name']} 設定預設上榜原因說明（未找到詳細區段）")
 
         return games
 
