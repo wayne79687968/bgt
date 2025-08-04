@@ -240,14 +240,14 @@ def generate_single_report(target_date_str, detail_mode, lang):
                 markdown.append(f"![{name}]({image})")
             rating_str = f"{round(rating, 2):.2f}" if rating is not None else "-"
             weight_str = f"{round(weight, 2):.2f}" if weight is not None else "-"
-            
+
             # 處理可能為空的字串欄位
             cats_str = cats if cats and cats.strip() else "資料不足"
             mechs_str = mechs if mechs and mechs.strip() else "資料不足"
             designers_str = designers if designers and designers.strip() else "資料不足"
             artists_str = artists if artists and artists.strip() else "資料不足"
             pubs_str = pubs if pubs and pubs.strip() else "資料不足"
-            
+
             # 處理玩家人數和遊戲時間
             players_str = f"{minp}-{maxp}人（最佳：{bestp}人）" if minp and maxp else "資料不足"
             if minp == maxp:
@@ -255,7 +255,7 @@ def generate_single_report(target_date_str, detail_mode, lang):
             playtime_str = f"{minpt}-{maxpt}分鐘" if minpt and maxpt else "資料不足"
             if minpt == maxpt:
                 playtime_str = f"{minpt}分鐘"
-            
+
             markdown.append(T['rating'].format(rating_str))
             markdown.append(T['rank'].format(rank or "資料不足"))
             markdown.append(T['weight'].format(weight_str))
@@ -415,12 +415,14 @@ def main():
     parser.add_argument('--detail', choices=['all', 'up', 'new', 'up_and_new'], default='new', help='詳細資料顯示模式：all=全部, up=只顯示排名上升, new=只顯示新進榜, up_and_new=排名上升+新進榜')
     parser.add_argument('--lang', choices=['zh-tw', 'en'], default='zh-tw', help='報表語言')
     parser.add_argument('--force', action='store_true', help='強制產生今日報表，即使已存在')
+    parser.add_argument('--date', type=str, help='指定要產生報表的日期 (YYYY-MM-DD 格式)')
     args = parser.parse_args()
     detail_mode = args.detail
     lang = args.lang
     force_generate = args.force
+    specified_date = args.date
 
-    print(f"🔧 執行參數: detail={detail_mode}, lang={lang}, force={force_generate}")
+    print(f"🔧 執行參數: detail={detail_mode}, lang={lang}, force={force_generate}, date={specified_date}")
 
     # 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
     print("🗃️ [GENERATE_REPORT] 跳過數據庫初始化（由 scheduler.py 負責）")
@@ -475,78 +477,89 @@ def main():
     dates_to_generate = []
     start_date = None
 
-    # 檢查今日報表是否已存在
-    today_report_file = f"report-{today_date}-{lang}.md"
-    today_report_path = os.path.join(output_dir, today_report_file)
-
-    if os.path.exists(today_report_path) and not force_generate:
-        print(f"✅ 今日報表已存在: {today_report_path}")
-        file_size = os.path.getsize(today_report_path)
-        file_mtime = os.path.getmtime(today_report_path)
-        mtime_str = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
-        print(f"📊 檔案資訊: {file_size} bytes，修改時間: {mtime_str}")
-        print("ℹ️ 如需重新產生，請使用 --force 參數")
-        return
-
-    if force_generate:
-        # 強制模式：直接產生今日報表
-        print("🔄 強制模式：將產生今日報表")
-        dates_to_generate = [today_date]
-    elif last_report_date is None:
-        print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
-        # Find the earliest date in the database with error handling
+    # 如果指定了日期，直接使用該日期
+    if specified_date:
         try:
-            with get_db_connection() as conn_check:
-                cursor_check = conn_check.cursor()
-                config_check = get_database_config()
-
-                # 檢查 hot_games 表是否存在且有數據
-                if config_check['type'] == 'postgresql':
-                    cursor_check.execute("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables
-                            WHERE table_name = 'hot_games'
-                        )
-                    """)
-                else:
-                    cursor_check.execute("""
-                        SELECT name FROM sqlite_master
-                        WHERE type='table' AND name='hot_games'
-                    """)
-
-                table_exists = cursor_check.fetchone()
-                if not table_exists or (isinstance(table_exists, tuple) and not table_exists[0]):
-                    print("❌ hot_games 表不存在。請先執行數據抓取流程（fetch_hotgames.py）。")
-                    return
-
-                execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
-                earliest_date_result = cursor_check.fetchone()
-                earliest_date_str = earliest_date_result[0] if earliest_date_result else None
-                print(f"📅 資料庫中最早日期: {earliest_date_str}")
-
-        except Exception as e:
-            print(f"❌ 檢查數據庫時發生錯誤: {e}")
-            print("請確保已執行數據抓取流程並且數據庫中有熱門遊戲數據。")
-            import traceback
-            print(f"❌ 錯誤詳情: {traceback.format_exc()}")
-            return
-
-        if earliest_date_str:
-            start_date = date.fromisoformat(earliest_date_str)
-        else:
-            print("❌ 資料庫中沒有任何資料，無法產生報表。")
-            print("請先執行完整的數據抓取流程：")
-            print("1. python fetch_hotgames.py")
-            print("2. python fetch_details.py")
-            print("3. python fetch_bgg_forum_threads.py")
+            target_date = date.fromisoformat(specified_date)
+            dates_to_generate = [target_date]
+            print(f"📅 指定日期模式：將產生 {specified_date} 的報表")
+        except ValueError:
+            print(f"❌ 無效的日期格式: {specified_date}，請使用 YYYY-MM-DD 格式")
             return
     else:
-        # 正常模式：產生比最新報表更新的日期
-        start_date = last_report_date + timedelta(days=1)
-        print(f"📅 開始產生日期: {start_date}")
+        # 檢查今日報表是否已存在
+        today_report_file = f"report-{today_date}-{lang}.md"
+        today_report_path = os.path.join(output_dir, today_report_file)
 
-    # 如果不是強制模式，按正常邏輯產生日期範圍
-    if not force_generate and start_date:
+        if os.path.exists(today_report_path) and not force_generate:
+            print(f"✅ 今日報表已存在: {today_report_path}")
+            file_size = os.path.getsize(today_report_path)
+            file_mtime = os.path.getmtime(today_report_path)
+            mtime_str = datetime.fromtimestamp(file_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"📊 檔案資訊: {file_size} bytes，修改時間: {mtime_str}")
+            print("ℹ️ 如需重新產生，請使用 --force 參數")
+            return
+
+    if not specified_date:  # 只有在沒有指定日期時才執行原有邏輯
+        if force_generate:
+            # 強制模式：直接產生今日報表
+            print("🔄 強制模式：將產生今日報表")
+            dates_to_generate = [today_date]
+        elif last_report_date is None:
+            print("🟠 找不到任何已產生的報表，將嘗試從資料庫中最早的日期開始產生。")
+            # Find the earliest date in the database with error handling
+            try:
+                with get_db_connection() as conn_check:
+                    cursor_check = conn_check.cursor()
+                    config_check = get_database_config()
+
+                    # 檢查 hot_games 表是否存在且有數據
+                    if config_check['type'] == 'postgresql':
+                        cursor_check.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables
+                                WHERE table_name = 'hot_games'
+                            )
+                        """)
+                    else:
+                        cursor_check.execute("""
+                            SELECT name FROM sqlite_master
+                            WHERE type='table' AND name='hot_games'
+                        """)
+
+                    table_exists = cursor_check.fetchone()
+                    if not table_exists or (isinstance(table_exists, tuple) and not table_exists[0]):
+                        print("❌ hot_games 表不存在。請先執行數據抓取流程（fetch_hotgames.py）。")
+                        return
+
+                    execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
+                    earliest_date_result = cursor_check.fetchone()
+                    earliest_date_str = earliest_date_result[0] if earliest_date_result else None
+                    print(f"📅 資料庫中最早日期: {earliest_date_str}")
+
+            except Exception as e:
+                print(f"❌ 檢查數據庫時發生錯誤: {e}")
+                print("請確保已執行數據抓取流程並且數據庫中有熱門遊戲數據。")
+                import traceback
+                print(f"❌ 錯誤詳情: {traceback.format_exc()}")
+                return
+
+            if earliest_date_str:
+                start_date = date.fromisoformat(earliest_date_str)
+            else:
+                print("❌ 資料庫中沒有任何資料，無法產生報表。")
+                print("請先執行完整的數據抓取流程：")
+                print("1. python fetch_hotgames.py")
+                print("2. python fetch_details.py")
+                print("3. python fetch_bgg_forum_threads.py")
+                return
+        else:
+            # 正常模式：產生比最新報表更新的日期
+            start_date = last_report_date + timedelta(days=1)
+            print(f"📅 開始產生日期: {start_date}")
+
+    # 如果不是強制模式且沒有指定日期，按正常邏輯產生日期範圍
+    if not force_generate and not specified_date and start_date:
         current_date = start_date
         while current_date <= today_date:
             dates_to_generate.append(current_date)
