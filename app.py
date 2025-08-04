@@ -315,18 +315,20 @@ def get_game_details_from_db(objectid):
             cursor = conn.cursor()
             config = get_database_config()
 
-            # 獲取遊戲基本資料
+            # 獲取遊戲基本資料（包含字串格式的分類機制資料）
             if config['type'] == 'postgresql':
                 cursor.execute("""
                     SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
-                           minplaytime, maxplaytime, image
+                           minplaytime, maxplaytime, image, categories, mechanics, 
+                           designers, artists, publishers
                     FROM game_detail
                     WHERE objectid = %s
                 """, (objectid,))
             else:
                 cursor.execute("""
                     SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
-                           minplaytime, maxplaytime, image
+                           minplaytime, maxplaytime, image, categories, mechanics,
+                           designers, artists, publishers
                     FROM game_detail
                     WHERE objectid = ?
                 """, (objectid,))
@@ -361,8 +363,35 @@ def get_game_details_from_db(objectid):
             if category in categories:
                 categories[category].append({'id': cat_id, 'name': name})
 
+        # 處理字串格式的分類資料（作為備用）
+        def parse_string_to_dict_list(text):
+            """將逗號分隔的字串轉換為字典列表格式"""
+            if not text or not text.strip():
+                return []
+            items = [item.strip() for item in text.split(',') if item.strip()]
+            return [{'id': None, 'name': item} for item in items]
+
         # 組織返回資料
         if game_detail:
+            # 如果從 bgg_items 表中沒有取得分類資料，使用字串資料
+            final_categories = categories['boardgamecategory']
+            final_mechanics = categories['boardgamemechanic']
+            final_designers = categories['boardgamedesigner']
+            final_artists = categories['boardgameartist']
+            final_publishers = categories['boardgamepublisher']
+            
+            # 如果沒有結構化資料，解析字串
+            if not final_categories and len(game_detail) > 9:
+                final_categories = parse_string_to_dict_list(game_detail[9])
+            if not final_mechanics and len(game_detail) > 10:
+                final_mechanics = parse_string_to_dict_list(game_detail[10])
+            if not final_designers and len(game_detail) > 11:
+                final_designers = parse_string_to_dict_list(game_detail[11])
+            if not final_artists and len(game_detail) > 12:
+                final_artists = parse_string_to_dict_list(game_detail[12])
+            if not final_publishers and len(game_detail) > 13:
+                final_publishers = parse_string_to_dict_list(game_detail[13])
+
             return {
                 'rating': game_detail[0],
                 'bgg_rank': game_detail[1],  # BGG總排名
@@ -373,11 +402,11 @@ def get_game_details_from_db(objectid):
                 'minplaytime': game_detail[6],
                 'maxplaytime': game_detail[7],
                 'image': game_detail[8],
-                'categories': categories['boardgamecategory'],
-                'mechanics': categories['boardgamemechanic'],
-                'designers': categories['boardgamedesigner'],
-                'artists': categories['boardgameartist'],
-                'publishers': categories['boardgamepublisher']
+                'categories': final_categories,
+                'mechanics': final_mechanics,
+                'designers': final_designers,
+                'artists': final_artists,
+                'publishers': final_publishers
             }
         else:
             return {
@@ -487,8 +516,8 @@ def parse_game_data_from_report(content):
                         elif '🆕' in rank_change_cell:
                             is_new = True
 
-                        # 從資料庫獲取完整的遊戲詳細資料
-                        db_details = get_game_details_from_db(game_objectid) if game_objectid else {}
+                        # 暫時存儲遊戲ID，稍後批量查詢
+                        db_details = {}
 
                         games.append({
                             'rank': rank,
@@ -521,6 +550,32 @@ def parse_game_data_from_report(content):
             elif in_table and not line.startswith('|'):
                 # 表格結束
                 break
+
+        # 批量取得所有遊戲的資料庫詳細資訊
+        logger.info(f"批量查詢 {len(games)} 個遊戲的詳細資料...")
+        for game in games:
+            if game['objectid']:
+                try:
+                    db_details = get_game_details_from_db(game['objectid'])
+                    # 更新遊戲資料
+                    game.update({
+                        'image': db_details.get('image') or game.get('image'),
+                        'rating': db_details.get('rating') or game.get('rating', '8.0'),
+                        'bgg_rank': db_details.get('bgg_rank'),
+                        'weight': db_details.get('weight'),
+                        'min_players': db_details.get('min_players') or game.get('min_players', 1),
+                        'max_players': db_details.get('max_players') or game.get('max_players', 4),
+                        'bestplayers': db_details.get('bestplayers'),
+                        'minplaytime': db_details.get('minplaytime'),
+                        'maxplaytime': db_details.get('maxplaytime'),
+                        'categories': db_details.get('categories', []),
+                        'mechanics': db_details.get('mechanics', []),
+                        'designers': db_details.get('designers', []),
+                        'artists': db_details.get('artists', []),
+                        'publishers': db_details.get('publishers', [])
+                    })
+                except Exception as e:
+                    logger.warning(f"取得遊戲 {game['objectid']} 的詳細資料失敗: {e}")
 
         # 解析詳細資料區段來獲取更多資訊
         for game in games:
