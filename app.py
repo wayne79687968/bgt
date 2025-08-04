@@ -642,7 +642,7 @@ def parse_game_data_from_report(content):
                     game['publishers'] = publishers
 
                 # 提取上榜原因
-                reason_match = re.search(r'\*\*📈 上榜原因推論：\*\*\s*>\s*([^-]+?)(?=\n---|####|\nz{3,}|\n##|\n###|$)', section_content, re.DOTALL)
+                reason_match = re.search(r'\*\*📈 上榜原因推論：\*\*\s*>\s*(.*?)(?=\n---|\n###|\n##|$)', section_content, re.DOTALL)
                 if reason_match:
                     reason_text = reason_match.group(1).strip()
                     # 清理多餘的空白和換行並移除前綴
