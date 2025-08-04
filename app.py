@@ -47,13 +47,13 @@ def request_task_stop():
 def parse_execution_progress(line, elapsed):
     """解析執行輸出，返回進度和狀態訊息"""
     line = line.strip()
-    
+
     # 步驟1: 抓取熱門遊戲榜單
     if "抓取熱門桌遊榜單" in line or "找到" in line and "個遊戲" in line:
         if "完成詳細資料抓取" in line:
             return 20, f"✅ 步驟1完成: {line}"
         return 15, f"📊 步驟1/4: {line}"
-    
+
     # 步驟2: 抓取遊戲詳細資訊
     elif "處理第" in line and "批" in line:
         return 25, f"🎲 步驟2/4: {line}"
@@ -62,7 +62,7 @@ def parse_execution_progress(line, elapsed):
         return 30, f"🎮 步驟2/4: 已更新 {game_name}"
     elif "完成詳細資料抓取" in line:
         return 40, f"✅ 步驟2完成: {line}"
-    
+
     # 步驟3: 抓取討論串
     elif "開始抓取遊戲的討論串" in line:
         game_name = line.split(":")[-1].strip() if ":" in line else "遊戲"
@@ -83,7 +83,7 @@ def parse_execution_progress(line, elapsed):
     elif "處理完成遊戲" in line:
         game_name = line.split(":")[-1].strip() if ":" in line else ""
         return 75, f"✅ 步驟3進度: 已完成 {game_name}"
-    
+
     # 步驟4: 產生報表
     elif "開始產生" in line and "報表" in line:
         return 80, f"📄 步驟4/4: {line}"
@@ -91,21 +91,21 @@ def parse_execution_progress(line, elapsed):
         return 95, f"✅ 步驟4完成: {line}"
     elif "報表產生完成" in line:
         return 100, f"🎉 任務完成: {line}"
-    
+
     # 資料庫相關訊息
     elif "數據庫" in line or "資料庫" in line:
         if "初始化" in line:
             return 5, f"🗃️ 初始化: {line}"
         return None, f"🗃️ 資料庫: {line}"
-    
+
     # 錯誤訊息
     elif "錯誤" in line or "失敗" in line or "❌" in line:
         return None, f"⚠️ {line}"
-    
+
     # 其他重要訊息
     elif any(keyword in line for keyword in ["✅", "📊", "🎲", "💬", "📋", "📝", "🌍", "📄"]):
         return None, line
-    
+
     # 預設情況：顯示原始訊息但不更新進度
     return None, line if line else None
 
@@ -319,7 +319,7 @@ def get_game_details_from_db(objectid):
             if config['type'] == 'postgresql':
                 cursor.execute("""
                     SELECT rating, rank, weight, minplayers, maxplayers, bestplayers,
-                           minplaytime, maxplaytime, image, categories, mechanics, 
+                           minplaytime, maxplaytime, image, categories, mechanics,
                            designers, artists, publishers
                     FROM game_detail
                     WHERE objectid = %s
@@ -379,7 +379,7 @@ def get_game_details_from_db(objectid):
             final_designers = categories['boardgamedesigner']
             final_artists = categories['boardgameartist']
             final_publishers = categories['boardgamepublisher']
-            
+
             # 如果沒有結構化資料，解析字串
             if not final_categories and len(game_detail) > 9:
                 final_categories = parse_string_to_dict_list(game_detail[9])
@@ -553,6 +553,24 @@ def parse_game_data_from_report(content):
 
         # 批量取得所有遊戲的資料庫詳細資訊
         logger.info(f"批量查詢 {len(games)} 個遊戲的詳細資料...")
+
+        # 批量查詢 reason 資料
+        reason_objectids = [game['objectid'] for game in games if game['objectid']]
+        reasons_dict = {}
+        if reason_objectids:
+            try:
+                with get_db_connection() as conn:
+                    cursor = conn.cursor()
+                    config = get_database_config()
+                    placeholders = ','.join(['?' if config['type'] == 'sqlite' else '%s'] * len(reason_objectids))
+                    query = f"SELECT objectid, reason FROM forum_threads_i18n WHERE objectid IN ({placeholders}) AND lang = 'zh-tw'"
+                    cursor.execute(query, reason_objectids)
+                    for oid, reason in cursor.fetchall():
+                        reasons_dict[oid] = reason
+                logger.info(f"✅ 從資料庫載入 {len(reasons_dict)} 個遊戲的 reason 資料")
+            except Exception as e:
+                logger.warning(f"查詢 reason 資料失敗: {e}")
+
         for game in games:
             if game['objectid']:
                 try:
@@ -574,6 +592,12 @@ def parse_game_data_from_report(content):
                         'artists': db_details.get('artists', []),
                         'publishers': db_details.get('publishers', [])
                     })
+
+                    # 從資料庫讀取 reason
+                    if game['objectid'] in reasons_dict:
+                        game['reason'] = reasons_dict[game['objectid']]
+                        logger.info(f"✅ 為 {game['name']} 載入資料庫 reason")
+
                 except Exception as e:
                     logger.warning(f"取得遊戲 {game['objectid']} 的詳細資料失敗: {e}")
 
@@ -741,19 +765,19 @@ def run_scheduler_async():
             '--detail', 'all',
             '--lang', 'zh-tw'
         ]
-        
+
         # 根據設定添加額外參數
         force_llm_analysis = task_status.get('force_llm_analysis', False)
         force_regenerate = task_status.get('force_regenerate', False)
-        
+
         if force_llm_analysis:
             cmd.append('--force-llm-analysis')
             logger.info("🤖 啟用強制LLM分析模式")
-        
+
         if force_regenerate:
             cmd.append('--force')
             logger.info("🔄 啟用強制重新產生模式")
-        
+
         logger.info(f"🚀 執行命令: {' '.join(cmd)}")
 
         update_task_status('執行中', 10, '正在執行數據抓取和報表生成...')
@@ -841,12 +865,12 @@ def run_scheduler_async():
                         line = process.stdout.readline()
                         if not line:
                             break
-                        
+
                         line = line.strip()
                         if line:
                             output_lines.append(line)
                             logger.info(f"📋 子進程輸出: {line}")
-                            
+
                             # 解析實際執行狀態
                             progress, status_msg = parse_execution_progress(line, elapsed)
                             if progress is not None and status_msg:
@@ -858,41 +882,41 @@ def run_scheduler_async():
                                 current_progress = task_status.get('progress', 0)
                                 update_task_status('執行中', current_progress, status_msg)
                                 last_progress_update = current_time
-                        
+
                     except Exception as stdout_error:
                         break
-                
+
                 # 讀取 stderr 輸出
                 while True:
                     try:
                         error_line = process.stderr.readline()
                         if not error_line:
                             break
-                            
+
                         error_line = error_line.strip()
                         if error_line:
                             error_lines.append(error_line)
                             logger.warning(f"⚠️ 子進程錯誤: {error_line}")
-                            
+
                             # 解析錯誤中的有用訊息
                             progress, status_msg = parse_execution_progress(error_line, elapsed)
                             if status_msg:
                                 current_progress = task_status.get('progress', 0)
                                 update_task_status('執行中', current_progress, status_msg)
                                 last_progress_update = current_time
-                        
+
                     except Exception as stderr_error:
                         break
-                        
+
             except Exception as read_error:
                 logger.warning(f"讀取子進程輸出時發生錯誤: {read_error}")
-            
+
             # 如果超過30秒沒有具體更新，顯示時間狀態
             if (current_time - last_progress_update).total_seconds() >= 30:
                 time_status = f'運行中... ({int(elapsed/60)} 分鐘 {int(elapsed%60)} 秒)'
                 if elapsed > warning_runtime:
                     time_status = f'⚠️ 任務運行時間較長 ({int(elapsed/60)} 分鐘)，請耐心等待...'
-                
+
                 current_progress = task_status.get('progress', 0)
                 update_task_status('執行中', current_progress, time_status)
                 last_progress_update = current_time
@@ -1003,7 +1027,7 @@ def generate_report(force_llm_analysis=False, force_regenerate=False):
 
         # 重置任務狀態，清除之前的停止標誌
         reset_task_status()
-        
+
         # 儲存設定參數到全域變數
         task_status['force_llm_analysis'] = force_llm_analysis
         task_status['force_regenerate'] = force_regenerate
@@ -1018,12 +1042,12 @@ def generate_report(force_llm_analysis=False, force_regenerate=False):
             options_text.append("強制LLM分析")
         if force_regenerate:
             options_text.append("強制重新產生")
-        
+
         message = "報表產生任務已啟動"
         if options_text:
             message += f"（{', '.join(options_text)}）"
         message += "，請稍後檢查進度"
-        
+
         return True, message
 
     except Exception as e:
@@ -1116,7 +1140,7 @@ def api_run_scheduler():
     data = request.get_json() or {}
     force_llm_analysis = data.get('force_llm_analysis', False)
     force_regenerate = data.get('force_regenerate', False)
-    
+
     logger.info(f"收到報表產生請求 - 強制LLM分析: {force_llm_analysis}, 強制重新產生: {force_regenerate}")
 
     success, message = generate_report(force_llm_analysis=force_llm_analysis, force_regenerate=force_regenerate)
@@ -1240,11 +1264,11 @@ def api_check_files():
     """API端點：檢查報表目錄檔案"""
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-    
+
     try:
         report_dir = 'frontend/public/outputs'
         files_info = []
-        
+
         if os.path.exists(report_dir):
             files = sorted(os.listdir(report_dir), reverse=True)
             for filename in files:
@@ -1256,7 +1280,7 @@ def api_check_files():
                         'size': stat.st_size,
                         'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
                     })
-        
+
         return jsonify({
             'success': True,
             'directory': report_dir,
@@ -1271,11 +1295,11 @@ def api_check_database():
     """API端點：檢查資料庫內容"""
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-    
+
     try:
         # 先檢查資料庫配置
         config = get_database_config()
-        
+
         # 檢查環境變數
         env_vars = {
             'DATABASE_URL': os.getenv('DATABASE_URL', 'Not set'),
@@ -1286,49 +1310,49 @@ def api_check_database():
             'POSTGRES_USERNAME': os.getenv('POSTGRES_USERNAME', 'Not set'),
             'POSTGRES_PASSWORD': os.getenv('POSTGRES_PASSWORD', 'Not set')
         }
-        
+
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            
+
             # 檢查現有表格
             existing_tables = []
             if config['type'] == 'postgresql':
                 cursor.execute("""
-                    SELECT table_name FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
+                    SELECT table_name FROM information_schema.tables
+                    WHERE table_schema = 'public'
                     ORDER BY table_name
                 """)
             else:
                 cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-            
+
             existing_tables = [row[0] for row in cursor.fetchall()]
-            
+
             # 嘗試檢查 hot_games 表（如果存在）
             hot_games_data = []
             game_detail_count = 0
             forum_threads_count = 0
-            
+
             if 'hot_games' in existing_tables:
                 try:
                     cursor.execute("SELECT snapshot_date, COUNT(*) as count FROM hot_games GROUP BY snapshot_date ORDER BY snapshot_date DESC LIMIT 10")
                     hot_games_data = [{'date': row[0], 'count': row[1]} for row in cursor.fetchall()]
                 except Exception as e:
                     hot_games_data = [{'error': f'Query failed: {str(e)}'}]
-            
+
             if 'game_detail' in existing_tables:
                 try:
                     cursor.execute("SELECT COUNT(*) as total_games FROM game_detail")
                     game_detail_count = cursor.fetchone()[0]
                 except:
                     pass
-            
+
             if 'forum_threads' in existing_tables:
                 try:
                     cursor.execute("SELECT COUNT(*) as total_threads FROM forum_threads")
                     forum_threads_count = cursor.fetchone()[0]
                 except:
                     pass
-            
+
             return jsonify({
                 'success': True,
                 'database_type': config['type'],
@@ -1341,7 +1365,7 @@ def api_check_database():
             })
     except Exception as e:
         return jsonify({
-            'success': False, 
+            'success': False,
             'message': str(e),
             'database_type': config.get('type', 'unknown') if 'config' in locals() else 'unknown',
             'environment_variables': {
