@@ -196,8 +196,8 @@ def generate_single_report(target_date_str, detail_mode, lang):
 
         def get_reason(objectid):
             r = llm_reasons_i18n.get(objectid)
-            if r:
-                return r
+            if r and r.strip():
+                return r.strip()
             return "" if lang == 'en' else "[暫無翻譯]"
 
         # 產生符合條件的桌遊詳細資料 (依照排名順序)
@@ -240,20 +240,36 @@ def generate_single_report(target_date_str, detail_mode, lang):
                 markdown.append(f"![{name}]({image})")
             rating_str = f"{round(rating, 2):.2f}" if rating is not None else "-"
             weight_str = f"{round(weight, 2):.2f}" if weight is not None else "-"
+            
+            # 處理可能為空的字串欄位
+            cats_str = cats if cats and cats.strip() else "資料不足"
+            mechs_str = mechs if mechs and mechs.strip() else "資料不足"
+            designers_str = designers if designers and designers.strip() else "資料不足"
+            artists_str = artists if artists and artists.strip() else "資料不足"
+            pubs_str = pubs if pubs and pubs.strip() else "資料不足"
+            
+            # 處理玩家人數和遊戲時間
+            players_str = f"{minp}-{maxp}人（最佳：{bestp}人）" if minp and maxp else "資料不足"
+            if minp == maxp:
+                players_str = f"{minp}人"
+            playtime_str = f"{minpt}-{maxpt}分鐘" if minpt and maxpt else "資料不足"
+            if minpt == maxpt:
+                playtime_str = f"{minpt}分鐘"
+            
             markdown.append(T['rating'].format(rating_str))
-            markdown.append(T['rank'].format(rank))
+            markdown.append(T['rank'].format(rank or "資料不足"))
             markdown.append(T['weight'].format(weight_str))
-            markdown.append(T['players'].format(minp, maxp, bestp))
-            markdown.append(T['playtime'].format(minpt, maxpt))
-            markdown.append(T['categories'].format(cats))
-            markdown.append(T['mechanics'].format(mechs))
-            markdown.append(T['designers'].format(designers))
-            markdown.append(T['artists'].format(artists))
-            markdown.append(T['publishers'].format(pubs))
+            markdown.append(T['players'].format(players_str))
+            markdown.append(T['playtime'].format(playtime_str))
+            markdown.append(T['categories'].format(cats_str))
+            markdown.append(T['mechanics'].format(mechs_str))
+            markdown.append(T['designers'].format(designers_str))
+            markdown.append(T['artists'].format(artists_str))
+            markdown.append(T['publishers'].format(pubs_str))
             markdown.append("")
             # 顯示 LLM 上榜推論（多語言）
             reason = get_reason(objectid)
-            if reason:
+            if reason and reason != "[暫無翻譯]":
                 markdown.append(T['reason_title'])
                 markdown.append(f"> {reason}\n")
 
