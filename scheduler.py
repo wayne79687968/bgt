@@ -407,9 +407,12 @@ def main():
     scheduler = BlockingScheduler(timezone=timezone)
 
     # 讀取排程設定
+    schedule_file = 'schedule_settings.json'
+    current_settings = {'hour': None, 'minute': None}
+    last_modified = 0
+    
     def get_schedule_settings():
         """讀取排程設定檔"""
-        schedule_file = 'schedule_settings.json'
         default_hour = int(os.getenv('SCHEDULE_HOUR', 23))
         default_minute = int(os.getenv('SCHEDULE_MINUTE', 0))
         
@@ -419,16 +422,59 @@ def main():
                     settings = json.load(f)
                 hour = settings.get('hour', default_hour)
                 minute = settings.get('minute', default_minute)
-                logger.info(f"📅 讀取到排程設定: {hour:02d}:{minute:02d}")
                 return hour, minute
             else:
-                logger.info(f"📅 使用預設排程設定: {default_hour:02d}:{default_minute:02d}")
                 return default_hour, default_minute
         except Exception as e:
             logger.warning(f"⚠️ 讀取排程設定失敗，使用預設值: {e}")
             return default_hour, default_minute
 
+    def check_and_update_schedule():
+        """檢查設定檔案是否有更新，如有則更新排程"""
+        nonlocal last_modified, current_settings
+        
+        try:
+            if os.path.exists(schedule_file):
+                file_modified = os.path.getmtime(schedule_file)
+                if file_modified > last_modified:
+                    hour, minute = get_schedule_settings()
+                    if current_settings['hour'] != hour or current_settings['minute'] != minute:
+                        logger.info(f"📅 偵測到排程設定變更: {hour:02d}:{minute:02d}")
+                        
+                        # 移除舊的排程
+                        scheduler.remove_job('daily_report')
+                        
+                        # 添加新的排程
+                        scheduler.add_job(
+                            lambda: fetch_and_generate_report(args.detail, args.lang, False, False),
+                            trigger=CronTrigger(hour=hour, minute=minute),
+                            id='daily_report',
+                            name='每日BGG報表產生任務',
+                            replace_existing=True,
+                            misfire_grace_time=3600  # 1 小時
+                        )
+                        
+                        current_settings['hour'] = hour
+                        current_settings['minute'] = minute
+                        last_modified = file_modified
+                        
+                        # 顯示下次執行時間
+                        job = scheduler.get_job('daily_report')
+                        if job:
+                            logger.info(f"⏰ 排程已更新，下次執行時間: {job.next_run_time}")
+                        
+                        return True
+        except Exception as e:
+            logger.error(f"❌ 檢查排程設定時發生錯誤: {e}")
+        
+        return False
+
+    # 初始設定
     schedule_hour, schedule_minute = get_schedule_settings()
+    current_settings['hour'] = schedule_hour
+    current_settings['minute'] = schedule_minute
+    if os.path.exists(schedule_file):
+        last_modified = os.path.getmtime(schedule_file)
 
     # 添加每日任務
     scheduler.add_job(
@@ -438,6 +484,15 @@ def main():
         name='每日BGG報表產生任務',
         replace_existing=True,
         misfire_grace_time=3600  # 1 小時
+    )
+    
+    # 添加設定檢查任務（每分鐘檢查一次）
+    scheduler.add_job(
+        check_and_update_schedule,
+        trigger=CronTrigger(second=0),  # 每分鐘的第0秒執行
+        id='schedule_checker',
+        name='排程設定檢查任務',
+        replace_existing=True
     )
 
     logger.info("🔄 排程器開始運行，等待執行時間...")

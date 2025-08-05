@@ -1238,11 +1238,16 @@ def api_schedule_settings():
             with open(schedule_file, 'w', encoding='utf-8') as f:
                 json.dump(settings, f, ensure_ascii=False, indent=2)
             
+            # 確保檔案時間戳更新
+            import time
+            time.sleep(0.1)  # 短暫延遲確保時間戳變更
+            
             logger.info(f"排程設定已更新: {hour:02d}:{minute:02d}")
+            logger.info("排程器將在下一分鐘自動重新載入新設定")
             
             return jsonify({
                 'success': True,
-                'message': f'排程時間已設定為 {hour:02d}:{minute:02d}'
+                'message': f'排程時間已設定為 {hour:02d}:{minute:02d}，將在下一分鐘自動生效'
             })
             
         except Exception as e:
