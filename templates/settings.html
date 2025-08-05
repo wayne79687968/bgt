@@ -477,14 +477,14 @@ function initializeScheduleSelectors() {
         hourSelect.appendChild(option);
     }
     
-    // 生成分鐘選項 (0, 15, 30, 45)
-    [0, 15, 30, 45].forEach(minute => {
+    // 生成分鐘選項 (0-59)
+    for (let i = 0; i <= 59; i++) {
         const option = document.createElement('option');
-        option.value = minute;
-        option.textContent = minute.toString().padStart(2, '0');
-        if (minute === 0) option.selected = true; // 預設 00 分
+        option.value = i;
+        option.textContent = i.toString().padStart(2, '0');
+        if (i === 0) option.selected = true; // 預設 00 分
         minuteSelect.appendChild(option);
-    });
+    }
 }
 
 // 頁面載入時檢查狀態
