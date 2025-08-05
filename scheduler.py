@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 import os
+import sys
+import time
 import subprocess
 import logging
 import argparse
+import json
 from datetime import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -403,10 +406,34 @@ def main():
     timezone = pytz.timezone(os.getenv('TZ', 'Asia/Taipei'))
     scheduler = BlockingScheduler(timezone=timezone)
 
+    # 讀取排程設定
+    def get_schedule_settings():
+        """讀取排程設定檔"""
+        schedule_file = 'schedule_settings.json'
+        default_hour = int(os.getenv('SCHEDULE_HOUR', 23))
+        default_minute = int(os.getenv('SCHEDULE_MINUTE', 0))
+        
+        try:
+            if os.path.exists(schedule_file):
+                with open(schedule_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                hour = settings.get('hour', default_hour)
+                minute = settings.get('minute', default_minute)
+                logger.info(f"📅 讀取到排程設定: {hour:02d}:{minute:02d}")
+                return hour, minute
+            else:
+                logger.info(f"📅 使用預設排程設定: {default_hour:02d}:{default_minute:02d}")
+                return default_hour, default_minute
+        except Exception as e:
+            logger.warning(f"⚠️ 讀取排程設定失敗，使用預設值: {e}")
+            return default_hour, default_minute
+
+    schedule_hour, schedule_minute = get_schedule_settings()
+
     # 添加每日任務
     scheduler.add_job(
         lambda: fetch_and_generate_report(args.detail, args.lang, False, False),
-        trigger=CronTrigger(hour=os.getenv('SCHEDULE_HOUR', 23), minute=os.getenv('SCHEDULE_MINUTE', 0)),
+        trigger=CronTrigger(hour=schedule_hour, minute=schedule_minute),
         id='daily_report',
         name='每日BGG報表產生任務',
         replace_existing=True,
@@ -414,6 +441,7 @@ def main():
     )
 
     logger.info("🔄 排程器開始運行，等待執行時間...")
+    logger.info(f"⏰ 排程設定時間: {schedule_hour:02d}:{schedule_minute:02d}")
 
     try:
         scheduler.start()
@@ -421,9 +449,29 @@ def main():
         job = scheduler.get_job('daily_report')
         if job:
             logger.info(f"⏭️  下次執行時間: {job.next_run_time}")
+        
+        # 保持程式運行
+        import signal
+        
+        def signal_handler(signum, frame):
+            logger.info(f"⏹️  收到信號 {signum}，正在停止排程器...")
+            scheduler.shutdown(wait=True)
+            sys.exit(0)
+        
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+        
+        # 無限循環保持程式運行，但允許優雅停止
+        while True:
+            time.sleep(1)
+            
     except KeyboardInterrupt:
-        logger.info("⏹️  排程器已停止")
-        scheduler.shutdown()
+        logger.info("⏹️  排程器已停止 (KeyboardInterrupt)")
+        scheduler.shutdown(wait=True)
+    except Exception as e:
+        logger.error(f"❌ 排程器運行時發生錯誤: {e}")
+        scheduler.shutdown(wait=True)
+        raise
 
 if __name__ == '__main__':
     main()

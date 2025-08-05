@@ -1188,6 +1188,67 @@ def api_stop_task():
             'message': f'停止任務時發生錯誤: {e}'
         })
 
+@app.route('/api/schedule-settings', methods=['GET', 'POST'])
+def api_schedule_settings():
+    """API端點：排程設定"""
+    if 'logged_in' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+
+    schedule_file = 'schedule_settings.json'
+    
+    if request.method == 'GET':
+        # 讀取現有設定
+        try:
+            if os.path.exists(schedule_file):
+                with open(schedule_file, 'r', encoding='utf-8') as f:
+                    settings = json.load(f)
+                return jsonify({
+                    'success': True,
+                    'hour': settings.get('hour', 23),
+                    'minute': settings.get('minute', 0)
+                })
+            else:
+                # 預設值
+                return jsonify({
+                    'success': True,
+                    'hour': 23,
+                    'minute': 0
+                })
+        except Exception as e:
+            logger.error(f"讀取排程設定失敗: {e}")
+            return jsonify({'success': False, 'message': f'讀取設定失敗: {e}'})
+    
+    elif request.method == 'POST':
+        # 儲存新設定
+        try:
+            data = request.get_json()
+            hour = int(data.get('hour', 23))
+            minute = int(data.get('minute', 0))
+            
+            # 驗證輸入
+            if not (0 <= hour <= 23) or not (0 <= minute <= 59):
+                return jsonify({'success': False, 'message': '時間格式不正確'})
+            
+            settings = {
+                'hour': hour,
+                'minute': minute,
+                'updated_at': datetime.now().isoformat()
+            }
+            
+            with open(schedule_file, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=2)
+            
+            logger.info(f"排程設定已更新: {hour:02d}:{minute:02d}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'排程時間已設定為 {hour:02d}:{minute:02d}'
+            })
+            
+        except Exception as e:
+            logger.error(f"儲存排程設定失敗: {e}")
+            return jsonify({'success': False, 'message': f'儲存設定失敗: {e}'})
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':

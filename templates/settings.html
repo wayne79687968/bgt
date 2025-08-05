@@ -6,6 +6,44 @@
 <div class="container-fluid mt-3">
     <h2>⚙️ 系統設定</h2>
 
+    <!-- 排程設定 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>⏰ 排程設定</h5>
+        </div>
+        <div class="card-body">
+            <form id="schedule-settings-form">
+                <div class="mb-3">
+                    <label class="form-label">
+                        <strong>🕐 下次執行時間</strong>
+                    </label>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="schedule-hour" class="form-label">小時</label>
+                            <select class="form-select" id="schedule-hour" name="schedule_hour">
+                                <!-- 選項將由 JavaScript 動態生成 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="schedule-minute" class="form-label">分鐘</label>
+                            <select class="form-select" id="schedule-minute" name="schedule_minute">
+                                <!-- 選項將由 JavaScript 動態生成 -->
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary" onclick="saveScheduleSettings()">
+                                💾 儲存排程設定
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-text">
+                        設定每日自動產生報表的時間。預設為晚上 23:00。
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 報表產生設定 -->
     <div class="card mb-4">
         <div class="card-header">
@@ -371,8 +409,88 @@ function showAlert(type, message) {
     }, 3000);
 }
 
+function saveScheduleSettings() {
+    const hour = document.getElementById('schedule-hour').value;
+    const minute = document.getElementById('schedule-minute').value;
+    
+    if (!hour || !minute) {
+        showAlert('warning', '請選擇小時和分鐘');
+        return;
+    }
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ 儲存中...';
+    
+    fetch('/api/schedule-settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            hour: parseInt(hour),
+            minute: parseInt(minute)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('danger', data.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = '💾 儲存排程設定';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', '儲存失敗，請稍後再試');
+        btn.disabled = false;
+        btn.innerHTML = '💾 儲存排程設定';
+    });
+}
+
+function loadScheduleSettings() {
+    fetch('/api/schedule-settings')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('schedule-hour').value = data.hour;
+            document.getElementById('schedule-minute').value = data.minute;
+        }
+    })
+    .catch(error => {
+        console.error('Error loading schedule settings:', error);
+    });
+}
+
+function initializeScheduleSelectors() {
+    const hourSelect = document.getElementById('schedule-hour');
+    const minuteSelect = document.getElementById('schedule-minute');
+    
+    // 生成小時選項 (0-23)
+    for (let i = 0; i <= 23; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i.toString().padStart(2, '0');
+        if (i === 23) option.selected = true; // 預設 23:00
+        hourSelect.appendChild(option);
+    }
+    
+    // 生成分鐘選項 (0, 15, 30, 45)
+    [0, 15, 30, 45].forEach(minute => {
+        const option = document.createElement('option');
+        option.value = minute;
+        option.textContent = minute.toString().padStart(2, '0');
+        if (minute === 0) option.selected = true; // 預設 00 分
+        minuteSelect.appendChild(option);
+    });
+}
+
 // 頁面載入時檢查狀態
 document.addEventListener('DOMContentLoaded', function() {
+    initializeScheduleSelectors();
+    loadScheduleSettings();
     checkStatus();
 });
 </script>
