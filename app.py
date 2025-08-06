@@ -1146,6 +1146,35 @@ def api_run_scheduler():
     success, message = generate_report(force_llm_analysis=force_llm_analysis, force_regenerate=force_regenerate)
     return jsonify({'success': success, 'message': message})
 
+@app.route('/api/cron-trigger', methods=['POST'])
+def api_cron_trigger():
+    """外部 Cron 服務觸發端點（無需登入）"""
+    # 檢查請求來源的安全性
+    auth_header = request.headers.get('Authorization')
+    expected_token = os.getenv('CRON_SECRET_TOKEN', 'default-cron-secret')
+    
+    if not auth_header or auth_header != f'Bearer {expected_token}':
+        logger.warning(f"未授權的 cron 觸發請求，來源 IP: {request.remote_addr}")
+        return jsonify({'success': False, 'message': '未授權'}), 401
+
+    logger.info(f"收到外部 Cron 觸發請求，來源 IP: {request.remote_addr}")
+    
+    try:
+        # 使用 scheduler.py 中的函數
+        from scheduler import fetch_and_generate_report
+        result = fetch_and_generate_report('all', 'zh-tw', False, False)
+        
+        if result:
+            logger.info("✅ Cron 觸發的報表產生成功")
+            return jsonify({'success': True, 'message': '報表產生成功'})
+        else:
+            logger.error("❌ Cron 觸發的報表產生失敗")
+            return jsonify({'success': False, 'message': '報表產生失敗'})
+            
+    except Exception as e:
+        logger.error(f"❌ Cron 觸發處理異常: {e}")
+        return jsonify({'success': False, 'message': f'處理失敗: {e}'})
+
 @app.route('/api/stop-task', methods=['POST'])
 def api_stop_task():
     """API端點：停止當前執行的任務"""

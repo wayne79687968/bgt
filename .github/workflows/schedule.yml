@@ -1,0 +1,46 @@
+name: Daily BGG Report Generation
+
+on:
+  schedule:
+    # 預設每日 23:00 UTC (台北時間 07:00) 執行
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+    inputs:
+      custom_time:
+        description: '自定義執行時間 (格式: HH:MM)'
+        required: false
+        default: '23:00'
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Trigger BGG Report Generation
+      run: |
+        # 從 Zeabur 環境變數中取得 URL 和 Token
+        ZEABUR_URL="${{ secrets.ZEABUR_APP_URL }}"
+        CRON_TOKEN="${{ secrets.CRON_SECRET_TOKEN }}"
+        
+        echo "觸發 BGG 報表產生..."
+        echo "目標 URL: $ZEABUR_URL/api/cron-trigger"
+        echo "時間: $(date)"
+        
+        # 發送 POST 請求觸發報表產生
+        response=$(curl -s -w "%{http_code}" -o /tmp/response.json \
+          -X POST \
+          -H "Authorization: Bearer $CRON_TOKEN" \
+          -H "Content-Type: application/json" \
+          "$ZEABUR_URL/api/cron-trigger")
+        
+        echo "HTTP 狀態碼: $response"
+        echo "回應內容:"
+        cat /tmp/response.json
+        
+        # 檢查是否成功
+        if [ "$response" = "200" ]; then
+          echo "✅ 報表產生觸發成功"
+        else
+          echo "❌ 報表產生觸發失敗"
+          exit 1
+        fi

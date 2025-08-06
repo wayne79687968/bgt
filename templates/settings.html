@@ -37,7 +37,11 @@
                         </div>
                     </div>
                     <div class="form-text">
-                        設定每日自動產生報表的時間。預設為晚上 23:00。
+                        <strong>📋 排程說明：</strong><br>
+                        • 由於 Zeabur 平台限制，排程功能改由 GitHub Actions 提供<br>
+                        • 預設每日台北時間 07:00 執行（UTC 23:00）<br>
+                        • 時間設定主要用於記錄和顯示，實際執行時間需在 GitHub Actions 中調整<br>
+                        • 也可透過外部 Cron 服務（如 cron-job.org）呼叫 <code>/api/cron-trigger</code> 端點
                     </div>
                 </div>
             </form>

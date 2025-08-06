@@ -17,6 +17,7 @@ services:
       SECRET_KEY: your-secret-key-here
       DATABASE_URL: ${POSTGRES_CONNECTION_STRING}
       OPENAI_API_KEY: your-openai-api-key-here
+      CRON_SECRET_TOKEN: your-cron-secret-token-here
     dependencies:
       - postgresql
     healthcheck:
@@ -25,23 +26,6 @@ services:
       timeout: 30s
       retries: 5
       start_period: 120s
-    volumes:
-      - name: reports
-        mount: /app/frontend/public/outputs
-
-  scheduler:
-    type: python
-    build:
-      command: pip install -r requirements.txt
-    start:
-      command: python scheduler.py
-    env:
-      FLASK_ENV: production
-      TZ: Asia/Taipei
-      DATABASE_URL: ${POSTGRES_CONNECTION_STRING}
-      OPENAI_API_KEY: your-openai-api-key-here
-    dependencies:
-      - postgresql
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs
