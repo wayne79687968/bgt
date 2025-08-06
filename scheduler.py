@@ -18,13 +18,18 @@ load_dotenv()
 
 # 設定日誌
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
 def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False, force_llm_analysis=False):
     """抓取資料並產生報表"""
+    # 使用 print 和 logger 雙重記錄，確保排程執行被記錄
+    logger.info("🎲 [SCHEDULER] 排程任務開始執行 fetch_and_generate_report")
+    logger.info(f"🔧 [SCHEDULER] 執行參數: detail_mode={detail_mode}, lang={lang}, force={force}, force_llm_analysis={force_llm_analysis}")
+    logger.info(f"🔧 [SCHEDULER] 當前時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
     # 使用 print 進行即時調試，繞過可能的日誌緩衝問題
     try:
         print("\n" + "="*50)
@@ -434,19 +439,30 @@ def main():
         nonlocal last_modified, current_settings
         
         try:
+            logger.debug(f"🔍 檢查排程設定檔案: {schedule_file}")
             if os.path.exists(schedule_file):
                 file_modified = os.path.getmtime(schedule_file)
+                logger.debug(f"🔍 檔案修改時間: {file_modified}, 上次記錄: {last_modified}")
+                
                 if file_modified > last_modified:
                     hour, minute = get_schedule_settings()
+                    logger.info(f"🔍 讀取到設定: {hour:02d}:{minute:02d}, 目前設定: {current_settings['hour']:02d}:{current_settings['minute']:02d}")
+                    
                     if current_settings['hour'] != hour or current_settings['minute'] != minute:
                         logger.info(f"📅 偵測到排程設定變更: {hour:02d}:{minute:02d}")
                         
-                        # 移除舊的排程
-                        scheduler.remove_job('daily_report')
+                        # 先檢查舊排程是否存在
+                        old_job = scheduler.get_job('daily_report')
+                        if old_job:
+                            logger.info(f"🗑️ 移除舊排程: {old_job.next_run_time}")
+                            scheduler.remove_job('daily_report')
+                        else:
+                            logger.warning("⚠️ 找不到舊的排程任務")
                         
                         # 添加新的排程
+                        logger.info(f"➕ 添加新排程: {hour:02d}:{minute:02d}")
                         scheduler.add_job(
-                            lambda: fetch_and_generate_report(args.detail, args.lang, False, False),
+                            scheduled_task,
                             trigger=CronTrigger(hour=hour, minute=minute),
                             id='daily_report',
                             name='每日BGG報表產生任務',
@@ -461,11 +477,27 @@ def main():
                         # 顯示下次執行時間
                         job = scheduler.get_job('daily_report')
                         if job:
-                            logger.info(f"⏰ 排程已更新，下次執行時間: {job.next_run_time}")
+                            logger.info(f"✅ 排程已更新，下次執行時間: {job.next_run_time}")
+                        else:
+                            logger.error("❌ 新排程添加失敗")
+                        
+                        # 列出所有活動的排程任務
+                        jobs = scheduler.get_jobs()
+                        logger.info(f"📋 目前活動的排程任務數量: {len(jobs)}")
+                        for job in jobs:
+                            logger.info(f"  - {job.id}: {job.name}, 下次執行: {job.next_run_time}")
                         
                         return True
+                    else:
+                        last_modified = file_modified  # 更新時間戳，即使設定沒變
+                        
+            else:
+                logger.warning(f"⚠️ 排程設定檔案不存在: {schedule_file}")
+                
         except Exception as e:
             logger.error(f"❌ 檢查排程設定時發生錯誤: {e}")
+            import traceback
+            logger.error(f"錯誤詳情: {traceback.format_exc()}")
         
         return False
 
@@ -475,10 +507,34 @@ def main():
     current_settings['minute'] = schedule_minute
     if os.path.exists(schedule_file):
         last_modified = os.path.getmtime(schedule_file)
+        logger.info(f"📅 初始設定檔案修改時間: {last_modified}")
+    else:
+        logger.info("📅 未找到設定檔案，使用預設值")
+
+    logger.info(f"⏰ 初始排程設定時間: {schedule_hour:02d}:{schedule_minute:02d}")
+
+    # 定義排程任務函數
+    def scheduled_task():
+        """排程任務執行函數"""
+        logger.info("🚀 [SCHEDULER] 定時任務被觸發")
+        logger.info(f"🕐 [SCHEDULER] 觸發時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        try:
+            result = fetch_and_generate_report(args.detail, args.lang, False, False)
+            if result:
+                logger.info("✅ [SCHEDULER] 排程任務執行完成")
+            else:
+                logger.error("❌ [SCHEDULER] 排程任務執行失敗")
+            return result
+        except Exception as e:
+            logger.error(f"💥 [SCHEDULER] 排程任務執行異常: {e}")
+            import traceback
+            logger.error(f"異常詳情: {traceback.format_exc()}")
+            return False
 
     # 添加每日任務
+    logger.info("➕ 添加初始排程任務...")
     scheduler.add_job(
-        lambda: fetch_and_generate_report(args.detail, args.lang, False, False),
+        scheduled_task,
         trigger=CronTrigger(hour=schedule_hour, minute=schedule_minute),
         id='daily_report',
         name='每日BGG報表產生任務',
@@ -487,6 +543,7 @@ def main():
     )
     
     # 添加設定檢查任務（每分鐘檢查一次）
+    logger.info("➕ 添加排程檢查任務...")
     scheduler.add_job(
         check_and_update_schedule,
         trigger=CronTrigger(second=0),  # 每分鐘的第0秒執行
@@ -496,14 +553,15 @@ def main():
     )
 
     logger.info("🔄 排程器開始運行，等待執行時間...")
-    logger.info(f"⏰ 排程設定時間: {schedule_hour:02d}:{schedule_minute:02d}")
 
     try:
         scheduler.start()
-        # 顯示下次執行時間（在 scheduler.start() 之後）
-        job = scheduler.get_job('daily_report')
-        if job:
-            logger.info(f"⏭️  下次執行時間: {job.next_run_time}")
+        
+        # 顯示所有排程任務的下次執行時間
+        jobs = scheduler.get_jobs()
+        logger.info(f"📋 已註冊的排程任務數量: {len(jobs)}")
+        for job in jobs:
+            logger.info(f"  - {job.id}: {job.name}, 下次執行: {job.next_run_time}")
         
         # 保持程式運行
         import signal
