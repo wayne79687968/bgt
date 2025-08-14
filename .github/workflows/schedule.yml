@@ -14,33 +14,64 @@ on:
 jobs:
   generate-report:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
-    - name: Trigger BGG Report Generation
+    - name: Validate inputs (secrets)
+      env:
+        ZEABUR_URL: ${{ secrets.ZEABUR_APP_URL }}
+        CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
       run: |
-        # 從 Zeabur 環境變數中取得 URL 和 Token
-        ZEABUR_URL="${{ secrets.ZEABUR_APP_URL }}"
-        CRON_TOKEN="${{ secrets.CRON_SECRET_TOKEN }}"
-        
+        if [ -z "${ZEABUR_URL:-}" ]; then
+          echo "❌ 缺少必需的 Secrets: ZEABUR_APP_URL"
+          echo "請到 Settings → Secrets and variables → Actions 設定 ZEABUR_APP_URL。"
+          exit 2
+        fi
+        if [ -z "${CRON_TOKEN:-}" ]; then
+          echo "❌ 缺少必需的 Secrets: CRON_SECRET_TOKEN"
+          echo "請到 Settings → Secrets and variables → Actions 設定 CRON_SECRET_TOKEN。"
+          exit 2
+        fi
+
+    - name: Trigger BGG Report Generation
+      env:
+        ZEABUR_URL: ${{ secrets.ZEABUR_APP_URL }}
+        CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
+      shell: bash
+      run: |
+        set -u
+        BASE_URL="${ZEABUR_URL%/}"
+        TARGET_URL="${BASE_URL}/api/cron-trigger"
+
         echo "觸發 BGG 報表產生..."
-        echo "目標 URL: $ZEABUR_URL/api/cron-trigger"
-        echo "時間: $(date)"
-        
-        # 發送 POST 請求觸發報表產生
-        response=$(curl -s -w "%{http_code}" -o /tmp/response.json \
+        echo "目標 URL: ${TARGET_URL}"
+        echo "時間: $(date -u) UTC"
+
+        # 允許捕捉 curl 的錯誤碼，而不是立即使步驟失敗
+        set +e
+        http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
           -X POST \
-          -H "Authorization: Bearer $CRON_TOKEN" \
+          -H "Authorization: Bearer ${CRON_TOKEN}" \
           -H "Content-Type: application/json" \
-          "$ZEABUR_URL/api/cron-trigger")
-        
-        echo "HTTP 狀態碼: $response"
+          "${TARGET_URL}")
+        curl_exit=$?
+        set -e
+
+        echo "curl exit code: ${curl_exit}"
+        echo "HTTP 狀態碼: ${http_status}"
         echo "回應內容:"
-        cat /tmp/response.json
-        
-        # 檢查是否成功
-        if [ "$response" = "200" ]; then
-          echo "✅ 報表產生觸發成功"
-        else
+        cat /tmp/response.json || true
+
+        if [ ${curl_exit} -ne 0 ]; then
+          echo "❌ curl 執行失敗（exit ${curl_exit}）。常見原因：URL 缺失/格式錯誤、DNS 解析失敗或服務未啟動。"
+          echo "請確認 ZEABUR_APP_URL 是否正確（需包含 http(s):// 並指向你的部署）。"
+          exit 3
+        fi
+
+        if [ "${http_status}" != "200" ]; then
           echo "❌ 報表產生觸發失敗"
           exit 1
         fi
+
+        echo "✅ 報表產生觸發成功"
