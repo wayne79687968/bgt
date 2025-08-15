@@ -1289,6 +1289,117 @@ def newspaper():
                          total_games=total_games,
                          last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
+@app.route('/portfolio')
+def portfolio():
+    """Portfolio風格的報表檢視"""
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+
+    # 獲取選擇的日期，預設為今日
+    selected_date = request.args.get('date')
+    if not selected_date:
+        selected_date = datetime.now().strftime('%Y-%m-%d')
+
+    # 獲取指定日期的報表
+    content, filename = get_report_by_date(selected_date)
+
+    # 如果找不到指定日期的報表，嘗試獲取最新報表
+    if content is None:
+        content, filename = get_latest_report()
+
+    if content is None:
+        return render_template('error.html', error=filename)
+
+    # 解析所有遊戲資料
+    all_games = parse_game_data_from_report(content)
+    current_page_games = all_games
+    total_games = len(all_games)
+
+    # 獲取所有可用日期
+    available_dates = get_available_dates()
+
+    return render_template('portfolio.html',
+                         current_page_games=current_page_games,
+                         filename=filename,
+                         selected_date=selected_date,
+                         available_dates=available_dates,
+                         total_games=total_games,
+                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+@app.route('/lablog')
+def lablog():
+    """Lab Log風格的報表檢視 - 模仿 retro-futuristic newspaper"""
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+
+    # 獲取選擇的日期，預設為今日
+    selected_date = request.args.get('date')
+    if not selected_date:
+        selected_date = datetime.now().strftime('%Y-%m-%d')
+
+    # 獲取指定日期的報表
+    content, filename = get_report_by_date(selected_date)
+
+    # 如果找不到指定日期的報表，嘗試獲取最新報表
+    if content is None:
+        content, filename = get_latest_report()
+
+    if content is None:
+        return render_template('error.html', error=filename)
+
+    # 解析所有遊戲資料
+    all_games = parse_game_data_from_report(content)
+    current_page_games = all_games
+    total_games = len(all_games)
+
+    # 獲取所有可用日期
+    available_dates = get_available_dates()
+
+    return render_template('lablog.html',
+                         current_page_games=current_page_games,
+                         filename=filename,
+                         selected_date=selected_date,
+                         available_dates=available_dates,
+                         total_games=total_games,
+                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+@app.route('/vintage')
+def vintage():
+    """復古報紙風格的報表檢視 - 真正的舊報紙風格"""
+    if 'logged_in' not in session:
+        return redirect(url_for('login'))
+
+    # 獲取選擇的日期，預設為今日
+    selected_date = request.args.get('date')
+    if not selected_date:
+        selected_date = datetime.now().strftime('%Y-%m-%d')
+
+    # 獲取指定日期的報表
+    content, filename = get_report_by_date(selected_date)
+
+    # 如果找不到指定日期的報表，嘗試獲取最新報表
+    if content is None:
+        content, filename = get_latest_report()
+
+    if content is None:
+        return render_template('error.html', error=filename)
+
+    # 解析所有遊戲資料
+    all_games = parse_game_data_from_report(content)
+    current_page_games = all_games
+    total_games = len(all_games)
+
+    # 獲取所有可用日期
+    available_dates = get_available_dates()
+
+    return render_template('vintage.html',
+                         current_page_games=current_page_games,
+                         filename=filename,
+                         selected_date=selected_date,
+                         available_dates=available_dates,
+                         total_games=total_games,
+                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
 @app.route('/api/check-files', methods=['GET'])
 def api_check_files():
     """API端點：檢查報表目錄檔案"""
