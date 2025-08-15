@@ -12,39 +12,13 @@
             <h5>⏰ 排程設定</h5>
         </div>
         <div class="card-body">
-            <form id="schedule-settings-form">
-                <div class="mb-3">
-                    <label class="form-label">
-                        <strong>🕐 下次執行時間</strong>
-                    </label>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label for="schedule-hour" class="form-label">小時</label>
-                            <select class="form-select" id="schedule-hour" name="schedule_hour">
-                                <!-- 選項將由 JavaScript 動態生成 -->
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="schedule-minute" class="form-label">分鐘</label>
-                            <select class="form-select" id="schedule-minute" name="schedule_minute">
-                                <!-- 選項將由 JavaScript 動態生成 -->
-                            </select>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button type="button" class="btn btn-primary" onclick="saveScheduleSettings()">
-                                💾 儲存排程設定
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-text">
-                        <strong>📋 排程說明：</strong><br>
-                        • 由於 Zeabur 平台限制，排程功能改由 GitHub Actions 提供<br>
-                        • 預設每日台北時間 07:00 執行（UTC 23:00）<br>
-                        • 時間設定主要用於記錄和顯示，實際執行時間需在 GitHub Actions 中調整<br>
-                        • 也可透過外部 Cron 服務（如 cron-job.org）呼叫 <code>/api/cron-trigger</code> 端點
-                    </div>
-                </div>
-            </form>
+            <div class="alert alert-info">
+                <strong>📋 排程說明：</strong><br>
+                • 報表排程由 GitHub Actions 自動執行<br>
+                • 預設每日台北時間 07:00 執行（UTC 23:00）<br>
+                • 要修改執行時間，請在 GitHub Repository 的 Settings → Secrets and variables → Actions 中設定 <code>CRON_SCHEDULE</code><br>
+                • 也可透過外部 Cron 服務（如 cron-job.org）呼叫 <code>/api/cron-trigger</code> 端點
+            </div>
         </div>
     </div>
 
@@ -413,88 +387,9 @@ function showAlert(type, message) {
     }, 3000);
 }
 
-function saveScheduleSettings() {
-    const hour = document.getElementById('schedule-hour').value;
-    const minute = document.getElementById('schedule-minute').value;
-    
-    if (!hour || !minute) {
-        showAlert('warning', '請選擇小時和分鐘');
-        return;
-    }
-    
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '⏳ 儲存中...';
-    
-    fetch('/api/schedule-settings', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            hour: parseInt(hour),
-            minute: parseInt(minute)
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('success', data.message);
-        } else {
-            showAlert('danger', data.message);
-        }
-        btn.disabled = false;
-        btn.innerHTML = '💾 儲存排程設定';
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', '儲存失敗，請稍後再試');
-        btn.disabled = false;
-        btn.innerHTML = '💾 儲存排程設定';
-    });
-}
-
-function loadScheduleSettings() {
-    fetch('/api/schedule-settings')
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('schedule-hour').value = data.hour;
-            document.getElementById('schedule-minute').value = data.minute;
-        }
-    })
-    .catch(error => {
-        console.error('Error loading schedule settings:', error);
-    });
-}
-
-function initializeScheduleSelectors() {
-    const hourSelect = document.getElementById('schedule-hour');
-    const minuteSelect = document.getElementById('schedule-minute');
-    
-    // 生成小時選項 (0-23)
-    for (let i = 0; i <= 23; i++) {
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = i.toString().padStart(2, '0');
-        if (i === 23) option.selected = true; // 預設 23:00
-        hourSelect.appendChild(option);
-    }
-    
-    // 生成分鐘選項 (0-59)
-    for (let i = 0; i <= 59; i++) {
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = i.toString().padStart(2, '0');
-        if (i === 0) option.selected = true; // 預設 00 分
-        minuteSelect.appendChild(option);
-    }
-}
 
 // 頁面載入時檢查狀態
 document.addEventListener('DOMContentLoaded', function() {
-    initializeScheduleSelectors();
-    loadScheduleSettings();
     checkStatus();
 });
 </script>

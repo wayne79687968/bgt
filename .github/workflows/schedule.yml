@@ -2,8 +2,8 @@ name: Daily BGG Report Generation
 
 on:
   schedule:
-    # 預設每日 23:00 UTC (台北時間 07:00) 執行
-    - cron: '0 23 * * *'
+    # 使用 SECRET 控制執行時間，預設每日 23:00 UTC (台北時間 07:00) 執行
+    - cron: ${{ vars.CRON_SCHEDULE || '0 23 * * *' }}
   workflow_dispatch:
     inputs:
       custom_time:

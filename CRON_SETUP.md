@@ -6,20 +6,34 @@
 
 ### 設定步驟：
 
-1. **在 GitHub Repository 中設定 Secrets：**
+1. **在 GitHub Repository 中設定 Secrets 和 Variables：**
    - 前往 `Settings` > `Secrets and variables` > `Actions`
    - 新增以下 Secrets：
      ```
      ZEABUR_APP_URL=https://your-app.zeabur.app
      CRON_SECRET_TOKEN=your-secure-random-token
      ```
+   - 新增以下 Variables（可選，用於自訂執行時間）：
+     ```
+     CRON_SCHEDULE=0 23 * * *
+     ```
+     （格式：分 時 日 月 星期，預設為每日 UTC 23:00）
 
-2. **調整執行時間：**
+2. **調整執行時間（兩種方式）：**
+   
+   **方式 1：使用 Repository Variables（推薦）**
+   - 在 GitHub Repository 的 `Settings` > `Secrets and variables` > `Actions` > `Variables` 頁面
+   - 設定 `CRON_SCHEDULE` 變數，例如：
+     ```
+     CRON_SCHEDULE=0 9 * * *
+     ```
+     （每日台北時間 17:00 執行，UTC 09:00）
+   
+   **方式 2：直接編輯 workflow 檔案**
    - 編輯 `.github/workflows/schedule.yml`
    - 修改 cron 表達式，例如：
      ```yaml
      schedule:
-       # 每日台北時間 17:00 執行 (UTC 09:00)
        - cron: '0 9 * * *'
      ```
 
@@ -70,12 +84,14 @@ CRON_SECRET_TOKEN=your-secure-random-token
 
 ## 時間設定說明
 
-Web 介面中的時間設定現在主要用於：
-- 顯示預期的執行時間
-- 記錄使用者偏好
-- 作為設定外部排程服務的參考
+執行時間控制方式：
+- **GitHub Actions 排程**：使用 Repository Variables 中的 `CRON_SCHEDULE` 或直接編輯 workflow 檔案
+- **外部 Cron 服務**：在各服務平台中設定執行時間
 
-實際的執行時間需要在選擇的排程服務中進行配置。
+時間格式說明：
+- Cron 格式：`分 時 日 月 星期` (UTC 時間)
+- 台北時間轉 UTC：台北時間減去 8 小時
+- 例如：台北時間 07:00 = UTC 23:00 = `0 23 * * *`
 
 ## 故障排除
 
