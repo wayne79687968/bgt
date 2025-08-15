@@ -1,0 +1,621 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - BGG Vintage Times{% endblock %}
+
+{% block content %}
+<style>
+/* Vintage Newspaper Style - True Retro Design */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Old+Standard+TT:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Crimson Text', serif;
+    background: #f5f1e8;
+    color: #2a2a2a;
+    line-height: 1.6;
+    overflow-x: auto;
+}
+
+/* Vintage Paper Background */
+.vintage-paper {
+    min-height: 100vh;
+    background: 
+        /* Paper texture overlay */
+        url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" stitchTiles="stitch"/></filter></defs><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.05"/></svg>'),
+        /* Aged paper gradient */
+        radial-gradient(circle at 20% 80%, rgba(160, 120, 80, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(140, 100, 60, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 40% 40%, rgba(180, 140, 90, 0.08) 0%, transparent 50%),
+        /* Base aged paper color */
+        linear-gradient(135deg, #f8f4e6 0%, #f0e6d2 25%, #f5f1e3 50%, #ede3cf 75%, #f3ead7 100%);
+    position: relative;
+}
+
+/* Vintage stains and aging effects */
+.vintage-paper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        /* Coffee stains */
+        radial-gradient(ellipse 200px 100px at 15% 30%, rgba(101, 67, 33, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 150px 80px at 85% 70%, rgba(139, 94, 60, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 100px 150px at 70% 20%, rgba(123, 81, 45, 0.04) 0%, transparent 50%),
+        /* Age spots */
+        radial-gradient(circle 3px at 25% 60%, rgba(101, 67, 33, 0.15) 0%, transparent 50%),
+        radial-gradient(circle 2px at 75% 40%, rgba(139, 94, 60, 0.12) 0%, transparent 50%),
+        radial-gradient(circle 4px at 40% 80%, rgba(123, 81, 45, 0.1) 0%, transparent 50%),
+        radial-gradient(circle 2px at 60% 15%, rgba(101, 67, 33, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Newspaper Container */
+.newspaper-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 
+        0 0 50px rgba(0, 0, 0, 0.1),
+        inset 0 0 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    z-index: 1;
+}
+
+/* Newspaper Header */
+.vintage-masthead {
+    text-align: center;
+    padding: 3rem 2rem 2rem;
+    border-bottom: 4px double #654321;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(245, 241, 232, 0.3) 100%);
+    position: relative;
+}
+
+.masthead-decoration {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #654321, transparent);
+}
+
+.newspaper-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 900;
+    color: #1a1a1a;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+}
+
+.newspaper-subtitle {
+    font-family: 'Old Standard TT', serif;
+    font-size: 1.2rem;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 1rem;
+}
+
+.masthead-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Old Standard TT', serif;
+    font-size: 0.9rem;
+    color: #666;
+    border-top: 1px solid #999;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+/* Date Selector */
+.vintage-date-selector {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    z-index: 100;
+    background: rgba(245, 241, 232, 0.95);
+    border: 2px solid #654321;
+    border-radius: 0;
+    padding: 1rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-family: 'Old Standard TT', serif;
+}
+
+.vintage-date-selector label {
+    display: block;
+    font-size: 0.8rem;
+    color: #654321;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vintage-date-selector select {
+    background: #f8f4e6;
+    border: 1px solid #999;
+    color: #2a2a2a;
+    padding: 0.5rem;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.9rem;
+    border-radius: 0;
+}
+
+/* Main Content Layout */
+.vintage-content {
+    padding: 2rem;
+    column-count: 3;
+    column-gap: 2rem;
+    column-rule: 1px solid #ccc;
+    column-fill: balance;
+    text-align: justify;
+}
+
+/* Article Styles */
+.vintage-article {
+    break-inside: avoid;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #ddd;
+    page-break-inside: avoid;
+}
+
+.vintage-article:last-child {
+    border-bottom: none;
+}
+
+/* Headline Article */
+.headline-article {
+    column-span: all;
+    text-align: center;
+    padding: 2rem 0 3rem;
+    border-bottom: 3px double #654321;
+    margin-bottom: 2rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+}
+
+.headline-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.headline-subtitle {
+    font-family: 'Crimson Text', serif;
+    font-size: 1.4rem;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 1.5rem;
+}
+
+.headline-meta {
+    font-family: 'Old Standard TT', serif;
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.headline-content {
+    max-width: 900px;
+    margin: 0 auto;
+    column-count: 3;
+    column-gap: 2rem;
+    column-rule: 1px solid #ccc;
+    text-align: justify;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+
+.headline-image {
+    float: left;
+    margin: 0 2rem 2rem 0;
+    border: 3px solid #654321;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 200px;
+    height: auto;
+}
+
+/* Regular Article Styles */
+.article-header {
+    margin-bottom: 1rem;
+}
+
+.article-rank {
+    font-family: 'Playfair Display', serif;
+    background: #1a1a1a;
+    color: #f8f4e6;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.article-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1.3;
+    margin-bottom: 0.5rem;
+}
+
+.rank-indicator {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    margin-left: 0.5rem;
+    font-family: 'Old Standard TT', serif;
+    font-weight: 600;
+}
+
+.rank-up { background: #2d5016; color: white; }
+.rank-down { background: #8b1538; color: white; }
+.rank-new { background: #654321; color: #f8f4e6; }
+
+.article-image {
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+    float: right;
+    margin: 0 0 1rem 1rem;
+    border: 2px solid #999;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.article-info {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.info-line {
+    margin-bottom: 0.3rem;
+    color: #444;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #654321;
+}
+
+.game-categories {
+    font-size: 0.85rem;
+    color: #666;
+    font-style: italic;
+    margin: 0.5rem 0;
+}
+
+.article-analysis {
+    background: rgba(101, 67, 33, 0.05);
+    border-left: 3px solid #654321;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    font-style: italic;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* Drop Cap */
+.drop-cap {
+    float: left;
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    line-height: 3rem;
+    padding-right: 0.5rem;
+    padding-top: 0.2rem;
+    color: #654321;
+    font-weight: 700;
+}
+
+/* Ornamental Separators */
+.ornament {
+    text-align: center;
+    font-size: 1.5rem;
+    color: #654321;
+    margin: 1.5rem 0;
+    font-family: serif;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .vintage-content {
+        column-count: 2;
+        padding: 1.5rem;
+    }
+    
+    .headline-content {
+        column-count: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .vintage-content {
+        column-count: 1;
+        padding: 1rem;
+    }
+    
+    .headline-content {
+        column-count: 1;
+    }
+    
+    .newspaper-title {
+        font-size: 2.5rem;
+    }
+    
+    .headline-title {
+        font-size: 2rem;
+    }
+    
+    .vintage-date-selector {
+        position: static;
+        margin: 1rem;
+        align-self: center;
+    }
+    
+    .masthead-info {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .vintage-paper,
+    .vintage-paper::before {
+        background: white;
+    }
+    
+    .newspaper-container {
+        box-shadow: none;
+        background: white;
+    }
+    
+    .vintage-date-selector {
+        display: none;
+    }
+}
+
+/* Loading Animation */
+.vintage-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f5f1e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+}
+
+.loading-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: #654321;
+    text-align: center;
+}
+
+.vintage-loading.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+</style>
+
+<!-- Loading Screen -->
+<div class="vintage-loading" id="vintageLoading">
+    <div class="loading-text">
+        <div>Loading Vintage Times...</div>
+        <div style="font-size: 1rem; margin-top: 1rem; font-family: 'Crimson Text', serif;">Est. 1885</div>
+    </div>
+</div>
+
+<!-- Vintage Date Selector -->
+<div class="vintage-date-selector">
+    <label for="dateSelect">Edition Date</label>
+    <select id="dateSelect" onchange="changeDate()">
+        {% for date in available_dates %}
+        <option value="{{ date }}" {% if date == selected_date %}selected{% endif %}>{{ date }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="vintage-paper">
+    <div class="newspaper-container">
+        <!-- Masthead -->
+        <header class="vintage-masthead">
+            <div class="masthead-decoration"></div>
+            <h1 class="newspaper-title">The BGG Times</h1>
+            <p class="newspaper-subtitle">Established 1885 • Board Game Intelligence Since the Victorian Era</p>
+            <div class="masthead-info">
+                <span>Vol. CXLII No. 42</span>
+                <span>{{ selected_date }}</span>
+                <span>Price: Two Pence</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="vintage-content">
+            {% if current_page_games and current_page_games|length > 0 %}
+                <!-- Headline Story -->
+                {% set headline_game = current_page_games[0] %}
+                <article class="headline-article">
+                    <h2 class="headline-title">{{ headline_game.name }} Claims Supreme Victory</h2>
+                    <p class="headline-subtitle">Remarkable Achievement in Modern Board Gaming Excellence</p>
+                    <div class="headline-meta">
+                        Published {{ headline_game.year }} • Rating: {{ headline_game.rating }}/10 
+                        {% if headline_game.bgg_rank %}• BGG Position: {{ headline_game.bgg_rank }}{% endif %}
+                    </div>
+                    
+                    <div class="headline-content">
+                        {% if headline_game.image %}
+                        <img src="{{ headline_game.image }}" alt="{{ headline_game.name }}" class="headline-image">
+                        {% endif %}
+                        
+                        <p><span class="drop-cap">I</span>n a most extraordinary turn of events, <strong>{{ headline_game.name }}</strong>, first published in the year {{ headline_game.year }}, has ascended to the coveted position of prime ranking among the most distinguished board games of our modern era.</p>
+                        
+                        <p>This remarkable achievement, garnering an exceptional rating of {{ headline_game.rating }} points from a possible ten, represents a triumph of ingenuity and craftsmanship that would make even the most discerning Victorian gentleman approve.</p>
+                        
+                        {% if headline_game.min_players and headline_game.max_players %}
+                        <p>The game accommodates {{ headline_game.min_players }} to {{ headline_game.max_players }} participants{% if headline_game.bestplayers %}, with optimal enjoyment achieved with {{ headline_game.bestplayers }} players{% endif %}.</p>
+                        {% endif %}
+                        
+                        {% if headline_game.categories and headline_game.categories|length > 0 %}
+                        <p>Classified within the esteemed categories of {% for cat in headline_game.categories %}{{ cat.name }}{% if not loop.last %}, {% endif %}{% endfor %}, this game exemplifies the pinnacle of strategic entertainment.</p>
+                        {% endif %}
+                        
+                        {% if headline_game.reason %}
+                        <p><em>Our correspondent writes:</em> {{ headline_game.reason }}</p>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <div class="ornament">❦ ❦ ❦</div>
+
+                <!-- Regular Articles -->
+                {% for game in current_page_games[1:] %}
+                    <article class="vintage-article">
+                        <div class="article-header">
+                            <span class="article-rank">No. {{ game.rank }}</span>
+                            {% if game.is_new %}
+                                <span class="rank-indicator rank-new">Newly Listed</span>
+                            {% elif game.rank_change > 0 %}
+                                <span class="rank-indicator rank-up">↑ {{ game.rank_change }}</span>
+                            {% elif game.rank_change < 0 %}
+                                <span class="rank-indicator rank-down">↓ {{ -game.rank_change }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <h3 class="article-title">{{ game.name }}</h3>
+                        
+                        {% if game.image %}
+                        <img src="{{ game.image }}" alt="{{ game.name }}" class="article-image">
+                        {% endif %}
+                        
+                        <div class="article-info">
+                            <div class="info-line"><span class="info-label">Year of Publication:</span> {{ game.year }}</div>
+                            <div class="info-line"><span class="info-label">Critical Rating:</span> {{ game.rating }}/10</div>
+                            {% if game.bgg_rank %}
+                            <div class="info-line"><span class="info-label">General Ranking:</span> {{ game.bgg_rank }}</div>
+                            {% endif %}
+                            {% if game.weight %}
+                            <div class="info-line"><span class="info-label">Complexity Index:</span> {{ game.weight }}/5</div>
+                            {% endif %}
+                            <div class="info-line"><span class="info-label">Suitable Players:</span> {{ game.min_players if game.min_players else '?' }}-{{ game.max_players if game.max_players else '?' }}</div>
+                            {% if game.minplaytime or game.playtime %}
+                            <div class="info-line"><span class="info-label">Duration:</span> {{ game.minplaytime if game.minplaytime else game.playtime }}{% if game.maxplaytime %}-{{ game.maxplaytime }}{% endif %} minutes</div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if game.categories and game.categories|length > 0 %}
+                        <div class="game-categories">
+                            Classifications: {% for cat in game.categories %}{{ cat.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if game.reason %}
+                        <div class="article-analysis">
+                            <strong>Expert Analysis:</strong> {{ game.reason }}
+                        </div>
+                        {% endif %}
+                    </article>
+                    
+                    {% if loop.index % 5 == 0 %}
+                    <div class="ornament">❦</div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <article class="vintage-article">
+                    <h3 class="article-title">No Intelligence Available</h3>
+                    <p>Our correspondents report no game intelligence available for this date. Please check tomorrow's edition.</p>
+                </article>
+            {% endif %}
+        </main>
+    </div>
+</div>
+
+<script>
+// Loading animation
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        const loading = document.getElementById('vintageLoading');
+        loading.classList.add('hide');
+        setTimeout(() => {
+            loading.style.display = 'none';
+        }, 500);
+    }, 1500);
+});
+
+// Date change function
+function changeDate() {
+    const selectedDate = document.getElementById('dateSelect').value;
+    
+    // Show loading screen
+    const loading = document.getElementById('vintageLoading');
+    loading.style.display = 'flex';
+    loading.classList.remove('hide');
+    
+    setTimeout(() => {
+        window.location.href = '{{ url_for("vintage") }}?date=' + selectedDate;
+    }, 500);
+}
+
+// Vintage page effects
+document.addEventListener('DOMContentLoaded', function() {
+    // Add subtle animations to articles
+    const articles = document.querySelectorAll('.vintage-article');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+
+    articles.forEach((article, index) => {
+        article.style.opacity = '0';
+        article.style.transform = 'translateY(20px)';
+        article.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+        observer.observe(article);
+    });
+});
+
+// Print function
+function printNewspaper() {
+    window.print();
+}
+
+// Add print button functionality
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'p') {
+        e.preventDefault();
+        printNewspaper();
+    }
+});
+</script>
+{% endblock %}
