@@ -573,32 +573,39 @@ def build_recommendations_from_collection(limit=20):
 def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=10):
     """使用進階推薦算法"""
     try:
+        logger.info(f"🔍 開始進階推薦 - 用戶: {username}, 擁有遊戲: {len(owned_ids) if owned_ids else 0}, 算法: {algorithm}")
+        
         from advanced_recommender import AdvancedBoardGameRecommender
         
         recommender = AdvancedBoardGameRecommender()
         
         # 檢查資料庫狀態
+        logger.info("🔧 檢查資料庫狀態...")
         if not recommender.check_database_exists():
-            logger.error("資料庫檔案不存在，請先執行資料收集")
+            logger.error("❌ 資料庫檔案不存在，請先執行資料收集")
             return None
             
         if not recommender.check_tables_exist():
-            logger.error("資料庫中缺少必要的資料表，請先執行資料收集")
+            logger.error("❌ 資料庫中缺少必要的資料表，請先執行資料收集")
             return None
         
+        logger.info("📊 載入推薦資料...")
         if not recommender.load_data():
-            logger.error("無法載入資料庫資料")
+            logger.error("❌ 無法載入資料庫資料")
             return None
         
         # 檢查是否有足夠的資料
+        logger.info(f"📈 資料統計 - 遊戲: {len(recommender.games_df)}, 評分: {len(recommender.ratings_df)}")
         if len(recommender.games_df) == 0:
-            logger.error("沒有遊戲資料可用於推薦")
+            logger.error("❌ 沒有遊戲資料可用於推薦")
             return None
         
+        logger.info("🧠 準備推薦模型...")
         recommender.prepare_user_item_matrix()
         recommender.prepare_content_features()
         recommender.train_all_models()
         
+        logger.info(f"🎯 執行 {algorithm} 推薦算法...")
         if algorithm == 'popularity':
             recommendations = recommender.recommend_popularity(owned_ids, limit)
         elif algorithm == 'content':
@@ -608,32 +615,48 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         else:
             recommendations = recommender.recommend_hybrid(owned_ids, limit)
         
+        logger.info(f"📋 推薦算法返回了 {len(recommendations) if recommendations else 0} 個結果")
+        
         # 檢查是否有推薦結果
         if not recommendations:
-            logger.warning(f"進階推薦器 ({algorithm}) 沒有產生任何推薦結果")
+            logger.warning(f"⚠️ 進階推薦器 ({algorithm}) 沒有產生任何推薦結果")
+            logger.info("🔍 調試信息：")
+            logger.info(f"  - 擁有遊戲數量: {len(owned_ids) if owned_ids else 0}")
+            logger.info(f"  - 資料庫遊戲數量: {len(recommender.games_df)}")
+            logger.info(f"  - 用戶-物品矩陣大小: {recommender.user_item_matrix.shape if recommender.user_item_matrix is not None else 'None'}")
             return None
         
         # 轉換格式以符合現有介面
+        logger.info("🔄 轉換推薦結果格式...")
         formatted_recs = []
-        for rec in recommendations:
-            formatted_recs.append({
-                'game_id': rec['game_id'],
-                'name': rec['name'],
-                'year': rec['year'],
-                'rating': rec['rating'],
-                'rank': rec.get('rank', 0),
-                'weight': rec.get('weight', 0),
-                'min_players': rec.get('min_players', 1),
-                'max_players': rec.get('max_players', 1),
-                'rec_score': rec['rec_score'],
-                'source': f'advanced_{algorithm}'
-            })
+        for i, rec in enumerate(recommendations):
+            try:
+                formatted_rec = {
+                    'game_id': rec['game_id'],
+                    'name': rec['name'],
+                    'year': rec['year'],
+                    'rating': rec['rating'],
+                    'rank': rec.get('rank', 0),
+                    'weight': rec.get('weight', 0),
+                    'min_players': rec.get('min_players', 1),
+                    'max_players': rec.get('max_players', 1),
+                    'rec_score': rec['rec_score'],
+                    'source': f'advanced_{algorithm}'
+                }
+                formatted_recs.append(formatted_rec)
+                if i < 3:  # 只記錄前3個推薦的詳細信息
+                    logger.info(f"  推薦 {i+1}: {rec['name']} (分數: {rec['rec_score']})")
+            except Exception as format_error:
+                logger.error(f"格式化推薦結果時發生錯誤: {format_error}, 推薦內容: {rec}")
+                continue
         
-        logger.info(f"進階推薦器 ({algorithm}) 產生了 {len(formatted_recs)} 個推薦")
+        logger.info(f"✅ 進階推薦器 ({algorithm}) 成功產生了 {len(formatted_recs)} 個推薦")
         return formatted_recs
         
     except Exception as e:
-        logger.error(f"進階推薦器發生錯誤: {e}")
+        logger.error(f"❌ 進階推薦器發生錯誤: {e}")
+        import traceback
+        logger.error(f"詳細錯誤堆疊: {traceback.format_exc()}")
         return None
 
 def get_local_recommendations(username, owned_ids, limit=10):
@@ -2279,6 +2302,94 @@ def api_cron_trigger():
     except Exception as e:
         logger.error(f"❌ Cron 觸發處理異常: {e}")
         return jsonify({'success': False, 'message': f'處理失敗: {str(e)}'}), 500
+
+@app.route('/api/diagnose-recommendations', methods=['GET'])
+def api_diagnose_recommendations():
+    """診斷推薦系統狀態（用於 Zeabur 調試）"""
+    if 'logged_in' not in session:
+        return jsonify({'success': False, 'message': '未登入'}), 401
+    
+    diagnosis = {}
+    
+    try:
+        # 基本資料檢查
+        username = get_app_setting('bgg_username', '')
+        diagnosis['bgg_username'] = username or 'None'
+        
+        # 檢查收藏資料
+        owned_ids = []
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT objectid FROM collection")
+                owned_ids = [row[0] for row in cursor.fetchall()]
+            diagnosis['owned_games_count'] = len(owned_ids)
+            diagnosis['owned_games_sample'] = owned_ids[:5] if owned_ids else []
+        except Exception as e:
+            diagnosis['collection_error'] = str(e)
+        
+        # 檢查進階推薦器
+        try:
+            from advanced_recommender import AdvancedBoardGameRecommender
+            recommender = AdvancedBoardGameRecommender()
+            
+            diagnosis['database_exists'] = recommender.check_database_exists()
+            diagnosis['tables_exist'] = recommender.check_tables_exist()
+            
+            if recommender.load_data():
+                diagnosis['games_count'] = len(recommender.games_df)
+                diagnosis['ratings_count'] = len(recommender.ratings_df)
+                
+                # 嘗試簡單的熱門度推薦
+                recommender.prepare_user_item_matrix()
+                recommender.prepare_content_features()
+                recommender.train_popularity_recommender()
+                
+                pop_recs = recommender.recommend_popularity([], 3)
+                diagnosis['sample_popularity_recommendations'] = [
+                    {'name': rec['name'], 'score': rec['rec_score']} 
+                    for rec in pop_recs[:3]
+                ] if pop_recs else []
+                
+                # 嘗試混合推薦
+                recommender.train_all_models()
+                hybrid_recs = recommender.recommend_hybrid(owned_ids[:5], 3)
+                diagnosis['sample_hybrid_recommendations'] = [
+                    {'name': rec['name'], 'score': rec['rec_score']} 
+                    for rec in hybrid_recs[:3]
+                ] if hybrid_recs else []
+                
+            else:
+                diagnosis['data_load_failed'] = True
+                
+        except Exception as e:
+            diagnosis['advanced_recommender_error'] = str(e)
+            import traceback
+            diagnosis['advanced_recommender_traceback'] = traceback.format_exc()
+        
+        # 測試完整推薦流程
+        try:
+            test_recs = get_advanced_recommendations(username, owned_ids[:5], 'popularity', 3)
+            diagnosis['full_recommendation_test'] = {
+                'success': test_recs is not None,
+                'count': len(test_recs) if test_recs else 0,
+                'sample': [rec['name'] for rec in test_recs[:3]] if test_recs else []
+            }
+        except Exception as e:
+            diagnosis['full_recommendation_error'] = str(e)
+        
+        return jsonify({
+            'success': True,
+            'diagnosis': diagnosis,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        })
 
 @app.route('/api/stop-task', methods=['POST'])
 def api_stop_task():
