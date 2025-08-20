@@ -2199,22 +2199,81 @@ def api_cron_trigger():
         return jsonify({'success': False, 'message': '未授權'}), 401
 
     logger.info(f"收到外部 Cron 觸發請求，來源 IP: {request.remote_addr}")
+    
+    # 檢查是否已有任務正在執行
+    if task_status['is_running']:
+        logger.info("已有任務正在執行，跳過此次觸發")
+        return jsonify({
+            'success': True, 
+            'message': '任務已在執行中',
+            'status': 'already_running',
+            'current_step': task_status.get('current_step', ''),
+            'progress': task_status.get('progress', 0)
+        })
 
     try:
-        # 使用 scheduler.py 中的函數
-        from scheduler import fetch_and_generate_report
-        result = fetch_and_generate_report('all', 'zh-tw', False, False)
+        # 非同步執行報表產生，立即回應成功
+        def async_report_generation():
+            try:
+                logger.info("🚀 開始非同步報表產生")
+                from scheduler import fetch_and_generate_report
+                
+                # 更新任務狀態
+                global task_status
+                task_status.update({
+                    'is_running': True,
+                    'start_time': datetime.now(),
+                    'current_step': '初始化',
+                    'progress': 0,
+                    'message': '開始產生報表...',
+                    'last_update': datetime.now(),
+                    'stop_requested': False,
+                    'stopped_by_user': False
+                })
+                
+                result = fetch_and_generate_report('all', 'zh-tw', False, False)
+                
+                # 完成任務
+                task_status.update({
+                    'is_running': False,
+                    'current_step': '完成',
+                    'progress': 100,
+                    'message': '報表產生完成' if result else '報表產生失敗',
+                    'last_update': datetime.now()
+                })
+                
+                if result:
+                    logger.info("✅ 非同步 Cron 觸發的報表產生成功")
+                else:
+                    logger.error("❌ 非同步 Cron 觸發的報表產生失敗")
+                    
+            except Exception as e:
+                logger.error(f"❌ 非同步報表產生異常: {e}")
+                task_status.update({
+                    'is_running': False,
+                    'current_step': '錯誤',
+                    'progress': 0,
+                    'message': f'執行失敗: {str(e)}',
+                    'last_update': datetime.now()
+                })
 
-        if result:
-            logger.info("✅ Cron 觸發的報表產生成功")
-            return jsonify({'success': True, 'message': '報表產生成功'})
-        else:
-            logger.error("❌ Cron 觸發的報表產生失敗")
-            return jsonify({'success': False, 'message': '報表產生失敗'})
+        # 啟動背景執行緒
+        import threading
+        thread = threading.Thread(target=async_report_generation)
+        thread.daemon = True
+        thread.start()
+        
+        logger.info("✅ Cron 觸發已接受，報表產生已在背景執行")
+        return jsonify({
+            'success': True, 
+            'message': '報表產生已啟動',
+            'status': 'started',
+            'info': '任務正在背景執行，請稍後查看結果'
+        })
 
     except Exception as e:
         logger.error(f"❌ Cron 觸發處理異常: {e}")
-        return jsonify({'success': False, 'message': f'處理失敗: {e}'})
+        return jsonify({'success': False, 'message': f'處理失敗: {str(e)}'}), 500
 
 @app.route('/api/stop-task', methods=['POST'])
 def api_stop_task():

@@ -35,7 +35,7 @@ jobs:
           exit 2
         fi
 
-    - name: Trigger BGG Report Generation
+    - name: Wake up application and trigger report generation
       env:
         ZEABUR_URL: ${{ secrets.ZEABUR_APP_URL }}
         CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
@@ -43,36 +43,102 @@ jobs:
       run: |
         set -u
         BASE_URL="${ZEABUR_URL%/}"
+        WAKE_URL="${BASE_URL}/"
         TARGET_URL="${BASE_URL}/api/cron-trigger"
 
-        echo "觸發 BGG 報表產生..."
-        echo "目標 URL: ${TARGET_URL}"
-        echo "時間: $(date -u) UTC"
+        echo "🚀 Starting BGG report generation process..."
+        echo "Base URL: ${BASE_URL}"
+        echo "Time: $(date -u) UTC"
 
-        # 允許捕捉 curl 的錯誤碼，而不是立即使步驟失敗
-        set +e
-        http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
-          -X POST \
-          -H "Authorization: Bearer ${CRON_TOKEN}" \
-          -H "Content-Type: application/json" \
-          "${TARGET_URL}")
-        curl_exit=$?
-        set -e
+        # Function to make HTTP request with detailed logging
+        make_request() {
+          local url="$1"
+          local method="${2:-GET}"
+          local description="$3"
+          
+          echo "📡 ${description}..."
+          echo "  URL: ${url}"
+          echo "  Method: ${method}"
+          
+          set +e
+          if [ "$method" = "POST" ]; then
+            http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
+              --connect-timeout 30 --max-time 300 \
+              -X POST \
+              -H "Authorization: Bearer ${CRON_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "${url}")
+          else
+            http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
+              --connect-timeout 30 --max-time 300 \
+              "${url}")
+          fi
+          curl_exit=$?
+          set -e
+          
+          echo "  Exit code: ${curl_exit}"
+          echo "  HTTP status: ${http_status}"
+          echo "  Response:"
+          cat /tmp/response.json 2>/dev/null || echo "    (no response content)"
+          echo ""
+          
+          return $curl_exit
+        }
 
-        echo "curl exit code: ${curl_exit}"
-        echo "HTTP 狀態碼: ${http_status}"
-        echo "回應內容:"
-        cat /tmp/response.json || true
-
-        if [ ${curl_exit} -ne 0 ]; then
-          echo "❌ curl 執行失敗（exit ${curl_exit}）。常見原因：URL 缺失/格式錯誤、DNS 解析失敗或服務未啟動。"
-          echo "請確認 ZEABUR_APP_URL 是否正確（需包含 http(s):// 並指向你的部署）。"
-          exit 3
+        # Step 1: Wake up the application
+        echo "🔥 Step 1: Waking up application..."
+        if make_request "${WAKE_URL}" "GET" "Wake up application"; then
+          if [ "${http_status}" = "200" ] || [ "${http_status}" = "302" ] || [ "${http_status}" = "301" ]; then
+            echo "✅ Application is responding"
+          else
+            echo "⚠️  Application responded with status ${http_status}, but continuing..."
+          fi
+        else
+          echo "⚠️  Wake up request failed, but continuing anyway..."
         fi
 
-        if [ "${http_status}" != "200" ]; then
-          echo "❌ 報表產生觸發失敗"
-          exit 1
-        fi
+        # Step 2: Wait for application to fully start
+        echo "⏳ Step 2: Waiting 30 seconds for application to fully initialize..."
+        sleep 30
 
-        echo "✅ 報表產生觸發成功"
+        # Step 3: Trigger report generation with retry logic
+        echo "📊 Step 3: Triggering report generation..."
+        
+        MAX_RETRIES=3
+        RETRY_DELAY=60
+        
+        for attempt in $(seq 1 $MAX_RETRIES); do
+          echo "🔄 Attempt ${attempt}/${MAX_RETRIES}:"
+          
+          if make_request "${TARGET_URL}" "POST" "Trigger report generation"; then
+            if [ "${http_status}" = "200" ]; then
+              echo "✅ Report generation triggered successfully!"
+              exit 0
+            elif [ "${http_status}" = "502" ] || [ "${http_status}" = "503" ] || [ "${http_status}" = "504" ]; then
+              echo "⚠️  Server error (${http_status}) - application might still be starting up..."
+              if [ $attempt -lt $MAX_RETRIES ]; then
+                echo "💤 Waiting ${RETRY_DELAY} seconds before retry..."
+                sleep $RETRY_DELAY
+                continue
+              fi
+            else
+              echo "❌ Request failed with status ${http_status}"
+              break
+            fi
+          else
+            echo "❌ Request failed with curl exit code ${curl_exit}"
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "💤 Waiting ${RETRY_DELAY} seconds before retry..."
+              sleep $RETRY_DELAY
+              continue
+            fi
+          fi
+        done
+
+        echo "❌ Report generation failed after ${MAX_RETRIES} attempts"
+        echo "💡 Troubleshooting tips:"
+        echo "  - Check if ZEABUR_APP_URL is correct and includes http(s)://"
+        echo "  - Verify CRON_SECRET_TOKEN matches your application configuration"
+        echo "  - Ensure your Zeabur application is running and not crashed"
+        echo "  - Check application logs in Zeabur dashboard"
+        exit 1
