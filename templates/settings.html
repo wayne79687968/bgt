@@ -6,6 +6,75 @@
 <div class="container-fluid mt-3">
     <h2>⚙️ 系統設定</h2>
 
+    <!-- BGG 使用者設定 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>🧑‍💻 BGG 帳號設定</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label for="bgg-username" class="col-form-label">BGG Username</label>
+                </div>
+                <div class="col-auto">
+                    <input type="text" id="bgg-username" class="form-control" placeholder="your-bgg-id" value="{{ bgg_username }}">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary" onclick="saveSettings()">💾 儲存</button>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-success" onclick="syncCollection()">🔁 同步收藏</button>
+                </div>
+                <div class="col-auto">
+                    <a class="btn btn-outline-secondary" href="{{ url_for('recommendations') }}">✨ 查看推薦</a>
+                </div>
+            </div>
+            <div class="form-text mt-2">
+                先輸入 BGG 使用者名稱並儲存，再點選「同步收藏」將你的收藏擷取到本系統（含基本評分與願望清單優先級）。
+            </div>
+        </div>
+    </div>
+
+    <!-- RG 模型與資料設定（固定預設，僅顯示） -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>🧠 RG 模型與資料（固定預設）</h5>
+        </div>
+        <div class="card-body">
+            <ul class="mb-2">
+                <li>模型輸出目錄：<code>{{ rg_model_dir }}</code></li>
+                <li>Games 資料檔：<code>{{ rg_games_file }}</code></li>
+                <li>Ratings 資料檔：<code>{{ rg_ratings_file }}</code></li>
+            </ul>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" onclick="trainRgModel()">🧪 訓練模型</button>
+                <button class="btn btn-info" onclick="checkRgStatus()">🔍 檢查 RG 狀態</button>
+                <a class="btn btn-outline-secondary" href="https://gitlab.com/recommend.games/board-game-scraper" target="_blank" rel="noopener noreferrer">📦 取得資料（Scraper）</a>
+                <a class="btn btn-outline-secondary" href="https://gitlab.com/recommend.games/board-game-recommender" target="_blank" rel="noopener noreferrer">📚 Recommender 文件</a>
+            </div>
+            <div class="form-text mt-2">
+                依據官方說明，資料格式為 JSON Lines（.jl）。可用 Scraper 產出 `bgg_GameItem.jl` 和 `bgg_RatingItem.jl`，再用 RG 訓練。詳見文件。
+            </div>
+        </div>
+    </div>
+
+    <!-- RG 資料抓取（Scraper） -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📦 RG 資料抓取（Scraper）</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-2">
+                <div class="form-text">按一下即可使用預設指令抓取資料（輸出路徑固定為 <code>{{ rg_games_file }}</code> 與 <code>{{ rg_ratings_file }}</code>）。</div>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" onclick="startRgScrapeOneClick()">▶️ 一鍵抓取</button>
+                <button class="btn btn-info" onclick="pollRgTask()">🔎 檢查抓取狀態</button>
+            </div>
+            <pre id="rg-task-log" class="mt-3" style="max-height: 240px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 6px;"></pre>
+        </div>
+    </div>
+
     <!-- 排程設定 -->
     <div class="card mb-4">
         <div class="card-header">
@@ -41,7 +110,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="force-regenerate" name="force_regenerate">
@@ -139,6 +208,124 @@
 </div>
 
 <script>
+function saveSettings() {
+    const username = document.getElementById('bgg-username').value.trim();
+    if (!username) {
+        showAlert('danger', '請輸入 BGG 使用者名稱');
+        return;
+    }
+    fetch('/api/save-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bgg_username: username })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('danger', data.message || '儲存失敗');
+        }
+    }).catch(err => {
+        console.error(err);
+        showAlert('danger', '儲存失敗');
+    });
+}
+
+function startRgScrapeOneClick() {
+    fetch('/api/rg-scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            pollRgTask();
+        } else {
+            showAlert('danger', data.message || '啟動失敗');
+        }
+    }).catch(() => showAlert('danger', '啟動失敗'));
+}
+
+let rgTaskTimer = null;
+function pollRgTask() {
+    if (rgTaskTimer) clearInterval(rgTaskTimer);
+    const logEl = document.getElementById('rg-task-log');
+    const tick = () => {
+        fetch('/api/rg-task-status')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const s = data.status;
+                const lines = [];
+                lines.push(`狀態：${s.is_running ? '運行中' : '已停止'}  進度：${s.progress}%  用時：${s.elapsed_seconds}s`);
+                if (s.message) lines.push(`訊息：${s.message}`);
+                if (s.stdout_tail && s.stdout_tail.length) {
+                    lines.push('--- stdout ---');
+                    lines.push(...s.stdout_tail);
+                }
+                if (s.stderr_tail && s.stderr_tail.length) {
+                    lines.push('--- stderr ---');
+                    lines.push(...s.stderr_tail);
+                }
+                logEl.textContent = lines.join('\n');
+                logEl.scrollTop = logEl.scrollHeight;
+                if (!s.is_running) clearInterval(rgTaskTimer);
+            })
+            .catch(() => {});
+    };
+    tick();
+    rgTaskTimer = setInterval(tick, 2000);
+}
+
+function trainRgModel() {
+    fetch('/api/rg-train', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', '訓練完成');
+                if (data.stdout) console.log(data.stdout);
+            } else {
+                showAlert('danger', data.message || '訓練失敗');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('danger', '訓練失敗');
+        });
+}
+
+function checkRgStatus() {
+    fetch('/api/rg-status')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showAlert('danger', data.message || '檢查失敗');
+                return;
+            }
+            const s = data.status;
+            const msg = `RG_API_URL: ${s.rg_api_url || '(未設定)'}\n` +
+                        `模型目錄: ${s.rg_model_dir} (${s.model_dir_exists ? '存在' : '不存在'})\n` +
+                        `Games 檔: ${s.rg_games_file} (${s.games_file_exists ? '存在' : '不存在'})\n` +
+                        `Ratings 檔: ${s.rg_ratings_file} (${s.ratings_file_exists ? '存在' : '不存在'})`;
+            alert(msg);
+        })
+        .catch(() => showAlert('danger', '檢查失敗'));
+}
+
+function syncCollection() {
+    fetch('/api/sync-collection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('danger', data.message || '同步失敗');
+        }
+    }).catch(err => {
+        console.error(err);
+        showAlert('danger', '同步失敗');
+    });
+}
 let statusCheckInterval = null;
 
 function generateReport() {
@@ -317,7 +504,7 @@ function checkFiles() {
         if (data.success) {
             let message = `📂 報表目錄: ${data.directory}\n`;
             message += `📊 檔案總數: ${data.total_files}\n\n`;
-            
+
             if (data.files.length > 0) {
                 message += '📄 檔案列表:\n';
                 data.files.forEach(file => {
@@ -326,7 +513,7 @@ function checkFiles() {
             } else {
                 message += '暫無報表檔案';
             }
-            
+
             alert(message);
         } else {
             showAlert('danger', '檢查檔案失敗: ' + data.message);
@@ -346,7 +533,7 @@ function checkDatabase() {
             let message = `🗃️ 資料庫類型: ${data.database_type}\n`;
             message += `🎲 遊戲詳情總數: ${data.total_game_details}\n`;
             message += `💬 論壇討論串總數: ${data.total_forum_threads}\n\n`;
-            
+
             message += '📊 熱門榜單記錄:\n';
             if (data.hot_games_by_date.length > 0) {
                 data.hot_games_by_date.forEach(record => {
@@ -355,7 +542,7 @@ function checkDatabase() {
             } else {
                 message += '暫無熱門榜單記錄';
             }
-            
+
             alert(message);
         } else {
             showAlert('danger', '檢查資料庫失敗: ' + data.message);

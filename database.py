@@ -124,7 +124,21 @@ def init_database():
     connection_start_time = time.time()
 
     try:
-        with get_db_connection() as conn:
+        # 為避免 SQLite 上出現異常關閉問題，SQLite 直接開連線不使用 contextmanager
+        if config['type'] == 'postgresql':
+            with get_db_connection() as conn:
+                connection_time = time.time() - connection_start_time
+                print(f"✅ [INIT_DATABASE] 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
+
+                print("🗃️ [INIT_DATABASE] 正在創建游標...")
+                cursor = conn.cursor()
+                print("✅ [INIT_DATABASE] 游標創建成功")
+
+                # 以下邏輯統一放到共用區塊
+                pass
+        else:
+            import sqlite3 as _sqlite3
+            conn = _sqlite3.connect(config['path'])
             connection_time = time.time() - connection_start_time
             print(f"✅ [INIT_DATABASE] 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
 
@@ -152,6 +166,15 @@ def init_database():
             table_start_time = time.time()
 
             tables = [
+            # 應用設定表
+            f"""
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key {text_type} PRIMARY KEY,
+                value {text_type},
+                updated_at {timestamp_type}
+            )
+            """,
+
             # 收藏資料表
             f"""
             CREATE TABLE IF NOT EXISTS collection (
@@ -374,6 +397,11 @@ def init_database():
             commit_time = time.time() - commit_start_time
             print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
             raise
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     except Exception as e:
         connection_time = time.time() - connection_start_time

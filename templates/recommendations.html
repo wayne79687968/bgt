@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}推薦 - BGG 熱門遊戲報表{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <h2>✨ 個人化推薦</h2>
+    <p class="text-muted">BGG 使用者：<strong>{{ bgg_username }}</strong></p>
+
+    {% if recommendations and recommendations|length > 0 %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+        {% for g in recommendations %}
+        <div class="col">
+            <div class="card h-100">
+                {% if g.image %}
+                <img src="{{ g.image }}" class="card-img-top" alt="{{ g.name }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="https://boardgamegeek.com/boardgame/{{ g.objectid }}" target="_blank" rel="noopener noreferrer">{{ g.name }}</a>
+                    </h5>
+                    <p class="card-text">
+                        評分：{{ '%.2f'|format(g.rating) if g.rating is not none else 'N/A' }}
+                        · 排名：{{ g.bgg_rank if g.bgg_rank else 'N/A' }}
+                        · 相似度：{{ '%.2f'|format(g.similarity) }}
+                    </p>
+                    <p class="card-text">
+                        人數：{{ g.min_players }}–{{ g.max_players }}
+                        · 時間：{{ g.minplaytime }}–{{ g.maxplaytime }} 分
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <div class="alert alert-info">尚無推薦結果，請先在「設定」頁同步收藏。</div>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ 前往設定</a>
+    </div>
+</div>
+{% endblock %}
+
+
