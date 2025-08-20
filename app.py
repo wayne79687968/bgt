@@ -608,6 +608,11 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         else:
             recommendations = recommender.recommend_hybrid(owned_ids, limit)
         
+        # 檢查是否有推薦結果
+        if not recommendations:
+            logger.warning(f"進階推薦器 ({algorithm}) 沒有產生任何推薦結果")
+            return None
+        
         # 轉換格式以符合現有介面
         formatted_recs = []
         for rec in recommendations:

@@ -259,6 +259,11 @@ class AdvancedBoardGameRecommender:
         
         owned_set = set(owned_games)
         
+        # 如果沒有擁有的遊戲，使用熱門度推薦作為後備
+        if not owned_games:
+            logger.info("沒有擁有的遊戲，使用熱門度推薦作為內容推薦的後備")
+            return self.recommend_popularity([], num_recs)
+        
         # 計算與擁有遊戲的平均相似度
         game_scores = {}
         for i, game_id in enumerate(game_index):
@@ -299,31 +304,43 @@ class AdvancedBoardGameRecommender:
         """混合推薦算法"""
         if weights is None:
             weights = {
-                'popularity': 0.3,
-                'content_based': 0.4,
-                'collaborative_filtering': 0.3
+                'popularity': 0.5,  # 提高熱門度權重，適用於小數據集
+                'content_based': 0.5,
+                'collaborative_filtering': 0.0  # 暫時關閉協同過濾，因為數據太少
             }
         
         all_recommendations = {}
+        successful_algorithms = 0
         
         # 獲取各種算法的推薦
-        if 'popularity' in weights:
+        if 'popularity' in weights and weights['popularity'] > 0:
             pop_recs = self.recommend_popularity(owned_games, num_recs * 2)
-            for rec in pop_recs:
-                game_id = rec['game_id']
-                if game_id not in all_recommendations:
-                    all_recommendations[game_id] = rec.copy()
-                    all_recommendations[game_id]['hybrid_score'] = 0
-                all_recommendations[game_id]['hybrid_score'] += rec['rec_score'] * weights['popularity']
+            logger.info(f"熱門度推薦獲得 {len(pop_recs)} 個結果")
+            if pop_recs:
+                successful_algorithms += 1
+                for rec in pop_recs:
+                    game_id = rec['game_id']
+                    if game_id not in all_recommendations:
+                        all_recommendations[game_id] = rec.copy()
+                        all_recommendations[game_id]['hybrid_score'] = 0
+                    all_recommendations[game_id]['hybrid_score'] += rec['rec_score'] * weights['popularity']
         
-        if 'content_based' in weights:
+        if 'content_based' in weights and weights['content_based'] > 0:
             content_recs = self.recommend_content_based(owned_games, num_recs * 2)
-            for rec in content_recs:
-                game_id = rec['game_id']
-                if game_id not in all_recommendations:
-                    all_recommendations[game_id] = rec.copy()
-                    all_recommendations[game_id]['hybrid_score'] = 0
-                all_recommendations[game_id]['hybrid_score'] += rec['rec_score'] * weights['content_based']
+            logger.info(f"內容推薦獲得 {len(content_recs)} 個結果")
+            if content_recs:
+                successful_algorithms += 1
+                for rec in content_recs:
+                    game_id = rec['game_id']
+                    if game_id not in all_recommendations:
+                        all_recommendations[game_id] = rec.copy()
+                        all_recommendations[game_id]['hybrid_score'] = 0
+                    all_recommendations[game_id]['hybrid_score'] += rec['rec_score'] * weights['content_based']
+        
+        # 如果沒有任何推薦結果，直接返回熱門度推薦
+        if not all_recommendations:
+            logger.warning("混合推薦沒有結果，返回純熱門度推薦")
+            return self.recommend_popularity(owned_games, num_recs)
         
         # 排序並返回前N個
         sorted_recs = sorted(all_recommendations.values(), 
