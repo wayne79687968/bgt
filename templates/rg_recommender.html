@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}RG 推薦 - BGG 熱門遊戲報表{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <h2>🧠 進階智能推薦</h2>
+    <p class="text-muted">BGG 使用者：<strong>{{ bgg_username or '未設定' }}</strong></p>
+    
+    <!-- 算法選擇器 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <label for="algorithmSelect" class="form-label">🎯 選擇推薦算法：</label>
+            <select class="form-select" id="algorithmSelect" onchange="changeAlgorithm()">
+                {% for algo in available_algorithms %}
+                <option value="{{ algo.value }}" {% if algo.value == current_algorithm %}selected{% endif %}>
+                    {{ algo.name }}
+                </option>
+                {% endfor %}
+            </select>
+            <small class="form-text text-muted" id="algorithmDescription">
+                {% for algo in available_algorithms %}
+                    {% if algo.value == current_algorithm %}{{ algo.description }}{% endif %}
+                {% endfor %}
+            </small>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">&nbsp;</label>
+            <button type="button" class="btn btn-primary d-block" onclick="refreshRecommendations()">
+                🔄 重新推薦
+            </button>
+        </div>
+    </div>
+    
+    <script>
+    function changeAlgorithm() {
+        const select = document.getElementById('algorithmSelect');
+        const descriptions = {
+            {% for algo in available_algorithms %}
+            '{{ algo.value }}': '{{ algo.description }}',
+            {% endfor %}
+        };
+        
+        document.getElementById('algorithmDescription').textContent = descriptions[select.value];
+        
+        // 自動重新載入推薦
+        const url = new URL(window.location);
+        url.searchParams.set('algorithm', select.value);
+        window.location.href = url.toString();
+    }
+    
+    function refreshRecommendations() {
+        window.location.reload();
+    }
+    </script>
+
+    {% if rg_results %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% for g in rg_results %}
+            <div class="col">
+                <div class="card h-100">
+                    {% if g.image %}
+                    <img src="{{ g.image }}" class="card-img-top" alt="{{ g.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="https://boardgamegeek.com/boardgame/{{ g.game_id }}" target="_blank" rel="noopener noreferrer">{{ g.name }}</a>
+                            {% if g.year %}<small class="text-muted">({{ g.year }})</small>{% endif %}
+                        </h5>
+                        <div class="mb-2">
+                            {% if g.rating %}
+                            <span class="badge bg-success">評分 {{ g.rating }}</span>
+                            {% endif %}
+                            {% if g.rank and g.rank > 0 %}
+                            <span class="badge bg-info">#{{ g.rank }}</span>
+                            {% endif %}
+                            {% if g.weight %}
+                            <span class="badge bg-warning">複雜度 {{ g.weight }}</span>
+                            {% endif %}
+                        </div>
+                        {% if g.min_players and g.max_players %}
+                        <p class="card-text"><small class="text-muted">{{ g.min_players }}-{{ g.max_players }} 人</small></p>
+                        {% endif %}
+                        {% if g.rec_score %}
+                        <p class="card-text">
+                            <strong>推薦分數：{{ '%.2f'|format(g.rec_score) }}</strong>
+                            {% if g.source %}
+                            <br><small class="text-muted">來源：{{ g.source }}</small>
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            {% if rg_error %}
+                無法取得外部推薦：{{ rg_error }}
+            {% elif not rg_error and not rg_results and bgg_username %}
+                尚無外部推薦結果。
+            {% else %}
+                尚未設定外部服務，您可前往外部網站使用推薦或設定環境變數 <code>RG_API_URL</code>（與可選的 <code>RG_API_KEY</code>）。
+            {% endif %}
+        </div>
+        <a class="btn btn-primary" href="{{ rg_site_url }}" target="_blank" rel="noopener noreferrer">前往 Recommend.Games</a>
+        <a class="btn btn-outline-secondary" href="{{ rg_repo_url }}" target="_blank" rel="noopener noreferrer">查看原始碼</a>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ 前往設定</a>
+        <a href="{{ url_for('recommendations') }}" class="btn btn-outline-secondary">✨ 內建推薦</a>
+    </div>
+</div>
+{% endblock %}
+
+
