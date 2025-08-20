@@ -581,7 +581,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         
         # 檢查資料庫狀態
         logger.info("🔧 檢查資料庫狀態...")
-        if not recommender.check_database_exists():
+        if not recommender.check_database_connection():
             logger.error("❌ 資料庫檔案不存在，請先執行資料收集")
             return None
             
@@ -2338,7 +2338,7 @@ def api_diagnose_recommendations():
             from advanced_recommender import AdvancedBoardGameRecommender
             recommender = AdvancedBoardGameRecommender()
             
-            diagnosis['database_exists'] = recommender.check_database_exists()
+            diagnosis['database_exists'] = recommender.check_database_connection()
             diagnosis['tables_exist'] = recommender.check_tables_exist()
             
             if recommender.load_data():
