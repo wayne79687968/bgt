@@ -313,9 +313,64 @@ def get_app_setting(key, default=None):
         logger.warning(f"讀取設定失敗: {e}")
     return default
 
+def ensure_app_settings_table():
+    """確保 app_settings 表存在"""
+    try:
+        config = get_database_config()
+        logger.info(f"🔧 檢查 app_settings 表，資料庫類型: {config['type']}")
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 檢查表是否已存在
+            if config['type'] == 'postgresql':
+                cursor.execute("SELECT to_regclass('app_settings')")
+                table_exists = cursor.fetchone()[0] is not None
+            else:
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='app_settings'")
+                table_exists = cursor.fetchone() is not None
+            
+            if table_exists:
+                logger.info("✅ app_settings 表已存在")
+                return True
+            
+            # 根據資料庫類型創建表
+            if config['type'] == 'postgresql':
+                create_sql = """
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+                """
+            else:
+                create_sql = """
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """
+            
+            logger.info(f"📝 創建 app_settings 表...")
+            cursor.execute(create_sql)
+            conn.commit()
+            logger.info("✅ app_settings 表創建成功")
+            return True
+    except Exception as e:
+        logger.error(f"❌ 創建 app_settings 表失敗: {e}")
+        import traceback
+        logger.error(f"詳細錯誤: {traceback.format_exc()}")
+        return False
+
 def set_app_setting(key, value):
     """寫入應用設定（存在則更新）"""
     try:
+        # 確保表存在
+        if not ensure_app_settings_table():
+            logger.error("無法創建 app_settings 表")
+            return False
+            
         with get_db_connection() as conn:
             cursor = conn.cursor()
             config = get_database_config()
@@ -331,6 +386,7 @@ def set_app_setting(key, value):
                 else:
                     cursor.execute("INSERT INTO app_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)", (key, value))
             conn.commit()
+            logger.info(f"✅ 設定已保存: {key} = {value}")
             return True
     except Exception as e:
         logger.error(f"寫入設定失敗: {e}")
@@ -1736,14 +1792,31 @@ def settings():
 def api_save_settings():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-    data = request.get_json() or {}
-    bgg_username = data.get('bgg_username', '').strip()
-    if not bgg_username:
-        return jsonify({'success': False, 'message': '請輸入 BGG 使用者名稱'}), 400
-    ok = set_app_setting('bgg_username', bgg_username)
-    if ok:
-        return jsonify({'success': True, 'message': '設定已儲存'})
-    return jsonify({'success': False, 'message': '儲存失敗'}), 500
+    
+    try:
+        data = request.get_json() or {}
+        bgg_username = data.get('bgg_username', '').strip()
+        
+        if not bgg_username:
+            return jsonify({'success': False, 'message': '請輸入 BGG 使用者名稱'}), 400
+        
+        # 驗證 BGG 使用者名稱格式（基本檢查）
+        if len(bgg_username) < 3 or len(bgg_username) > 50:
+            return jsonify({'success': False, 'message': 'BGG 使用者名稱長度需在 3-50 字元之間'}), 400
+        
+        logger.info(f"嘗試保存 BGG 使用者名稱: {bgg_username}")
+        ok = set_app_setting('bgg_username', bgg_username)
+        
+        if ok:
+            logger.info(f"✅ BGG 使用者名稱保存成功: {bgg_username}")
+            return jsonify({'success': True, 'message': '設定已儲存'})
+        else:
+            logger.error(f"❌ BGG 使用者名稱保存失敗: {bgg_username}")
+            return jsonify({'success': False, 'message': '儲存失敗，請檢查資料庫連接'}), 500
+            
+    except Exception as e:
+        logger.error(f"保存設定時發生異常: {e}")
+        return jsonify({'success': False, 'message': f'保存失敗: {str(e)}'}), 500
 
 @app.route('/api/sync-collection', methods=['POST'])
 def api_sync_collection():
