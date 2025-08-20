@@ -670,8 +670,12 @@ def get_local_recommendations(username, owned_ids, limit=10):
             cursor = conn.cursor()
             
             # 構建排除已擁有遊戲的 WHERE 條件
+            config = get_database_config()
             if owned_set:
-                placeholders = ','.join('?' * len(owned_set))
+                if config['type'] == 'postgresql':
+                    placeholders = ','.join(['%s'] * len(owned_set))
+                else:
+                    placeholders = ','.join(['?'] * len(owned_set))
                 exclude_clause = f"AND g.objectid NOT IN ({placeholders})"
                 params = list(owned_set) + [min(limit, 50)]  # 最多取50個本地推薦
             else:
@@ -679,6 +683,7 @@ def get_local_recommendations(username, owned_ids, limit=10):
                 params = [min(limit, 50)]
             
             # 查詢推薦遊戲（基於評分和排名）
+            limit_placeholder = '%s' if config['type'] == 'postgresql' else '?'
             query = f"""
             SELECT 
                 g.objectid,
@@ -699,7 +704,7 @@ def get_local_recommendations(username, owned_ids, limit=10):
                 AND g.name IS NOT NULL
                 {exclude_clause}
             ORDER BY popularity_score DESC, g.rating DESC
-            LIMIT ?
+            LIMIT {limit_placeholder}
             """
             
             cursor.execute(query, params)

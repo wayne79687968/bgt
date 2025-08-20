@@ -7,7 +7,6 @@
 import json
 import logging
 import os
-import sqlite3
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
@@ -21,35 +20,61 @@ logger = logging.getLogger(__name__)
 class AdvancedBoardGameRecommender:
     """進階桌遊推薦系統，支援多種推薦算法"""
     
-    def __init__(self, db_path='data/bgg_rag.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        # 使用統一的資料庫配置
+        try:
+            from database import get_database_config
+            self.db_config = get_database_config()
+        except ImportError:
+            # 後備選項：使用 SQLite
+            self.db_config = {'type': 'sqlite', 'path': db_path or 'data/bgg_rag.db'}
+        
         self.games_df = None
         self.ratings_df = None
         self.user_item_matrix = None
         self.content_features = None
         self.models = {}
         
-    def check_database_exists(self):
-        """檢查資料庫檔案是否存在"""
-        return os.path.exists(self.db_path)
+    def check_database_connection(self):
+        """檢查資料庫連接"""
+        try:
+            from database import get_db_connection
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                # 測試基本連接
+                if self.db_config['type'] == 'postgresql':
+                    cursor.execute("SELECT 1")
+                else:
+                    cursor.execute("SELECT 1")
+                cursor.fetchone()
+                return True
+        except Exception as e:
+            logger.error(f"資料庫連接測試失敗: {e}")
+            return False
     
     def check_tables_exist(self):
         """檢查所需的資料表是否存在"""
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            
-            # 檢查 game_detail 表
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='game_detail'")
-            game_detail_exists = cursor.fetchone() is not None
-            
-            # 檢查 collection 表
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='collection'")
-            collection_exists = cursor.fetchone() is not None
-            
-            conn.close()
-            return game_detail_exists and collection_exists
-            
+            from database import get_db_connection, execute_query
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 檢查 game_detail 表
+                if self.db_config['type'] == 'postgresql':
+                    execute_query(cursor, "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = ?", ('game_detail',), self.db_config['type'])
+                    game_detail_exists = cursor.fetchone() is not None
+                    
+                    execute_query(cursor, "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = ?", ('collection',), self.db_config['type'])
+                    collection_exists = cursor.fetchone() is not None
+                else:
+                    execute_query(cursor, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", ('game_detail',), self.db_config['type'])
+                    game_detail_exists = cursor.fetchone() is not None
+                    
+                    execute_query(cursor, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", ('collection',), self.db_config['type'])
+                    collection_exists = cursor.fetchone() is not None
+                
+                return game_detail_exists and collection_exists
+                
         except Exception as e:
             logger.error(f"檢查資料表時發生錯誤: {e}")
             return False
@@ -57,17 +82,18 @@ class AdvancedBoardGameRecommender:
     def load_data(self):
         """從資料庫載入遊戲和評分資料"""
         try:
-            # 檢查資料庫檔案
-            if not self.check_database_exists():
-                logger.error(f"資料庫檔案不存在: {self.db_path}")
+            # 檢查資料庫連接
+            if not self.check_database_connection():
+                logger.error("資料庫檔案不存在，請先執行資料收集")
                 return False
             
             # 檢查資料表
             if not self.check_tables_exist():
                 logger.error("必要的資料表 (game_detail, collection) 不存在")
                 return False
-                
-            conn = sqlite3.connect(self.db_path)
+            
+            from database import get_db_connection
+            with get_db_connection() as conn:
             
             # 載入遊戲資料
             games_query = """
@@ -80,7 +106,6 @@ class AdvancedBoardGameRecommender:
             
             if len(self.games_df) == 0:
                 logger.error("game_detail 表中沒有有效的遊戲資料")
-                conn.close()
                 return False
             
             # 載入評分資料
@@ -99,7 +124,6 @@ class AdvancedBoardGameRecommender:
             WHERE c.objectid IS NOT NULL
             """
             self.ratings_df = pd.read_sql_query(ratings_query, conn)
-            conn.close()
             
             if len(self.ratings_df) == 0:
                 logger.warning("沒有評分資料，將僅使用基於內容的推薦")
