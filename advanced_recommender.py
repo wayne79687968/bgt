@@ -94,36 +94,36 @@ class AdvancedBoardGameRecommender:
             
             from database import get_db_connection
             with get_db_connection() as conn:
-            
-            # 載入遊戲資料
-            games_query = """
-            SELECT objectid, name, year, rating, rank, weight, 
-                   minplayers, maxplayers, categories, mechanics
-            FROM game_detail 
-            WHERE objectid IS NOT NULL AND name IS NOT NULL
-            """
-            self.games_df = pd.read_sql_query(games_query, conn)
-            
-            if len(self.games_df) == 0:
-                logger.error("game_detail 表中沒有有效的遊戲資料")
-                return False
-            
-            # 載入評分資料
-            ratings_query = """
-            SELECT c.objectid as game_id, 
-                   'user_' || c.objectid as user_id,
-                   COALESCE(c.rating, 
-                       CASE 
-                           WHEN c.status LIKE '%Own%' THEN 7.0
-                           WHEN c.status LIKE '%Want%' THEN 6.0
-                           ELSE 5.0
-                       END
-                   ) as rating
-            FROM collection c
-            INNER JOIN game_detail g ON c.objectid = g.objectid
-            WHERE c.objectid IS NOT NULL
-            """
-            self.ratings_df = pd.read_sql_query(ratings_query, conn)
+                
+                # 載入遊戲資料
+                games_query = """
+                SELECT objectid, name, year, rating, rank, weight, 
+                       minplayers, maxplayers, categories, mechanics
+                FROM game_detail 
+                WHERE objectid IS NOT NULL AND name IS NOT NULL
+                """
+                self.games_df = pd.read_sql_query(games_query, conn)
+                
+                if len(self.games_df) == 0:
+                    logger.error("game_detail 表中沒有有效的遊戲資料")
+                    return False
+                
+                # 載入評分資料
+                ratings_query = """
+                SELECT c.objectid as game_id, 
+                       'user_' || c.objectid as user_id,
+                       COALESCE(c.rating, 
+                           CASE 
+                               WHEN c.status LIKE '%Own%' THEN 7.0
+                               WHEN c.status LIKE '%Want%' THEN 6.0
+                               ELSE 5.0
+                           END
+                       ) as rating
+                FROM collection c
+                INNER JOIN game_detail g ON c.objectid = g.objectid
+                WHERE c.objectid IS NOT NULL
+                """
+                self.ratings_df = pd.read_sql_query(ratings_query, conn)
             
             if len(self.ratings_df) == 0:
                 logger.warning("沒有評分資料，將僅使用基於內容的推薦")
