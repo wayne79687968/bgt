@@ -1,10 +1,12 @@
-name: Daily BGG Report Generation
+name: Dynamic BGG Report Generation
 
 on:
   schedule:
-    # 預設每日 23:00 UTC (台北時間 07:00) 執行
-    # 可透過 Repository Variables 設定 CRON_SCHEDULE 來覆蓋
-    - cron: '0 23 * * *'
+    # 多個時間選項，預設每日台北時間 07:00 (UTC 23:00)
+    - cron: '0 23 * * *'  # 23:00 UTC = 07:00 台北時間
+    # 備用時間：可手動啟用其他時間
+    # - cron: '0 1 * * *'   # 01:00 UTC = 09:00 台北時間
+    # - cron: '0 9 * * *'   # 09:00 UTC = 17:00 台北時間
   workflow_dispatch:
     inputs:
       custom_time:
@@ -25,13 +27,13 @@ jobs:
         CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
       run: |
         if [ -z "${ZEABUR_URL:-}" ]; then
-          echo "❌ 缺少必需的 Secrets: ZEABUR_APP_URL"
-          echo "請到 Settings → Secrets and variables → Actions 設定 ZEABUR_APP_URL。"
+          echo "❌ Missing required Secret: ZEABUR_APP_URL"
+          echo "Please set ZEABUR_APP_URL in Settings → Secrets and variables → Actions"
           exit 2
         fi
         if [ -z "${CRON_TOKEN:-}" ]; then
-          echo "❌ 缺少必需的 Secrets: CRON_SECRET_TOKEN"
-          echo "請到 Settings → Secrets and variables → Actions 設定 CRON_SECRET_TOKEN。"
+          echo "❌ Missing required Secret: CRON_SECRET_TOKEN"
+          echo "Please set CRON_SECRET_TOKEN in Settings → Secrets and variables → Actions"
           exit 2
         fi
 
@@ -45,11 +47,11 @@ jobs:
         BASE_URL="${ZEABUR_URL%/}"
         TARGET_URL="${BASE_URL}/api/cron-trigger"
 
-        echo "觸發 BGG 報表產生..."
-        echo "目標 URL: ${TARGET_URL}"
-        echo "時間: $(date -u) UTC"
+        echo "Triggering BGG report generation..."
+        echo "Target URL: ${TARGET_URL}"
+        echo "Time: $(date -u) UTC"
 
-        # 允許捕捉 curl 的錯誤碼，而不是立即使步驟失敗
+        # Allow capturing curl error codes without immediately failing the step
         set +e
         http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
           -X POST \
@@ -60,19 +62,19 @@ jobs:
         set -e
 
         echo "curl exit code: ${curl_exit}"
-        echo "HTTP 狀態碼: ${http_status}"
-        echo "回應內容:"
+        echo "HTTP status code: ${http_status}"
+        echo "Response content:"
         cat /tmp/response.json || true
 
         if [ ${curl_exit} -ne 0 ]; then
-          echo "❌ curl 執行失敗（exit ${curl_exit}）。常見原因：URL 缺失/格式錯誤、DNS 解析失敗或服務未啟動。"
-          echo "請確認 ZEABUR_APP_URL 是否正確（需包含 http(s):// 並指向你的部署）。"
+          echo "❌ curl execution failed (exit ${curl_exit}). Common causes: missing/invalid URL, DNS resolution failure, or service not running."
+          echo "Please verify ZEABUR_APP_URL is correct (must include http(s):// and point to your deployment)."
           exit 3
         fi
 
         if [ "${http_status}" != "200" ]; then
-          echo "❌ 報表產生觸發失敗"
+          echo "❌ Report generation trigger failed"
           exit 1
         fi
 
-        echo "✅ 報表產生觸發成功"
+        echo "✅ Report generation triggered successfully"
