@@ -97,9 +97,20 @@
     {% else %}
         <div class="alert alert-info">
             {% if rg_error %}
-                無法取得外部推薦：{{ rg_error }}
+                {% if "資料庫檔案不存在" in rg_error or "資料表" in rg_error or "沒有遊戲資料" in rg_error %}
+                    <h5>📊 資料庫尚未初始化</h5>
+                    <p>{{ rg_error }}</p>
+                    <p>請先執行以下步驟來收集 BGG 資料：</p>
+                    <ol>
+                        <li>點擊下方「前往設定」</li>
+                        <li>點擊「手動報表生成」開始收集熱門遊戲資料</li>
+                        <li>等待資料收集完成後再返回此頁面訓練模型</li>
+                    </ol>
+                {% else %}
+                    無法取得推薦：{{ rg_error }}
+                {% endif %}
             {% elif not rg_error and not rg_results and bgg_username %}
-                尚無外部推薦結果。
+                尚無推薦結果。
             {% else %}
                 尚未設定外部服務，您可前往外部網站使用推薦或設定環境變數 <code>RG_API_URL</code>（與可選的 <code>RG_API_KEY</code>）。
             {% endif %}

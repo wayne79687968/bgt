@@ -520,7 +520,23 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         from advanced_recommender import AdvancedBoardGameRecommender
         
         recommender = AdvancedBoardGameRecommender()
+        
+        # 檢查資料庫狀態
+        if not recommender.check_database_exists():
+            logger.error("資料庫檔案不存在，請先執行資料收集")
+            return None
+            
+        if not recommender.check_tables_exist():
+            logger.error("資料庫中缺少必要的資料表，請先執行資料收集")
+            return None
+        
         if not recommender.load_data():
+            logger.error("無法載入資料庫資料")
+            return None
+        
+        # 檢查是否有足夠的資料
+        if len(recommender.games_df) == 0:
+            logger.error("沒有遊戲資料可用於推薦")
             return None
         
         recommender.prepare_user_item_matrix()

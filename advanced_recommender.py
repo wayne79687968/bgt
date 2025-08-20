@@ -29,9 +29,44 @@ class AdvancedBoardGameRecommender:
         self.content_features = None
         self.models = {}
         
+    def check_database_exists(self):
+        """檢查資料庫檔案是否存在"""
+        return os.path.exists(self.db_path)
+    
+    def check_tables_exist(self):
+        """檢查所需的資料表是否存在"""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # 檢查 game_detail 表
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='game_detail'")
+            game_detail_exists = cursor.fetchone() is not None
+            
+            # 檢查 collection 表
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='collection'")
+            collection_exists = cursor.fetchone() is not None
+            
+            conn.close()
+            return game_detail_exists and collection_exists
+            
+        except Exception as e:
+            logger.error(f"檢查資料表時發生錯誤: {e}")
+            return False
+    
     def load_data(self):
         """從資料庫載入遊戲和評分資料"""
         try:
+            # 檢查資料庫檔案
+            if not self.check_database_exists():
+                logger.error(f"資料庫檔案不存在: {self.db_path}")
+                return False
+            
+            # 檢查資料表
+            if not self.check_tables_exist():
+                logger.error("必要的資料表 (game_detail, collection) 不存在")
+                return False
+                
             conn = sqlite3.connect(self.db_path)
             
             # 載入遊戲資料
@@ -42,6 +77,11 @@ class AdvancedBoardGameRecommender:
             WHERE objectid IS NOT NULL AND name IS NOT NULL
             """
             self.games_df = pd.read_sql_query(games_query, conn)
+            
+            if len(self.games_df) == 0:
+                logger.error("game_detail 表中沒有有效的遊戲資料")
+                conn.close()
+                return False
             
             # 載入評分資料
             ratings_query = """
@@ -60,6 +100,9 @@ class AdvancedBoardGameRecommender:
             """
             self.ratings_df = pd.read_sql_query(ratings_query, conn)
             conn.close()
+            
+            if len(self.ratings_df) == 0:
+                logger.warning("沒有評分資料，將僅使用基於內容的推薦")
             
             logger.info(f"載入了 {len(self.games_df)} 個遊戲和 {len(self.ratings_df)} 個評分")
             return True
