@@ -192,53 +192,44 @@ def run_rg_scrape_async(games_file: str, ratings_file: str, custom_cmd: str | No
     try:
         rg_task_status['is_running'] = True
         rg_task_status['start_time'] = datetime.now()
-        update_rg_task_status(5, '初始化 RG 資料抓取任務...')
+        update_rg_task_status(5, '初始化 BGG 資料抓取任務...')
 
-        # 構建命令
-        # 預設使用 python -m board_game_scraper 並帶入輸出檔
-        cmd_list = [sys.executable, '-m', 'board_game_scraper']
-        if games_file:
-            cmd_list += ['--games-file', games_file]
-        if ratings_file:
-            cmd_list += ['--ratings-file', ratings_file]
-        cmd = cmd_list
-        shell = False
+        # 獲取 BGG 用戶名
+        bgg_username = get_app_setting('bgg_username')
+        if not bgg_username:
+            update_rg_task_status(0, 'BGG 用戶名未設定')
+            rg_task_status['is_running'] = False
+            return
 
-        update_rg_task_status(10, f"啟動抓取：{cmd if isinstance(cmd, str) else ' '.join(cmd)}")
+        update_rg_task_status(10, f"開始抓取 BGG 用戶 {bgg_username} 的收藏資料...")
 
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            universal_newlines=True,
-            shell=shell
-        )
-
-        while process.poll() is None:
-            line = process.stdout.readline()
-            if line:
-                update_rg_task_status(message='抓取中...', stdout_line=line.strip())
-            err = process.stderr.readline()
-            if err:
-                update_rg_task_status(message='抓取中(有警告/錯誤)...', stderr_line=err.strip())
-            time.sleep(0.2)
-
-        # 讀取剩餘輸出
-        out, err = process.communicate()
-        if out:
-            for l in out.splitlines():
-                update_rg_task_status(stdout_line=l)
-        if err:
-            for l in err.splitlines():
-                update_rg_task_status(stderr_line=l)
-
-        code = process.returncode
-        if code == 0:
-            update_rg_task_status(100, '抓取完成')
-        else:
-            update_rg_task_status(0, f'抓取失敗，返回碼 {code}')
+        try:
+            # 使用我們的 BGG scraper
+            from bgg_scraper_extractor import BGGScraperExtractor
+            extractor = BGGScraperExtractor()
+            
+            update_rg_task_status(20, '正在抓取用戶收藏...')
+            
+            # 從檔案路徑推導輸出目錄
+            output_dir = 'data'
+            if games_file:
+                output_dir = os.path.dirname(games_file)
+            
+            # 執行抓取
+            success = extractor.export_to_jsonl(bgg_username, output_dir)
+            
+            if success:
+                update_rg_task_status(100, f'成功抓取用戶 {bgg_username} 的 BGG 資料')
+            else:
+                update_rg_task_status(0, f'抓取用戶 {bgg_username} 的 BGG 資料失敗')
+                
+        except Exception as e:
+            error_msg = f"BGG 抓取過程發生錯誤: {str(e)}"
+            update_rg_task_status(0, error_msg)
+            logger.error(error_msg)
+            import traceback
+            logger.error(f"詳細錯誤: {traceback.format_exc()}")
+            
     except Exception as e:
         update_rg_task_status(0, f'抓取異常：{e}')
     finally:
@@ -2144,14 +2135,10 @@ def api_rg_scrape():
     # 採用固定預設輸出路徑
     games_file = RG_DEFAULT_GAMES_FILE
     ratings_file = RG_DEFAULT_RATINGS_FILE
-    # 檢查必要模組
-    try:
-        import importlib.util
-        spec = importlib.util.find_spec('board_game_scraper')
-        if spec is None:
-            return jsonify({'success': False, 'message': '未安裝 board_game_scraper，請先 pip 安裝'}), 400
-    except Exception:
-        return jsonify({'success': False, 'message': '未安裝 board_game_scraper，請先 pip 安裝'}), 400
+    # 檢查是否設定了 BGG 用戶名
+    bgg_username = get_app_setting('bgg_username')
+    if not bgg_username:
+        return jsonify({'success': False, 'message': '請先在設定頁面輸入 BGG 用戶名'}), 400
 
     # 確保輸出目錄存在
     try:
