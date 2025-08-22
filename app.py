@@ -1990,19 +1990,25 @@ def api_rg_train():
         # 確保模型目錄存在
         os.makedirs(model_dir, exist_ok=True)
         
-        # 檢查輸入檔案是否存在，如果不存在則從資料庫提取
+        # 檢查輸入檔案是否存在，如果不存在則從 BGG 直接抓取
         if not os.path.exists(games_file) or not os.path.exists(ratings_file):
-            logger.info("提取 BGG 真實資料...")
+            logger.info("從 BGG 直接抓取用戶資料...")
+            
+            # 獲取 BGG 用戶名
+            username = get_app_setting('bgg_username')
+            if not username:
+                return jsonify({'success': False, 'message': '請先在設定頁面輸入 BGG 用戶名'})
+            
             try:
-                from bgg_data_extractor import BGGDataExtractor
-                extractor = BGGDataExtractor()
-                success = extractor.extract_all_data()
+                from bgg_scraper_extractor import BGGScraperExtractor
+                extractor = BGGScraperExtractor()
+                success = extractor.export_to_jsonl(username)
                 if not success:
-                    return jsonify({'success': False, 'message': '無法提取 BGG 資料，資料庫可能為空'})
-                logger.info("BGG 資料提取完成")
+                    return jsonify({'success': False, 'message': f'無法從 BGG 抓取用戶 {username} 的資料'})
+                logger.info(f"成功從 BGG 抓取用戶 {username} 的資料")
             except Exception as e:
-                logger.error(f"提取 BGG 資料時發生錯誤: {e}")
-                return jsonify({'success': False, 'message': f'資料提取失敗: {str(e)}'})
+                logger.error(f"從 BGG 抓取資料時發生錯誤: {e}")
+                return jsonify({'success': False, 'message': f'資料抓取失敗: {str(e)}'})
         
         logger.info(f"開始 RG 訓練: games={games_file}, ratings={ratings_file}, model={model_dir}")
         
