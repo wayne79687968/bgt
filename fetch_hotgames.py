@@ -1,6 +1,7 @@
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import pytz
 import os
 from database import get_db_connection, get_database_config, init_database
 
@@ -10,7 +11,9 @@ print(f"🗃️ [FETCH_HOTGAMES] 當前時間: {datetime.utcnow().strftime('%H:%
 print("🗃️ [FETCH_HOTGAMES] 開始主要處理...")
 
 # 資料庫與儲存設定
-snapshot_date = datetime.utcnow().strftime("%Y-%m-%d")
+# 使用台北時區獲取當前日期
+taipei_tz = pytz.timezone('Asia/Taipei')
+snapshot_date = datetime.now(taipei_tz).strftime("%Y-%m-%d")
 url = "https://boardgamegeek.com/xmlapi2/hot?type=boardgame"
 
 print(f"📅 快照日期: {snapshot_date}")

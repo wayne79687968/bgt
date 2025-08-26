@@ -3,6 +3,7 @@ import requests
 import re
 import os
 from datetime import datetime, timedelta
+import pytz
 import json
 import xml.etree.ElementTree as ET
 import openai
@@ -327,6 +328,10 @@ def delete_all_threads_and_i18n(objectid):
 def fetch_and_save_threads(objectid, name):
     """實際抓取並儲存討論串內容"""
     print(f"🔍 正在抓取 {name} ({objectid}) 的討論串...")
+    
+    # 使用台北時區獲取當前日期
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
 
     # 1. 抓取討論區列表
     forums = fetch_forum_list(objectid)
@@ -366,12 +371,12 @@ def fetch_and_save_threads(objectid, name):
             cursor.execute("""
                 INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+            """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
         else:
             cursor.execute("""
                 INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
                 VALUES (?, ?, ?, ?, ?)
-            """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+            """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
 
         conn.commit()
 
@@ -448,6 +453,10 @@ def delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config):
 def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
     """實際抓取並儲存討論串內容"""
     print(f"🔍 [{name}] 正在抓取討論串...")
+    
+    # 使用台北時區獲取當前日期
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
 
     # 1. 抓取討論區列表
     print(f"📋 [{name}] 步驟1: 獲取討論區列表...")
@@ -491,12 +500,12 @@ def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
         cursor.execute("""
             INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
             VALUES (%s, %s, %s, %s, %s)
-        """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+        """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
     else:
         cursor.execute("""
             INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
             VALUES (?, ?, ?, ?, ?)
-        """, (objectid, name, json.dumps(threads, ensure_ascii=False), datetime.utcnow().strftime("%Y-%m-%d"), datetime.utcnow().isoformat()))
+        """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
     conn.commit()
 
     print(f"✅ [{name}] 已抓取 {len(threads)} 個討論串")
@@ -513,7 +522,9 @@ def get_threads_by_objectid_with_cursor(cursor, objectid, config):
     return []
 
 def main():
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    # 使用台北時區獲取當前日期
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
     output_path = f"{OUTPUT_DIR}/forum_threads_{today}.json"
     # 檢查是否已有檔案且時間小於 7 天
     if os.path.exists(output_path):

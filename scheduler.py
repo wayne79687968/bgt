@@ -200,7 +200,9 @@ def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False, forc
         # 檢查報表檔案是否真的產生了
         print("\n🔍 [TASK] 檢查產生的報表檔案...")
         report_dir = "frontend/public/outputs"
-        today = datetime.now().strftime("%Y-%m-%d")
+        # 使用台北時區獲取當前日期
+        taipei_tz = pytz.timezone('Asia/Taipei')
+        today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
         expected_file = f"report-{today}-{lang}.md"
         expected_path = os.path.join(report_dir, expected_file)
 

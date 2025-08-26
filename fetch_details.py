@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 import os
 import time
 from datetime import datetime
+import pytz
 from database import get_db_connection, get_database_config, init_database
 
 # 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
@@ -12,7 +13,9 @@ print("🗃️ [FETCH_DETAILS] 開始主要處理...")
 
 # 設定
 batch_size = 10
-today = datetime.utcnow().strftime("%Y-%m-%d")
+# 使用台北時區獲取當前日期
+taipei_tz = pytz.timezone('Asia/Taipei')
+today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
 
 # 開啟資料庫連線
 print("🔗 開始處理遊戲詳細資料...")
