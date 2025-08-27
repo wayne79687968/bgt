@@ -8,6 +8,7 @@ import json
 import glob
 import sys
 import re
+import pytz
 
 def get_db_connection_sqlite(config):
     """SQLite 連接（備用）"""
@@ -359,7 +360,9 @@ def generate_single_report(target_date_str, detail_mode, lang):
                 try:
                     print(f"💾 保存報表內容到資料庫...")
                     final_content = "\n".join(markdown).replace("\\n", "\n")
-                    current_time = datetime.now().isoformat()
+                    # 使用台北時區時間戳
+                    taipei_tz = pytz.timezone('Asia/Taipei')
+                    current_time = datetime.now(taipei_tz).isoformat()
 
                     if config['type'] == 'postgresql':
                         cursor.execute("""
@@ -426,7 +429,9 @@ def main():
 
     # 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
     print("🗃️ [GENERATE_REPORT] 跳過數據庫初始化（由 scheduler.py 負責）")
-    print(f"🗃️ [GENERATE_REPORT] 當前時間: {datetime.utcnow().strftime('%H:%M:%S')}")
+    # 使用台北時區顯示當前時間
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    print(f"🗃️ [GENERATE_REPORT] 當前時間 (台北時區): {datetime.now(taipei_tz).strftime('%H:%M:%S')}")
     print("🗃️ [GENERATE_REPORT] 開始主要處理...")
 
     output_dir = "frontend/public/outputs"
@@ -471,8 +476,10 @@ def main():
             last_report_date = max(dates)
             print(f"📅 最新報表日期: {last_report_date}")
 
-    today_date = datetime.utcnow().date()
-    print(f"📅 今日日期: {today_date}")
+    # 使用台北時區獲取當前日期，與 scheduler.py 保持一致
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    today_date = datetime.now(taipei_tz).date()
+    print(f"📅 今日日期 (台北時區): {today_date}")
 
     dates_to_generate = []
     start_date = None
