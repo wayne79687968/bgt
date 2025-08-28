@@ -48,7 +48,7 @@ jobs:
 
         echo "🚀 Starting BGG report generation process..."
         echo "Base URL: ${BASE_URL}"
-        echo "Time: $(date -u) UTC"
+        echo "Time: $(TZ='Asia/Taipei' date '+%a %b %d %H:%M:%S %Z %Y') (Taipei Time)"
 
         # Function to make HTTP request with detailed logging
         make_request() {
@@ -98,14 +98,42 @@ jobs:
         fi
 
         # Step 2: Wait for application to fully start
-        echo "⏳ Step 2: Waiting 30 seconds for application to fully initialize..."
-        sleep 30
+        echo "⏳ Step 2: Waiting 60 seconds for application to fully initialize..."
+        sleep 60
+
+        # Step 2.5: Health check with retry
+        echo "🔍 Step 2.5: Performing health check..."
+        HEALTH_URL="${BASE_URL}/health"
+        HEALTH_RETRIES=5
+        HEALTH_DELAY=30
+        
+        for health_attempt in $(seq 1 $HEALTH_RETRIES); do
+          echo "🏥 Health check ${health_attempt}/${HEALTH_RETRIES}:"
+          if make_request "${HEALTH_URL}" "GET" "Health check"; then
+            if [ "${http_status}" = "200" ]; then
+              echo "✅ Application is healthy!"
+              break
+            elif [ "${http_status}" = "404" ]; then
+              echo "⚠️  Health endpoint not found, assuming app is running..."
+              break
+            else
+              echo "⚠️  Health check returned ${http_status}"
+            fi
+          else
+            echo "⚠️  Health check request failed"
+          fi
+          
+          if [ $health_attempt -lt $HEALTH_RETRIES ]; then
+            echo "💤 Waiting ${HEALTH_DELAY} seconds before next health check..."
+            sleep $HEALTH_DELAY
+          fi
+        done
 
         # Step 3: Trigger report generation with retry logic
         echo "📊 Step 3: Triggering report generation..."
         
-        MAX_RETRIES=3
-        RETRY_DELAY=60
+        MAX_RETRIES=5
+        RETRY_DELAY=90
         
         for attempt in $(seq 1 $MAX_RETRIES); do
           echo "🔄 Attempt ${attempt}/${MAX_RETRIES}:"
