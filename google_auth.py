@@ -29,7 +29,7 @@ class GoogleAuth:
         self.admin_email = 'wayne79687968@gmail.com'  # 管理員 email
         
         if not self.client_id or not self.client_secret:
-            logger.warning("Google OAuth 未完整配置")
+            logger.info("Google OAuth 未配置（已改用 Email 認證系統）")
     
     def get_google_provider_cfg(self):
         """獲取 Google OAuth 配置"""

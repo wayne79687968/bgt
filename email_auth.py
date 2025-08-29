@@ -34,7 +34,7 @@ class EmailAuth:
         self.admin_email = 'wayne79687968@gmail.com'
         
         if not all([self.smtp_username, self.smtp_password]):
-            logger.warning("Email 服務未完整配置")
+            logger.info("SMTP Email 服務未配置（驗證碼功能將不可用）")
     
     def generate_verification_code(self, length=6):
         """生成驗證碼"""
