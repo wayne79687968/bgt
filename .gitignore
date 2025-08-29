@@ -22,6 +22,7 @@ wheels/
 
 # Virtual Environment
 venv/
+.venv/
 env/
 ENV/
 
@@ -64,3 +65,16 @@ frontend/
 # Deployment scripts (after deployment)
 deploy_*.sh
 check_*.py
+
+# Personal files
+Portfolio Site Texture.jpg
+*.jpg
+*.png
+*.gif
+
+# External packages/submodules
+board-game-recommender/
+
+# Data directory (keep structure but ignore some content)
+data/bgg_rag.db
+data/cache/
