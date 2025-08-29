@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}登入 - BGG 綜合分析平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-4">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title mb-3">🎲 BGG 分析平台</h2>
+                        <p class="text-muted">請登入您的帳號</p>
+                    </div>
+                    
+                    <!-- 登入表單 -->
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email 地址</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密碼</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                                <span class="spinner-border spinner-border-sm d-none" id="loginSpinner"></span>
+                                登入
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- 註冊和忘記密碼連結 -->
+                    <div class="text-center">
+                        <p class="mb-2">
+                            <small>還沒有帳號？<a href="{{ url_for('register') }}">立即註冊</a></small>
+                        </p>
+                        <p>
+                            <small><a href="{{ url_for('forgot_password') }}">忘記密碼？</a></small>
+                        </p>
+                    </div>
+                    
+                    <!-- 或分隔線 -->
+                    <div class="text-center my-3">
+                        <small class="text-muted">或使用驗證碼登入</small>
+                    </div>
+                    
+                    <!-- 驗證碼登入表單 -->
+                    <form id="codeLoginForm">
+                        <div class="mb-3">
+                            <label for="codeEmail" class="form-label">Email 地址</label>
+                            <input type="email" class="form-control" id="codeEmail" name="email" required>
+                        </div>
+                        <div class="d-grid mb-3">
+                            <button type="button" class="btn btn-outline-secondary" id="sendCodeBtn">
+                                <span class="spinner-border spinner-border-sm d-none" id="sendCodeSpinner"></span>
+                                發送驗證碼
+                            </button>
+                        </div>
+                        <div class="mb-3 d-none" id="codeInputGroup">
+                            <label for="verifyCode" class="form-label">驗證碼</label>
+                            <input type="text" class="form-control" id="verifyCode" name="code" maxlength="6" placeholder="請輸入6位數驗證碼">
+                            <div class="form-text">驗證碼將在10分鐘後失效</div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg d-none" id="verifyLoginBtn">
+                                <span class="spinner-border spinner-border-sm d-none" id="verifySpinner"></span>
+                                驗證登入
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 通知 -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">系統通知</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const codeLoginForm = document.getElementById('codeLoginForm');
+    const sendCodeBtn = document.getElementById('sendCodeBtn');
+    const verifyLoginBtn = document.getElementById('verifyLoginBtn');
+    
+    // 顯示通知
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toastNotification');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        toastMessage.textContent = message;
+        toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : type === 'success' ? 'bg-success text-white' : ''}`;
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+    
+    // 一般登入
+    loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const loginBtn = document.getElementById('loginBtn');
+        const loginSpinner = document.getElementById('loginSpinner');
+        
+        loginBtn.disabled = true;
+        loginSpinner.classList.remove('d-none');
+        
+        try {
+            const formData = new FormData(loginForm);
+            const response = await fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.get('email'),
+                    password: formData.get('password')
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('登入成功，正在跳轉...', 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirect || '/dashboard';
+                }, 1000);
+            } else {
+                showToast(result.message || '登入失敗', 'error');
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+        } finally {
+            loginBtn.disabled = false;
+            loginSpinner.classList.add('d-none');
+        }
+    });
+    
+    // 發送驗證碼
+    sendCodeBtn.addEventListener('click', async function() {
+        const email = document.getElementById('codeEmail').value;
+        if (!email) {
+            showToast('請輸入 Email 地址', 'error');
+            return;
+        }
+        
+        const sendCodeSpinner = document.getElementById('sendCodeSpinner');
+        sendCodeBtn.disabled = true;
+        sendCodeSpinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    type: 'login'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('驗證碼已發送到您的信箱', 'success');
+                document.getElementById('codeInputGroup').classList.remove('d-none');
+                document.getElementById('verifyLoginBtn').classList.remove('d-none');
+                
+                // 倒數計時
+                let countdown = 60;
+                sendCodeBtn.textContent = `重新發送 (${countdown})`;
+                const timer = setInterval(() => {
+                    countdown--;
+                    sendCodeBtn.textContent = `重新發送 (${countdown})`;
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        sendCodeBtn.textContent = '發送驗證碼';
+                        sendCodeBtn.disabled = false;
+                    }
+                }, 1000);
+            } else {
+                showToast(result.message || '發送失敗', 'error');
+                sendCodeBtn.disabled = false;
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+            sendCodeBtn.disabled = false;
+        } finally {
+            sendCodeSpinner.classList.add('d-none');
+        }
+    });
+    
+    // 驗證碼登入
+    codeLoginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('codeEmail').value;
+        const code = document.getElementById('verifyCode').value;
+        
+        if (!code) {
+            showToast('請輸入驗證碼', 'error');
+            return;
+        }
+        
+        const verifySpinner = document.getElementById('verifySpinner');
+        verifyLoginBtn.disabled = true;
+        verifySpinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/verify-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    code: code
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('驗證成功，正在跳轉...', 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirect || '/dashboard';
+                }, 1000);
+            } else {
+                showToast(result.message || '驗證失敗', 'error');
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+        } finally {
+            verifyLoginBtn.disabled = false;
+            verifySpinner.classList.add('d-none');
+        }
+    });
+});
+</script>
+{% endblock %}

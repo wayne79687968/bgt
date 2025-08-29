@@ -311,12 +311,27 @@ def init_database():
             CREATE TABLE IF NOT EXISTS users (
                 id {autoincrement_type},
                 email {text_type} UNIQUE NOT NULL,
-                google_id {text_type} UNIQUE,
+                password_hash {text_type},
                 name {text_type},
                 picture {text_type},
+                is_verified INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
                 has_full_access INTEGER DEFAULT 0,
                 created_at {text_type},
                 updated_at {text_type}
+            )
+            """,
+
+            # Email 驗證碼表
+            f"""
+            CREATE TABLE IF NOT EXISTS verification_codes (
+                id {autoincrement_type},
+                email {text_type} NOT NULL,
+                code {text_type} NOT NULL,
+                type {text_type} NOT NULL, -- 'register', 'password_reset', 'login'
+                expires_at {text_type} NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at {text_type} NOT NULL
             )
             """,
 

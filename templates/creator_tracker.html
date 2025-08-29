@@ -375,6 +375,13 @@
 <script>
 let currentUser = '{{ user_email or "" }}';
 
+// 獲取預設頭像 URL
+function getDefaultAvatar(name) {
+    // 使用 UI Avatars 服務生成基於姓名的頭像
+    const encodedName = encodeURIComponent(name || 'User');
+    return `https://ui-avatars.com/api/?name=${encodedName}&background=6c757d&color=fff&size=128&font-size=0.5`;
+}
+
 // 標籤頁切換
 function switchTab(tab) {
     // 更新標籤按鈕
@@ -454,9 +461,9 @@ function displaySearchResults(results) {
     resultsList.innerHTML = results.map(creator => `
         <div class="creator-card" onclick="showCreatorDetails(${creator.id}, '${creator.type}')">
             <div class="creator-header">
-                <img src="${creator.image_url || '/static/default-avatar.png'}" 
+                <img src="${creator.image_url || getDefaultAvatar(creator.name)}" 
                      alt="${creator.name}" class="creator-avatar"
-                     onerror="this.src='/static/default-avatar.png'">
+                     onerror="this.src=getDefaultAvatar('${creator.name}')">
                 <div class="creator-info">
                     <h3>${creator.name}</h3>
                     <span class="creator-type ${creator.type === 'boardgameartist' ? 'artist' : ''}">${creator.type === 'boardgameartist' ? '繪師' : '設計師'}</span>
@@ -627,9 +634,9 @@ function displayFollowingCreators(creators) {
     followingList.innerHTML = creators.map(creator => `
         <div class="creator-card" onclick="showCreatorDetails(${creator.bgg_id}, '${creator.type}')">
             <div class="creator-header">
-                <img src="${creator.image_url || '/static/default-avatar.png'}" 
+                <img src="${creator.image_url || getDefaultAvatar(creator.name)}" 
                      alt="${creator.name}" class="creator-avatar"
-                     onerror="this.src='/static/default-avatar.png'">
+                     onerror="this.src=getDefaultAvatar('${creator.name}')">
                 <div class="creator-info">
                     <h3>${creator.name}</h3>
                     <span class="creator-type ${creator.type === 'artist' ? 'artist' : ''}">${creator.type === 'artist' ? '繪師' : '設計師'}</span>

@@ -13,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 from database import get_db_connection, get_database_config
 from google_auth import GoogleAuth, login_required, admin_required, full_access_required, has_full_access, get_current_user
+from email_auth import EmailAuth
 import threading
 import time
 
@@ -159,6 +160,7 @@ logger = logging.getLogger(__name__)
 
 # Google OAuth 設定
 google_auth = GoogleAuth()
+email_auth = EmailAuth()
 
 # 註冊模板全域函數
 @app.context_processor
@@ -2412,12 +2414,12 @@ def index():
 
 @app.route('/login')
 def login():
-    """顯示 Google 登入頁面"""
+    """顯示登入頁面"""
     if 'user' in session:
         return redirect(url_for('dashboard'))
     
-    google_client_id = os.getenv('GOOGLE_CLIENT_ID', '')
-    return render_template('login.html', google_client_id=google_client_id)
+    # 使用新的 email 登入模板
+    return render_template('login_email.html')
 
 @app.route('/auth/google')
 def google_auth_callback():
@@ -2453,12 +2455,6 @@ def google_auth_callback():
         flash('登入失敗：無法創建用戶資料', 'error')
         return redirect(url_for('login'))
 
-@app.route('/logout')
-def logout():
-    """登出"""
-    session.clear()
-    flash('已登出', 'info')
-    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
@@ -3048,6 +3044,242 @@ def api_save_user_email():
     except Exception as e:
         logger.error(f"儲存用戶 Email 失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
+
+# ============================
+# Email 認證路由
+# ============================
+
+@app.route('/register')
+def register():
+    """註冊頁面"""
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('register.html')
+
+@app.route('/forgot-password')
+def forgot_password():
+    """忘記密碼頁面"""
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return render_template('forgot_password.html')
+
+@app.route('/auth/send-code', methods=['POST'])
+def send_verification_code():
+    """發送驗證碼"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        code_type = data.get('type', 'register')
+        
+        if not email:
+            return jsonify({'success': False, 'message': '請提供 Email 地址'})
+        
+        # 檢查 email 格式
+        import re
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return jsonify({'success': False, 'message': 'Email 格式無效'})
+        
+        # 對於登入和密碼重設，檢查用戶是否存在
+        if code_type in ['login', 'password_reset']:
+            user = email_auth.get_user_by_email(email)
+            if not user:
+                return jsonify({'success': False, 'message': '用戶不存在'})
+            if not user['is_active']:
+                return jsonify({'success': False, 'message': '帳號已被停用'})
+        
+        # 對於註冊，檢查用戶是否已存在
+        elif code_type == 'register':
+            user = email_auth.get_user_by_email(email)
+            if user:
+                return jsonify({'success': False, 'message': '此 Email 已註冊'})
+        
+        # 生成並發送驗證碼
+        code = email_auth.generate_verification_code()
+        
+        # 儲存驗證碼
+        if not email_auth.store_verification_code(email, code, code_type):
+            return jsonify({'success': False, 'message': '驗證碼儲存失敗'})
+        
+        # 發送郵件
+        if email_auth.send_verification_code(email, code, code_type):
+            return jsonify({'success': True, 'message': '驗證碼已發送'})
+        else:
+            return jsonify({'success': False, 'message': '郵件發送失敗，請檢查 SMTP 設定'})
+        
+    except Exception as e:
+        logger.error(f"發送驗證碼失敗: {e}")
+        return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
+
+@app.route('/auth/verify-code', methods=['POST'])
+def verify_code():
+    """驗證驗證碼"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        code = data.get('code', '').strip()
+        code_type = data.get('type', 'register')
+        
+        if not email or not code:
+            return jsonify({'success': False, 'message': '請提供 Email 和驗證碼'})
+        
+        # 驗證驗證碼
+        if email_auth.verify_code(email, code, code_type):
+            return jsonify({'success': True, 'message': '驗證成功'})
+        else:
+            return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
+        
+    except Exception as e:
+        logger.error(f"驗證驗證碼失敗: {e}")
+        return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
+
+@app.route('/auth/register', methods=['POST'])
+def register_user():
+    """完成用戶註冊"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        name = data.get('name', '').strip()
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': '請提供 Email 和密碼'})
+        
+        if len(password) < 6:
+            return jsonify({'success': False, 'message': '密碼至少需要6個字符'})
+        
+        # 創建用戶
+        user_data, message = email_auth.create_user(email, password, name)
+        
+        if user_data:
+            # 設定 session
+            session['user'] = user_data
+            return jsonify({
+                'success': True, 
+                'message': message,
+                'redirect': url_for('dashboard')
+            })
+        else:
+            return jsonify({'success': False, 'message': message})
+        
+    except Exception as e:
+        logger.error(f"用戶註冊失敗: {e}")
+        return jsonify({'success': False, 'message': f'註冊失敗: {str(e)}'})
+
+@app.route('/auth/login', methods=['POST'])
+def login_user():
+    """用戶登入"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'success': False, 'message': '請提供 Email 和密碼'})
+        
+        # 驗證用戶
+        user_data, message = email_auth.authenticate_user(email, password)
+        
+        if user_data:
+            # 設定 session
+            session['user'] = user_data
+            return jsonify({
+                'success': True,
+                'message': message,
+                'redirect': url_for('dashboard')
+            })
+        else:
+            return jsonify({'success': False, 'message': message})
+        
+    except Exception as e:
+        logger.error(f"用戶登入失敗: {e}")
+        return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
+
+@app.route('/auth/verify-login', methods=['POST'])
+def verify_login():
+    """驗證碼登入"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        code = data.get('code', '').strip()
+        
+        if not email or not code:
+            return jsonify({'success': False, 'message': '請提供 Email 和驗證碼'})
+        
+        # 檢查用戶是否存在
+        user_data = email_auth.get_user_by_email(email)
+        if not user_data:
+            return jsonify({'success': False, 'message': '用戶不存在'})
+        
+        if not user_data['is_active']:
+            return jsonify({'success': False, 'message': '帳號已被停用'})
+        
+        # 驗證驗證碼
+        if email_auth.verify_code(email, code, 'login'):
+            # 設定 session
+            session['user'] = user_data
+            return jsonify({
+                'success': True,
+                'message': '登入成功',
+                'redirect': url_for('dashboard')
+            })
+        else:
+            return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
+        
+    except Exception as e:
+        logger.error(f"驗證碼登入失敗: {e}")
+        return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
+
+@app.route('/auth/reset-password', methods=['POST'])
+def reset_password():
+    """重設密碼"""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        code = data.get('code', '').strip()
+        new_password = data.get('password', '')
+        
+        if not email or not code or not new_password:
+            return jsonify({'success': False, 'message': '請提供完整資訊'})
+        
+        if len(new_password) < 6:
+            return jsonify({'success': False, 'message': '密碼至少需要6個字符'})
+        
+        # 再次驗證驗證碼
+        if not email_auth.verify_code(email, code, 'password_reset'):
+            return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
+        
+        # 更新密碼
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                from database import execute_query
+                
+                password_hash = email_auth.hash_password(new_password)
+                updated_at = datetime.now().isoformat()
+                
+                execute_query(cursor, """
+                    UPDATE users 
+                    SET password_hash = ?, updated_at = ?
+                    WHERE email = ?
+                """, (password_hash, updated_at, email))
+                
+                conn.commit()
+                
+                return jsonify({'success': True, 'message': '密碼重設成功'})
+                
+        except Exception as e:
+            logger.error(f"更新密碼失敗: {e}")
+            return jsonify({'success': False, 'message': '密碼更新失敗'})
+        
+    except Exception as e:
+        logger.error(f"重設密碼失敗: {e}")
+        return jsonify({'success': False, 'message': f'重設失敗: {str(e)}'})
+
+@app.route('/logout')
+def logout():
+    """登出"""
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

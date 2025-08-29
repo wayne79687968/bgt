@@ -1,0 +1,12 @@
+This directory contains static images for the application.
+
+For default-avatar.png, you can:
+
+1. Use a placeholder service:
+   https://ui-avatars.com/api/?name=User&background=6c757d&color=fff&size=128
+
+2. Create a simple SVG avatar
+3. Download from a stock photo site
+4. Use a solid color placeholder
+
+The image should be 128x128px or similar square dimensions.

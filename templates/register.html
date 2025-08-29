@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}註冊 - BGG 綜合分析平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-4">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title mb-3">🎲 BGG 分析平台</h2>
+                        <p class="text-muted">創建您的帳號</p>
+                    </div>
+                    
+                    <!-- 步驟一：輸入 Email -->
+                    <div id="step1">
+                        <form id="emailForm">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email 地址</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                                <div class="form-text">我們將發送驗證碼到此信箱</div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="sendVerifyBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" id="emailSpinner"></span>
+                                    發送驗證碼
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- 步驟二：驗證 Email -->
+                    <div id="step2" class="d-none">
+                        <form id="verifyForm">
+                            <div class="alert alert-info">
+                                <small>驗證碼已發送到 <strong id="emailDisplay"></strong></small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="verifyCode" class="form-label">驗證碼</label>
+                                <input type="text" class="form-control" id="verifyCode" name="code" maxlength="6" placeholder="請輸入6位數驗證碼" required>
+                                <div class="form-text">驗證碼將在10分鐘後失效</div>
+                            </div>
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg" id="verifyBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" id="verifySpinner"></span>
+                                    驗證
+                                </button>
+                            </div>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="resendBtn">
+                                    重新發送驗證碼
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- 步驟三：設定密碼 -->
+                    <div id="step3" class="d-none">
+                        <form id="passwordForm">
+                            <div class="alert alert-success">
+                                <small>Email 驗證成功！請設定您的密碼</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="name" class="form-label">顯示名稱</label>
+                                <input type="text" class="form-control" id="name" name="name">
+                                <div class="form-text">可選，留空將使用 Email 前綴</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密碼</label>
+                                <input type="password" class="form-control" id="password" name="password" minlength="6" required>
+                                <div class="form-text">至少6個字符</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">確認密碼</label>
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg" id="registerBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" id="registerSpinner"></span>
+                                    完成註冊
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p><small>已有帳號？<a href="{{ url_for('login') }}">立即登入</a></small></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast 通知 -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">系統通知</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentEmail = '';
+    
+    // 顯示通知
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toastNotification');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        toastMessage.textContent = message;
+        toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : type === 'success' ? 'bg-success text-white' : ''}`;
+        
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+    
+    // 步驟一：發送驗證碼
+    document.getElementById('emailForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const sendVerifyBtn = document.getElementById('sendVerifyBtn');
+        const emailSpinner = document.getElementById('emailSpinner');
+        
+        sendVerifyBtn.disabled = true;
+        emailSpinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    type: 'register'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                currentEmail = email;
+                document.getElementById('emailDisplay').textContent = email;
+                document.getElementById('step1').classList.add('d-none');
+                document.getElementById('step2').classList.remove('d-none');
+                showToast('驗證碼已發送到您的信箱', 'success');
+            } else {
+                showToast(result.message || '發送失敗', 'error');
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+        } finally {
+            sendVerifyBtn.disabled = false;
+            emailSpinner.classList.add('d-none');
+        }
+    });
+    
+    // 步驟二：驗證碼驗證
+    document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const code = document.getElementById('verifyCode').value;
+        const verifyBtn = document.getElementById('verifyBtn');
+        const verifySpinner = document.getElementById('verifySpinner');
+        
+        verifyBtn.disabled = true;
+        verifySpinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/verify-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: currentEmail,
+                    code: code,
+                    type: 'register'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('step2').classList.add('d-none');
+                document.getElementById('step3').classList.remove('d-none');
+                showToast('驗證成功！請設定密碼', 'success');
+            } else {
+                showToast(result.message || '驗證失敗', 'error');
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+        } finally {
+            verifyBtn.disabled = false;
+            verifySpinner.classList.add('d-none');
+        }
+    });
+    
+    // 重新發送驗證碼
+    document.getElementById('resendBtn').addEventListener('click', async function() {
+        const resendBtn = this;
+        resendBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/auth/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: currentEmail,
+                    type: 'register'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('驗證碼已重新發送', 'success');
+                
+                // 倒數計時
+                let countdown = 60;
+                resendBtn.textContent = `重新發送 (${countdown})`;
+                const timer = setInterval(() => {
+                    countdown--;
+                    resendBtn.textContent = `重新發送 (${countdown})`;
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        resendBtn.textContent = '重新發送驗證碼';
+                        resendBtn.disabled = false;
+                    }
+                }, 1000);
+            } else {
+                showToast(result.message || '發送失敗', 'error');
+                resendBtn.disabled = false;
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+            resendBtn.disabled = false;
+        }
+    });
+    
+    // 步驟三：設定密碼並完成註冊
+    document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (password !== confirmPassword) {
+            showToast('密碼確認不一致', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showToast('密碼至少需要6個字符', 'error');
+            return;
+        }
+        
+        const registerBtn = document.getElementById('registerBtn');
+        const registerSpinner = document.getElementById('registerSpinner');
+        
+        registerBtn.disabled = true;
+        registerSpinner.classList.remove('d-none');
+        
+        try {
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: currentEmail,
+                    password: password,
+                    name: name
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('註冊成功！正在跳轉...', 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirect || '/dashboard';
+                }, 1500);
+            } else {
+                showToast(result.message || '註冊失敗', 'error');
+            }
+        } catch (error) {
+            showToast('網絡錯誤，請稍後再試', 'error');
+        } finally {
+            registerBtn.disabled = false;
+            registerSpinner.classList.add('d-none');
+        }
+    });
+    
+    // 密碼確認即時驗證
+    document.getElementById('confirmPassword').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        const confirmPassword = this.value;
+        
+        if (confirmPassword && password !== confirmPassword) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}
