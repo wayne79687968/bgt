@@ -84,32 +84,51 @@ def get_db_connection():
         try:
             import psycopg2
         except ImportError:
-            print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
-            # 回退到 SQLite
-            import sqlite3
-            conn = sqlite3.connect('data/bgg_rag.db')
-            yield conn
-            if 'conn' in locals() and conn:
-                conn.close()
-            return
+            # 在 Zeabur 環境中，PostgreSQL 套件必須可用
+            if os.getenv('DATABASE_URL'):
+                raise ImportError("PostgreSQL 套件未安裝，但 DATABASE_URL 已設定")
+            else:
+                print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
+                import sqlite3
+                conn = sqlite3.connect('data/bgg_rag.db')
+                yield conn
+                if 'conn' in locals() and conn:
+                    conn.close()
+                return
 
-        # 添加連接超時設置
-        try:
-            print("🔗 正在建立 PostgreSQL 連接...")
-            conn = psycopg2.connect(
-                config['url'],
-                connect_timeout=10  # 連接超時 10 秒
-            )
-            print("✅ PostgreSQL 連接建立成功")
-            yield conn
-        except psycopg2.OperationalError as e:
-            print(f"❌ PostgreSQL 連接失敗: {e}")
-            print("🔄 回退到 SQLite 資料庫...")
-            # 回退到 SQLite
-            import sqlite3
-            conn = sqlite3.connect('data/bgg_rag.db')
-            print("✅ SQLite 連接建立成功")
-            yield conn
+        # 添加連接重試邏輯
+        max_retries = 5
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
+                conn = psycopg2.connect(
+                    config['url'],
+                    connect_timeout=30  # 增加連接超時到 30 秒
+                )
+                print("✅ PostgreSQL 連接建立成功")
+                yield conn
+                return
+            except psycopg2.OperationalError as e:
+                print(f"❌ PostgreSQL 連接失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
+                
+                if attempt == max_retries - 1:
+                    # 如果有 DATABASE_URL，說明是在 Zeabur 環境，不應該回退
+                    if os.getenv('DATABASE_URL'):
+                        print("🚨 在 Zeabur 環境中 PostgreSQL 連接失敗，不回退到 SQLite")
+                        raise e
+                    else:
+                        print("🔄 回退到 SQLite 資料庫...")
+                        import sqlite3
+                        conn = sqlite3.connect('data/bgg_rag.db')
+                        print("✅ SQLite 連接建立成功")
+                        yield conn
+                        return
+                else:
+                    import time
+                    print(f"⏳ {retry_delay} 秒後重試...")
+                    time.sleep(retry_delay)
         finally:
             if 'conn' in locals() and conn:
                 conn.close()

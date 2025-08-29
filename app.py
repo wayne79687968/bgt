@@ -162,6 +162,17 @@ logger = logging.getLogger(__name__)
 google_auth = GoogleAuth()
 email_auth = EmailAuth()
 
+# 資料庫初始化（僅在 Zeabur 環境中需要）
+if os.getenv('DATABASE_URL'):
+    try:
+        from database import init_database
+        print("🗃️ 檢測到 PostgreSQL 環境，檢查資料庫結構...")
+        init_database()
+        print("✅ PostgreSQL 資料庫結構確認完成")
+    except Exception as e:
+        print(f"⚠️ 資料庫初始化警告: {e}")
+        # 不阻止應用啟動，後續操作會觸發重試
+
 # 註冊模板全域函數
 @app.context_processor
 def inject_auth_functions():

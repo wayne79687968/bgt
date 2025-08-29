@@ -26,9 +26,8 @@ services:
       SMTP_PASSWORD: your-app-password
       FROM_EMAIL: your-email@gmail.com
       FROM_NAME: BGG 設計師追蹤
-    # 移除 PostgreSQL 強依賴，改為可選依賴
-    # dependencies:
-    #   - postgresql
+    dependencies:
+      - postgresql
     healthcheck:
       endpoint: /health
       interval: 120s
@@ -38,9 +37,6 @@ services:
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs
-      - name: data
-        mount: /app/data
 
 volumes:
   reports:
-  data:
