@@ -54,7 +54,17 @@ def execute_query(cursor, query, params=(), config_type=None):
         config_type: 數據庫類型，如果不提供會自動獲取
     """
     if config_type is None:
-        config_type = get_database_config()['type']
+        try:
+            config_type = get_database_config()['type']
+            # 如果配置是 PostgreSQL 但實際連接失敗回退到 SQLite，則使用 SQLite 語法
+            # 這裡通過檢查 cursor 類型來判斷實際使用的資料庫
+            if hasattr(cursor, '__class__'):
+                if 'sqlite3' in str(cursor.__class__):
+                    config_type = 'sqlite'
+                elif 'psycopg2' in str(cursor.__class__):
+                    config_type = 'postgresql'
+        except:
+            config_type = 'sqlite'  # 預設使用 SQLite
 
     if config_type == 'postgresql':
         # PostgreSQL 使用 %s
@@ -74,7 +84,14 @@ def get_db_connection():
         try:
             import psycopg2
         except ImportError:
-            raise ImportError("PostgreSQL 支援需要安裝 psycopg2 套件")
+            print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
+            # 回退到 SQLite
+            import sqlite3
+            conn = sqlite3.connect('data/bgg_rag.db')
+            yield conn
+            if 'conn' in locals() and conn:
+                conn.close()
+            return
 
         # 添加連接超時設置
         try:
@@ -87,7 +104,12 @@ def get_db_connection():
             yield conn
         except psycopg2.OperationalError as e:
             print(f"❌ PostgreSQL 連接失敗: {e}")
-            raise
+            print("🔄 回退到 SQLite 資料庫...")
+            # 回退到 SQLite
+            import sqlite3
+            conn = sqlite3.connect('data/bgg_rag.db')
+            print("✅ SQLite 連接建立成功")
+            yield conn
         finally:
             if 'conn' in locals() and conn:
                 conn.close()
