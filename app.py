@@ -2732,7 +2732,23 @@ def api_check_database():
 @app.route('/health')
 def health():
     """健康檢查端點"""
-    return {'status': 'ok', 'timestamp': datetime.now().isoformat()}
+    try:
+        # 測試資料庫連接（但不初始化）
+        from database import get_db_connection
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            db_status = 'connected'
+    except Exception as e:
+        db_status = f'error: {str(e)[:100]}'
+    
+    return {
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'database': db_status,
+        'python_version': sys.version,
+        'port': os.getenv('PORT', 'not set')
+    }
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
