@@ -331,6 +331,59 @@ def init_database():
                 updated_at {text_type} NOT NULL,
                 UNIQUE(report_date, lang)
             )
+            """,
+
+            # 設計師/繪師資料表
+            f"""
+            CREATE TABLE IF NOT EXISTS creators (
+                id INTEGER PRIMARY KEY,
+                bgg_id INTEGER UNIQUE NOT NULL,
+                name {text_type} NOT NULL,
+                type {text_type} NOT NULL, -- 'designer' or 'artist'
+                description {text_type},
+                image_url {text_type},
+                slug {text_type},
+                created_at {text_type},
+                updated_at {text_type}
+            )
+            """,
+
+            # 設計師/繪師的遊戲作品
+            f"""
+            CREATE TABLE IF NOT EXISTS creator_games (
+                creator_id INTEGER,
+                bgg_game_id INTEGER,
+                game_name {text_type},
+                year_published INTEGER,
+                rating REAL,
+                rank_position INTEGER,
+                created_at {text_type},
+                PRIMARY KEY (creator_id, bgg_game_id)
+            )
+            """,
+
+            # 用戶追蹤設計師/繪師
+            f"""
+            CREATE TABLE IF NOT EXISTS user_follows (
+                user_email {text_type} NOT NULL,
+                creator_id INTEGER NOT NULL,
+                followed_at {text_type},
+                PRIMARY KEY (user_email, creator_id)
+            )
+            """,
+
+            # 新遊戲通知記錄
+            f"""
+            CREATE TABLE IF NOT EXISTS game_notifications (
+                id {autoincrement_type},
+                creator_id INTEGER NOT NULL,
+                bgg_game_id INTEGER NOT NULL,
+                game_name {text_type},
+                year_published INTEGER,
+                notified_users {text_type}, -- JSON array of user emails
+                created_at {text_type},
+                sent_at {text_type}
+            )
             """
         ]
 

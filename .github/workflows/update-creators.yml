@@ -1,0 +1,136 @@
+name: Update Creator Games
+
+on:
+  schedule:
+    # 每週三 14:00 UTC (台北時間 22:00) 執行
+    - cron: '0 14 * * 3'
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: '強制更新所有設計師/繪師'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  update-creators:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+    - name: Validate inputs (secrets)
+      env:
+        ZEABUR_URL: ${{ secrets.ZEABUR_APP_URL }}
+        CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
+      run: |
+        if [ -z "${ZEABUR_URL:-}" ]; then
+          echo "❌ 缺少必需的 Secrets: ZEABUR_APP_URL"
+          exit 2
+        fi
+        if [ -z "${CRON_TOKEN:-}" ]; then
+          echo "❌ 缺少必需的 Secrets: CRON_SECRET_TOKEN"
+          exit 2
+        fi
+
+    - name: Update creator games
+      env:
+        ZEABUR_URL: ${{ secrets.ZEABUR_APP_URL }}
+        CRON_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
+      shell: bash
+      run: |
+        set -u
+        BASE_URL="${ZEABUR_URL%/}"
+        UPDATE_URL="${BASE_URL}/api/cron-update-creators"
+
+        echo "🎨 Starting creator games update process..."
+        echo "Base URL: ${BASE_URL}"
+        echo "Time: $(TZ='Asia/Taipei' date '+%a %b %d %H:%M:%S %Z %Y') (Taipei Time)"
+
+        # Function to make HTTP request
+        make_request() {
+          local url="$1"
+          local method="${2:-POST}"
+          local data="${3:-{}}"
+          local description="$4"
+          
+          echo "📡 ${description}..."
+          echo "  URL: ${url}"
+          echo "  Method: ${method}"
+          
+          set +e
+          http_status=$(curl -sS -w "%{http_code}" -o /tmp/response.json \
+            --connect-timeout 30 --max-time 1800 \
+            -X "${method}" \
+            -H "Authorization: Bearer ${CRON_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "${data}" \
+            "${url}")
+          curl_exit=$?
+          set -e
+          
+          echo "  Exit code: ${curl_exit}"
+          echo "  HTTP status: ${http_status}"
+          echo "  Response:"
+          cat /tmp/response.json 2>/dev/null || echo "    (no response content)"
+          echo ""
+          
+          return $curl_exit
+        }
+
+        # Wake up the application first
+        echo "🔥 Step 1: Waking up application..."
+        WAKE_URL="${BASE_URL}/"
+        if make_request "${WAKE_URL}" "GET" "{}" "Wake up application"; then
+          echo "✅ Application wake up request sent"
+        else
+          echo "⚠️  Wake up request failed, but continuing..."
+        fi
+
+        # Wait for application to be ready
+        echo "⏳ Step 2: Waiting 30 seconds for application to be ready..."
+        sleep 30
+
+        # Trigger creator update
+        echo "🎨 Step 3: Triggering creator games update..."
+        
+        UPDATE_DATA="{\"force\": ${{ inputs.force_update || false }}}"
+        
+        MAX_RETRIES=3
+        RETRY_DELAY=60
+        
+        for attempt in $(seq 1 $MAX_RETRIES); do
+          echo "🔄 Attempt ${attempt}/${MAX_RETRIES}:"
+          
+          if make_request "${UPDATE_URL}" "POST" "${UPDATE_DATA}" "Trigger creator update"; then
+            if [ "${http_status}" = "200" ]; then
+              echo "✅ Creator games update triggered successfully!"
+              exit 0
+            elif [ "${http_status}" = "502" ] || [ "${http_status}" = "503" ] || [ "${http_status}" = "504" ]; then
+              echo "⚠️  Server error (${http_status}) - application might still be processing..."
+              if [ $attempt -lt $MAX_RETRIES ]; then
+                echo "💤 Waiting ${RETRY_DELAY} seconds before retry..."
+                sleep $RETRY_DELAY
+                continue
+              fi
+            else
+              echo "❌ Request failed with status ${http_status}"
+              break
+            fi
+          else
+            echo "❌ Request failed with curl exit code ${curl_exit}"
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "💤 Waiting ${RETRY_DELAY} seconds before retry..."
+              sleep $RETRY_DELAY
+              continue
+            fi
+          fi
+        done
+
+        echo "❌ Creator update failed after ${MAX_RETRIES} attempts"
+        echo "💡 Troubleshooting tips:"
+        echo "  - Check if ZEABUR_APP_URL is correct and includes http(s)://"
+        echo "  - Verify CRON_SECRET_TOKEN matches your application configuration"
+        echo "  - Ensure your Zeabur application is running and not crashed"
+        echo "  - Check application logs in Zeabur dashboard"
+        exit 1

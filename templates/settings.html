@@ -6,6 +6,30 @@
 <div class="container-fluid mt-3">
     <h2>⚙️ 系統設定</h2>
 
+    <!-- Email 通知設定 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📧 Email 通知設定</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-2 align-items-center">
+                <div class="col-auto">
+                    <label for="user-email" class="col-form-label">Email 地址</label>
+                </div>
+                <div class="col-auto">
+                    <input type="email" id="user-email" class="form-control" placeholder="your@email.com" value="{{ user_email or '' }}">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary" onclick="saveUserEmail()">💾 儲存</button>
+                </div>
+            </div>
+            <div class="form-text mt-2">
+                設定 Email 地址後，當您追蹤的設計師/繪師有新作品發布時，系統會自動發送通知。
+                <br><small class="text-warning">⚠️ 使用追蹤功能必須先設定 Email 地址</small>
+            </div>
+        </div>
+    </div>
+
     <!-- BGG 使用者設定 -->
     <div class="card mb-4">
         <div class="card-header">
@@ -208,6 +232,36 @@
 </div>
 
 <script>
+function saveUserEmail() {
+    const email = document.getElementById('user-email').value.trim();
+    if (!email) {
+        showAlert('danger', '請輸入 Email 地址');
+        return;
+    }
+    
+    // 簡單的 email 格式驗證
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showAlert('danger', '請輸入有效的 Email 地址');
+        return;
+    }
+    
+    fetch('/api/save-user-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+        } else {
+            showAlert('danger', data.message || 'Email 儲存失敗');
+        }
+    }).catch(err => {
+        console.error(err);
+        showAlert('danger', 'Email 儲存失敗');
+    });
+}
+
 function saveSettings() {
     const username = document.getElementById('bgg-username').value.trim();
     if (!username) {

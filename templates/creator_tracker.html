@@ -1,0 +1,717 @@
+{% extends "base.html" %}
+
+{% block title %}設計師/繪師追蹤 - BGG 熱門桌遊追蹤器{% endblock %}
+
+{% block extra_head %}
+<style>
+.creator-search {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.search-form {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: end;
+}
+
+.search-input {
+    flex: 1;
+}
+
+.search-input input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.search-input input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.search-type {
+    min-width: 150px;
+}
+
+.search-type select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+}
+
+.search-btn {
+    padding: 12px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.search-btn:hover {
+    background: #0056b3;
+}
+
+.search-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.results-section, .following-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-title .icon {
+    font-size: 28px;
+}
+
+.creator-list {
+    display: grid;
+    gap: 20px;
+}
+
+.creator-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.creator-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.creator-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.creator-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+}
+
+.creator-info h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 20px;
+}
+
+.creator-type {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.creator-type.artist {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.creator-description {
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.creator-games {
+    margin-bottom: 15px;
+}
+
+.creator-games h4 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.games-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.game-tag {
+    background: #f8f9fa;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    border: 1px solid #dee2e6;
+}
+
+.creator-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.follow-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.follow-btn.following {
+    background: #28a745;
+    color: white;
+}
+
+.follow-btn.not-following {
+    background: #007bff;
+    color: white;
+}
+
+.follow-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.follow-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.creator-stats {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c6cb;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state .icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.tabs {
+    display: flex;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.tab {
+    flex: 1;
+    padding: 15px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.tab.active {
+    background: #007bff;
+    color: white;
+}
+
+.tab:hover:not(.active) {
+    background: #e9ecef;
+}
+
+@media (max-width: 768px) {
+    .search-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .creator-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .creator-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="creator-search">
+    <h1 class="section-title">
+        <span class="icon">🎨</span>
+        設計師/繪師追蹤
+    </h1>
+    
+    <!-- 標籤頁 -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('search')">搜尋新設計師</button>
+        <button class="tab" onclick="switchTab('following')">我的追蹤列表</button>
+    </div>
+    
+    <!-- 搜尋頁面 -->
+    <div id="search-tab" class="tab-content">
+        <div class="search-form">
+            <form id="search-form">
+                <div class="search-input-group">
+                    <div class="search-input">
+                        <label for="query">設計師/繪師名稱</label>
+                        <input type="text" id="query" name="query" placeholder="例如: Vital Lacerda" required>
+                    </div>
+                    <div class="search-type">
+                        <label for="type">類型</label>
+                        <select id="type" name="type">
+                            <option value="boardgamedesigner">設計師</option>
+                            <option value="boardgameartist">繪師</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="search-btn" id="search-btn">
+                        搜尋
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="search-results" class="results-section" style="display: none;">
+            <h2 class="section-title">
+                <span class="icon">🔍</span>
+                搜尋結果
+            </h2>
+            <div id="results-list" class="creator-list"></div>
+        </div>
+    </div>
+    
+    <!-- 追蹤列表頁面 -->
+    <div id="following-tab" class="tab-content" style="display: none;">
+        <div class="following-section">
+            <h2 class="section-title">
+                <span class="icon">⭐</span>
+                我的追蹤列表
+            </h2>
+            <div id="following-list" class="creator-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 設計師詳細資料彈窗 -->
+<div id="creator-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modal-content"></div>
+    </div>
+</div>
+
+<script>
+let currentUser = '{{ user_email or "" }}';
+
+// 標籤頁切換
+function switchTab(tab) {
+    // 更新標籤按鈕
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // 顯示對應內容
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    document.getElementById(tab + '-tab').style.display = 'block';
+    
+    // 如果是追蹤列表頁，載入追蹤的設計師
+    if (tab === 'following') {
+        loadFollowingCreators();
+    }
+}
+
+// 搜尋表單處理
+document.getElementById('search-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const query = document.getElementById('query').value.trim();
+    const type = document.getElementById('type').value;
+    
+    if (!query) return;
+    
+    const searchBtn = document.getElementById('search-btn');
+    const resultsDiv = document.getElementById('search-results');
+    const resultsList = document.getElementById('results-list');
+    
+    // 顯示載入狀態
+    searchBtn.disabled = true;
+    searchBtn.textContent = '搜尋中...';
+    resultsDiv.style.display = 'block';
+    resultsList.innerHTML = '<div class="loading">🔍 搜尋中...</div>';
+    
+    try {
+        const response = await fetch('/api/creators/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query, type })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySearchResults(data.results);
+        } else {
+            resultsList.innerHTML = `<div class="error">搜尋失敗: ${data.message}</div>`;
+        }
+    } catch (error) {
+        resultsList.innerHTML = `<div class="error">搜尋失敗: ${error.message}</div>`;
+    } finally {
+        searchBtn.disabled = false;
+        searchBtn.textContent = '搜尋';
+    }
+});
+
+// 顯示搜尋結果
+function displaySearchResults(results) {
+    const resultsList = document.getElementById('results-list');
+    
+    if (results.length === 0) {
+        resultsList.innerHTML = `
+            <div class="empty-state">
+                <div class="icon">🤷‍♀️</div>
+                <h3>沒有找到結果</h3>
+                <p>請嘗試不同的搜尋詞或檢查拼寫</p>
+            </div>
+        `;
+        return;
+    }
+    
+    resultsList.innerHTML = results.map(creator => `
+        <div class="creator-card" onclick="showCreatorDetails(${creator.id}, '${creator.type}')">
+            <div class="creator-header">
+                <img src="${creator.image_url || '/static/default-avatar.png'}" 
+                     alt="${creator.name}" class="creator-avatar"
+                     onerror="this.src='/static/default-avatar.png'">
+                <div class="creator-info">
+                    <h3>${creator.name}</h3>
+                    <span class="creator-type ${creator.type === 'boardgameartist' ? 'artist' : ''}">${creator.type === 'boardgameartist' ? '繪師' : '設計師'}</span>
+                </div>
+            </div>
+            <div class="creator-actions">
+                <button class="follow-btn not-following" 
+                        onclick="event.stopPropagation(); toggleFollow(${creator.id}, '${creator.type}', this)">
+                    追蹤
+                </button>
+                <div class="creator-stats">
+                    點擊查看詳細資料
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 顯示設計師詳細資料
+async function showCreatorDetails(creatorId, type) {
+    const modal = document.getElementById('creator-modal');
+    const modalContent = document.getElementById('modal-content');
+    
+    modal.style.display = 'block';
+    modalContent.innerHTML = '<div class="loading">載入中...</div>';
+    
+    try {
+        const response = await fetch(`/api/creators/${creatorId}/${type}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const creator = data.creator;
+            modalContent.innerHTML = `
+                <div class="creator-detail">
+                    <div class="creator-header">
+                        <img src="${creator.image_url || '/static/default-avatar.png'}" 
+                             alt="${creator.name}" class="creator-avatar"
+                             style="width: 80px; height: 80px;">
+                        <div class="creator-info">
+                            <h2>${creator.name}</h2>
+                            <span class="creator-type ${creator.type === 'artist' ? 'artist' : ''}">${creator.type === 'artist' ? '繪師' : '設計師'}</span>
+                        </div>
+                    </div>
+                    <div class="creator-description">
+                        <h3>簡介</h3>
+                        <p>${creator.description || '暫無簡介資料'}</p>
+                    </div>
+                    <div class="creator-games">
+                        <h3>代表作品 (前5名)</h3>
+                        <div class="games-list">
+                            ${(creator.top_games || []).map(game => `
+                                <div class="game-tag">${game.name}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="creator-actions">
+                        <button class="follow-btn ${creator.is_following ? 'following' : 'not-following'}" 
+                                onclick="toggleFollow(${creator.id}, '${creator.type}', this)">
+                            ${creator.is_following ? '取消追蹤' : '追蹤'}
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            modalContent.innerHTML = `<div class="error">載入失敗: ${data.message}</div>`;
+        }
+    } catch (error) {
+        modalContent.innerHTML = `<div class="error">載入失敗: ${error.message}</div>`;
+    }
+}
+
+// 關閉彈窗
+function closeModal() {
+    document.getElementById('creator-modal').style.display = 'none';
+}
+
+// 追蹤/取消追蹤
+async function toggleFollow(creatorId, type, button) {
+    if (!currentUser) {
+        alert('請先登入才能使用追蹤功能');
+        return;
+    }
+    
+    const isFollowing = button.classList.contains('following');
+    button.disabled = true;
+    button.textContent = isFollowing ? '取消中...' : '追蹤中...';
+    
+    try {
+        const response = await fetch('/api/creators/follow', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                creator_id: creatorId, 
+                type: type,
+                action: isFollowing ? 'unfollow' : 'follow'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (isFollowing) {
+                button.classList.remove('following');
+                button.classList.add('not-following');
+                button.textContent = '追蹤';
+            } else {
+                button.classList.remove('not-following');
+                button.classList.add('following');
+                button.textContent = '取消追蹤';
+            }
+        } else {
+            alert(`操作失敗: ${data.message}`);
+        }
+    } catch (error) {
+        alert(`操作失敗: ${error.message}`);
+    } finally {
+        button.disabled = false;
+    }
+}
+
+// 載入追蹤的設計師列表
+async function loadFollowingCreators() {
+    const followingList = document.getElementById('following-list');
+    
+    if (!currentUser) {
+        followingList.innerHTML = `
+            <div class="empty-state">
+                <div class="icon">🔒</div>
+                <h3>請先登入</h3>
+                <p>登入後即可查看您追蹤的設計師和繪師</p>
+            </div>
+        `;
+        return;
+    }
+    
+    followingList.innerHTML = '<div class="loading">載入中...</div>';
+    
+    try {
+        const response = await fetch('/api/creators/following');
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.creators.length === 0) {
+                followingList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">⭐</div>
+                        <h3>尚未追蹤任何設計師</h3>
+                        <p>使用搜尋功能找到喜歡的設計師或繪師並開始追蹤</p>
+                    </div>
+                `;
+            } else {
+                displayFollowingCreators(data.creators);
+            }
+        } else {
+            followingList.innerHTML = `<div class="error">載入失敗: ${data.message}</div>`;
+        }
+    } catch (error) {
+        followingList.innerHTML = `<div class="error">載入失敗: ${error.message}</div>`;
+    }
+}
+
+// 顯示追蹤的設計師列表
+function displayFollowingCreators(creators) {
+    const followingList = document.getElementById('following-list');
+    
+    followingList.innerHTML = creators.map(creator => `
+        <div class="creator-card" onclick="showCreatorDetails(${creator.bgg_id}, '${creator.type}')">
+            <div class="creator-header">
+                <img src="${creator.image_url || '/static/default-avatar.png'}" 
+                     alt="${creator.name}" class="creator-avatar"
+                     onerror="this.src='/static/default-avatar.png'">
+                <div class="creator-info">
+                    <h3>${creator.name}</h3>
+                    <span class="creator-type ${creator.type === 'artist' ? 'artist' : ''}">${creator.type === 'artist' ? '繪師' : '設計師'}</span>
+                </div>
+            </div>
+            <div class="creator-description">
+                ${creator.description ? creator.description.substring(0, 100) + '...' : '暫無簡介'}
+            </div>
+            <div class="creator-actions">
+                <button class="follow-btn following" 
+                        onclick="event.stopPropagation(); toggleFollow(${creator.bgg_id}, '${creator.type}', this)">
+                    取消追蹤
+                </button>
+                <div class="creator-stats">
+                    追蹤於 ${new Date(creator.followed_at).toLocaleDateString()}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 點擊彈窗外部關閉彈窗
+window.onclick = function(event) {
+    const modal = document.getElementById('creator-modal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+</script>
+
+<!-- 彈窗樣式 -->
+<style>
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    margin: 5% auto;
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: #333;
+}
+
+.creator-detail .creator-header {
+    margin-bottom: 20px;
+}
+
+.creator-detail .creator-description,
+.creator-detail .creator-games {
+    margin-bottom: 20px;
+}
+
+.creator-detail .creator-actions {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+</style>
+{% endblock %}

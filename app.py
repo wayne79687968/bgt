@@ -1804,9 +1804,11 @@ def settings():
 
     available_dates = get_available_dates()
     bgg_username = get_app_setting('bgg_username', '')
+    user_email = session.get('user_email', '')
     return render_template('settings.html',
                            available_dates=available_dates,
                            bgg_username=bgg_username,
+                           user_email=user_email,
                            rg_model_dir=RG_DEFAULT_MODEL_DIR,
                            rg_games_file=RG_DEFAULT_GAMES_FILE,
                            rg_ratings_file=RG_DEFAULT_RATINGS_FILE,
@@ -2749,6 +2751,281 @@ def health():
         'python_version': sys.version,
         'port': os.getenv('PORT', 'not set')
     }
+
+# 設計師/繪師追蹤相關路由
+@app.route('/creator-tracker')
+def creator_tracker():
+    """設計師/繪師追蹤頁面"""
+    user_email = session.get('user_email', '')
+    return render_template('creator_tracker.html', user_email=user_email)
+
+@app.route('/api/creators/search', methods=['POST'])
+def api_search_creators():
+    """搜尋設計師/繪師 API"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        creator_type = data.get('type', 'boardgamedesigner')
+        
+        if not query:
+            return jsonify({'success': False, 'message': '請輸入搜尋關鍵字'})
+        
+        from creator_tracker import CreatorTracker
+        tracker = CreatorTracker()
+        
+        results = tracker.search_creators(query, creator_type)
+        
+        return jsonify({
+            'success': True,
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"搜尋設計師失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/creators/<int:creator_id>/<creator_type>')
+def api_get_creator_details(creator_id, creator_type):
+    """獲取設計師/繪師詳細資料 API"""
+    try:
+        from creator_tracker import CreatorTracker
+        tracker = CreatorTracker()
+        
+        # 獲取詳細資料
+        details = tracker.get_creator_details(creator_id, creator_type)
+        if not details:
+            return jsonify({'success': False, 'message': '無法獲取詳細資料'})
+        
+        # 檢查用戶是否已追蹤
+        user_email = session.get('user_email')
+        is_following = False
+        
+        if user_email:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT 1 FROM user_follows uf
+                    JOIN creators c ON uf.creator_id = c.id
+                    WHERE c.bgg_id = ? AND uf.user_email = ?
+                """, (creator_id, user_email))
+                is_following = cursor.fetchone() is not None
+        
+        details['is_following'] = is_following
+        
+        return jsonify({
+            'success': True,
+            'creator': details
+        })
+        
+    except Exception as e:
+        logger.error(f"獲取設計師詳細資料失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/creators/follow', methods=['POST'])
+def api_follow_creator():
+    """追蹤/取消追蹤設計師/繪師 API"""
+    try:
+        user_email = session.get('user_email')
+        if not user_email:
+            return jsonify({'success': False, 'message': '請先登入'})
+        
+        data = request.get_json()
+        creator_bgg_id = data.get('creator_id')
+        creator_type = data.get('type')
+        action = data.get('action')  # 'follow' or 'unfollow'
+        
+        if not all([creator_bgg_id, creator_type, action]):
+            return jsonify({'success': False, 'message': '參數不完整'})
+        
+        # 檢查用戶是否設定了 email（追蹤功能需要 email 通知）
+        if action == 'follow' and not user_email:
+            return jsonify({'success': False, 'message': '請先在設定頁面設定 Email 地址才能使用追蹤功能'})
+        
+        from creator_tracker import CreatorTracker
+        tracker = CreatorTracker()
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            if action == 'follow':
+                # 1. 獲取並儲存設計師詳細資料
+                details = tracker.get_creator_details(creator_bgg_id, creator_type)
+                if not details:
+                    return jsonify({'success': False, 'message': '無法獲取設計師資料'})
+                
+                # 2. 儲存設計師到資料庫
+                creator_id = tracker.save_creator_to_db(details)
+                if not creator_id:
+                    return jsonify({'success': False, 'message': '儲存設計師資料失敗'})
+                
+                # 3. 獲取所有作品並儲存
+                all_games = tracker.get_all_creator_games(
+                    creator_bgg_id, details['slug'], 
+                    'boardgamedesigner' if creator_type == 'designer' else 'boardgameartist'
+                )
+                tracker.save_creator_games(creator_id, all_games)
+                
+                # 4. 建立追蹤關係
+                now = datetime.now().isoformat()
+                cursor.execute("""
+                    INSERT OR IGNORE INTO user_follows (user_email, creator_id, followed_at)
+                    VALUES (?, ?, ?)
+                """, (user_email, creator_id, now))
+                
+                message = f'開始追蹤 {details["name"]}'
+                
+            else:  # unfollow
+                # 取消追蹤
+                cursor.execute("""
+                    DELETE FROM user_follows 
+                    WHERE user_email = ? AND creator_id = (
+                        SELECT id FROM creators WHERE bgg_id = ?
+                    )
+                """, (user_email, creator_bgg_id))
+                
+                message = '已取消追蹤'
+        
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+        
+    except Exception as e:
+        logger.error(f"追蹤操作失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/creators/following')
+def api_get_following_creators():
+    """獲取用戶追蹤的設計師/繪師列表 API"""
+    try:
+        user_email = session.get('user_email')
+        if not user_email:
+            return jsonify({'success': False, 'message': '請先登入'})
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
+                FROM creators c
+                JOIN user_follows uf ON c.id = uf.creator_id
+                WHERE uf.user_email = ?
+                ORDER BY uf.followed_at DESC
+            """, (user_email,))
+            
+            creators = []
+            for row in cursor.fetchall():
+                creators.append({
+                    'bgg_id': row[0],
+                    'name': row[1],
+                    'type': row[2],
+                    'description': row[3],
+                    'image_url': row[4],
+                    'followed_at': row[5]
+                })
+        
+        return jsonify({
+            'success': True,
+            'creators': creators
+        })
+        
+    except Exception as e:
+        logger.error(f"獲取追蹤列表失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/cron-update-creators', methods=['POST'])
+def cron_update_creators():
+    """定時更新設計師/繪師作品的 API 端點"""
+    # 檢查授權
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'success': False, 'message': '未授權'}), 401
+    
+    token = auth_header.split(' ')[1]
+    expected_token = os.getenv('CRON_SECRET_TOKEN')
+    
+    if not expected_token or token != expected_token:
+        return jsonify({'success': False, 'message': '授權失敗'}), 401
+    
+    try:
+        data = request.get_json() or {}
+        force_update = data.get('force', False)
+        
+        logger.info(f"開始更新設計師/繪師作品 (force: {force_update})")
+        
+        # 在背景執行更新程序
+        import subprocess
+        import threading
+        
+        def run_update():
+            try:
+                cmd = ['python3', 'update_creators.py']
+                if force_update:
+                    cmd.append('--force')
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=3600  # 1小時超時
+                )
+                
+                if result.returncode == 0:
+                    logger.info("設計師/繪師作品更新完成")
+                else:
+                    logger.error(f"設計師/繪師作品更新失敗: {result.stderr}")
+                    
+            except Exception as e:
+                logger.error(f"執行更新腳本失敗: {e}")
+        
+        # 在背景執行
+        update_thread = threading.Thread(target=run_update)
+        update_thread.daemon = True
+        update_thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': '設計師/繪師作品更新已開始',
+            'force': force_update,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logger.error(f"觸發設計師更新失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/save-user-email', methods=['POST'])
+def api_save_user_email():
+    """儲存用戶 Email API"""
+    try:
+        if 'user_email' not in session:
+            return jsonify({'success': False, 'message': '請先登入'}), 401
+        
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        
+        if not email:
+            return jsonify({'success': False, 'message': '請輸入 Email 地址'})
+        
+        # 簡單的 email 格式驗證
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, email):
+            return jsonify({'success': False, 'message': '請輸入有效的 Email 地址'})
+        
+        # 更新 session 中的 email
+        session['user_email'] = email
+        
+        # 如果有用戶系統，也可以儲存到資料庫
+        # 這裡暫時只儲存在 session 中
+        
+        return jsonify({
+            'success': True,
+            'message': 'Email 地址已儲存'
+        })
+        
+    except Exception as e:
+        logger.error(f"儲存用戶 Email 失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
