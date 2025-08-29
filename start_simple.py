@@ -24,6 +24,18 @@ def initialize_app():
     # 創建基本目錄
     ensure_basic_directories()
     
+    # 如果 SQLite 資料庫不存在，嘗試初始化
+    sqlite_path = 'data/bgg_rag.db'
+    if not os.path.exists(sqlite_path):
+        print("🗃️ 初始化 SQLite 資料庫...")
+        try:
+            from database import init_database
+            init_database()
+            print("✅ SQLite 資料庫初始化完成")
+        except Exception as e:
+            print(f"⚠️ 資料庫初始化警告: {e}")
+            # 不阻止應用啟動，運行時再處理
+    
     # 直接導入應用，讓 Flask 處理其餘初始化
     try:
         from app import app
