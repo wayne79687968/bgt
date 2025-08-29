@@ -188,104 +188,127 @@ class CreatorTracker:
     
     def _get_creator_games(self, creator_id: int, slug: str, bgg_type: str, creator_name: str,
                           limit: Optional[int] = None, sort: str = 'average') -> List[Dict]:
-        """獲取設計師/繪師的遊戲作品"""
+        """使用 BGG API 獲取設計師/繪師的遊戲作品"""
         try:
-            # 構建正確的 linkeditems URL
-            # 注意：對於 boardgamedesigner，linkeditems 路徑是 boardgamedesigner
-            # 對於 boardgameartist，linkeditems 路徑是 boardgameartist
-            url = f"https://boardgamegeek.com/{bgg_type}/{creator_id}/{slug}/linkeditems/{bgg_type}"
+            # 使用官方 BGG API
+            # 映射 bgg_type 到 linkdata_index
+            linkdata_index_map = {
+                'boardgamedesigner': 'boardgamedesigner',
+                'boardgameartist': 'boardgameartist'
+            }
+            linkdata_index = linkdata_index_map.get(bgg_type, 'boardgamedesigner')
+            
+            # 構建 API URL
+            api_url = "https://api.geekdo.com/api/geekitem/linkeditems"
             params = {
+                'ajax': 1,
+                'linkdata_index': linkdata_index,
+                'nosession': 1,
+                'objectid': creator_id,
+                'objecttype': 'person',
                 'pageid': 1,
-                'sort': sort
+                'showcount': limit or 100,  # 預設最多 100 個
+                'sort': sort,
+                'subtype': 'boardgame'
             }
             
-            logger.info(f"獲取作品列表: {url}")
-            response = self.session.get(url, params=params, timeout=30)
+            logger.info(f"使用 BGG API 獲取作品列表: {api_url} (ID: {creator_id}, 類型: {linkdata_index})")
+            response = self.session.get(api_url, params=params, timeout=30)
+            
             if response.status_code != 200:
-                logger.warning(f"無法獲取 {creator_id} 的作品列表: {response.status_code}")
+                logger.warning(f"BGG API 請求失敗: {response.status_code}")
                 return []
             
-            html = response.text
+            # 解析 JSON 回應
+            try:
+                data = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"無法解析 JSON 回應: {e}")
+                return []
+            
             games = []
             
-            # 嘗試多種遊戲列表解析模式
-            game_patterns = [
-                # 實際有效的 BGG JSON 模式 (名稱在前，ID 在後)
-                r'"name":"([^"]+)"[^}]*?boardgame\\\/(\d+)',
-                r'\{[^}]*?"name":"([^"]+)"[^}]*?boardgame\\\/(\d+)[^}]*?\}',
-                # 備用模式 (ID 在前，名稱在後)
-                r'boardgame\\\/(\d+)\\\/[^"]*"[^}]*?"name":"([^"]+)"',
-                # 直接的 objectid + name 配對  
-                r'"objectid":"?(\d+)"?[^}]*?"name":"([^"]+)"',
-                r'"objectid":(\d+)[^}]*?"name":"([^"]+)"',
-                # BGG collection table format (備用)
-                r'<td class="collection_objectname"[^>]*>.*?<a href="/boardgame/(\d+)/[^"]*"[^>]*>([^<]+)</a>',
-                # Alternative HTML format (備用)
-                r'<a[^>]*href="/boardgame/(\d+)/[^"]*"[^>]*>([^<]+)</a>'
-            ]
+            # 檢查 API 回應結構
+            if not isinstance(data, dict):
+                logger.warning(f"API 回應格式異常: {type(data)}")
+                return []
             
-            found_games = []
-            for pattern in game_patterns:
-                matches = re.findall(pattern, html, re.DOTALL | re.IGNORECASE)
-                if matches:
-                    found_games = matches
-                    logger.info(f"找到 {len(matches)} 個遊戲使用模式: {pattern[:50]}...")
+            # 查找遊戲項目 - BGG API 可能有不同的結構
+            items = []
+            if 'items' in data:
+                items = data['items']
+            elif isinstance(data, list):
+                items = data
+            elif 'linkeditems' in data:
+                items = data['linkeditems']
+            
+            logger.info(f"API 回應包含 {len(items)} 個項目")
+            
+            # 解析每個遊戲項目
+            for i, item in enumerate(items):
+                if limit and i >= limit:
                     break
-            
-            if not found_games:
-                logger.warning(f"沒有找到遊戲，HTML 長度: {len(html)}")
-                # 嘗試找到任何遊戲 ID 模式
-                fallback_pattern = r'boardgame/(\d+)'
-                fallback_matches = re.findall(fallback_pattern, html)
-                if fallback_matches:
-                    logger.info(f"使用備用模式找到 {len(fallback_matches)} 個遊戲 ID")
-                    for i, game_id in enumerate(set(fallback_matches)):  # 去重
-                        if limit and i >= limit:
-                            break
-                        games.append({
-                            'bgg_id': int(game_id),
-                            'name': f'Game {game_id}',  # 預設名稱
-                            'year': None,
-                            'rating': None,
-                            'rank': i + 1
-                        })
-                return games
-            
-            # 處理找到的遊戲
-            for i, match in enumerate(found_games[:limit] if limit else found_games):
-                # 根據模式決定 game_id 和 game_name 的順序
-                if len(match) == 2:
-                    # 檢查第一個是否是數字 ID
-                    try:
-                        game_id = int(match[0])
-                        game_name = match[1]
-                    except ValueError:
-                        # 如果第一個不是數字，說明順序相反
-                        try:
-                            game_id = int(match[1])
-                            game_name = match[0]
-                        except ValueError:
-                            continue  # 跳過無法解析的
-                else:
-                    continue
-                
-                # 清理遊戲名稱
-                clean_name = re.sub(r'<[^>]+>', '', game_name).strip()
-                
-                # 跳過明顯不是遊戲的結果
-                if (len(clean_name) < 2 or 
-                    'boardgame_' in clean_name.lower() or 
-                    clean_name == creator_name or  # 跳過與設計師同名的項目
-                    len(clean_name) > 100):  # 跳過過長的標題
-                    continue
                     
-                games.append({
-                    'bgg_id': game_id,
-                    'name': clean_name,
-                    'year': None,  # TODO: 解析年份
-                    'rating': None,  # TODO: 解析評分
-                    'rank': i + 1
-                })
+                try:
+                    # 提取遊戲資訊
+                    game_id = None
+                    game_name = None
+                    year = None
+                    rating = None
+                    
+                    # 嘗試不同的欄位名稱
+                    if 'objectid' in item:
+                        game_id = int(item['objectid'])
+                    elif 'id' in item:
+                        game_id = int(item['id'])
+                    
+                    if 'name' in item:
+                        game_name = item['name']
+                    elif 'title' in item:
+                        game_name = item['title']
+                    
+                    if 'yearpublished' in item:
+                        try:
+                            year = int(item['yearpublished'])
+                        except (ValueError, TypeError):
+                            year = None
+                    
+                    if 'average' in item:
+                        try:
+                            rating = float(item['average'])
+                        except (ValueError, TypeError):
+                            rating = None
+                    elif 'rating' in item:
+                        try:
+                            rating = float(item['rating'])
+                        except (ValueError, TypeError):
+                            rating = None
+                    
+                    # 驗證必要資訊
+                    if not game_id or not game_name:
+                        logger.debug(f"跳過無效項目: {item}")
+                        continue
+                    
+                    # 清理遊戲名稱
+                    clean_name = re.sub(r'<[^>]+>', '', str(game_name)).strip()
+                    
+                    # 跳過無效結果
+                    if (len(clean_name) < 2 or 
+                        clean_name == creator_name or 
+                        len(clean_name) > 100):
+                        continue
+                    
+                    games.append({
+                        'bgg_id': game_id,
+                        'name': clean_name,
+                        'year': year,
+                        'rating': rating,
+                        'rank': i + 1
+                    })
+                    
+                except (KeyError, ValueError, TypeError) as e:
+                    logger.debug(f"解析項目失敗: {e} - {item}")
+                    continue
             
             logger.info(f"成功解析 {len(games)} 個遊戲")
             return games
