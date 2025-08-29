@@ -162,16 +162,30 @@ logger = logging.getLogger(__name__)
 google_auth = GoogleAuth()
 email_auth = EmailAuth()
 
-# 資料庫初始化（僅在 Zeabur 環境中需要）
-if os.getenv('DATABASE_URL'):
-    try:
-        from database import init_database
-        print("🗃️ 檢測到 PostgreSQL 環境，檢查資料庫結構...")
-        init_database()
-        print("✅ PostgreSQL 資料庫結構確認完成")
-    except Exception as e:
-        print(f"⚠️ 資料庫初始化警告: {e}")
-        # 不阻止應用啟動，後續操作會觸發重試
+# 資料庫初始化狀態追蹤
+_db_initialized = False
+
+def init_db_if_needed():
+    """延遲初始化資料庫，避免啟動阻塞"""
+    global _db_initialized
+    
+    if _db_initialized:
+        return True
+    
+    if os.getenv('DATABASE_URL'):
+        try:
+            from database import init_database
+            print("🗃️ 檢測到 PostgreSQL 環境，檢查資料庫結構...")
+            init_database()
+            print("✅ PostgreSQL 資料庫結構確認完成")
+            _db_initialized = True
+            return True
+        except Exception as e:
+            print(f"⚠️ 資料庫初始化警告: {e}")
+            return False
+    
+    _db_initialized = True
+    return True
 
 # 註冊模板全域函數
 @app.context_processor
@@ -2756,8 +2770,16 @@ def api_check_database():
 @app.route('/health')
 def health():
     """健康檢查端點"""
+    # 第一次健康檢查時嘗試初始化資料庫
+    db_init_status = 'skipped'
+    if os.getenv('DATABASE_URL'):
+        try:
+            db_init_status = 'success' if init_db_if_needed() else 'failed'
+        except Exception:
+            db_init_status = 'failed'
+    
+    # 測試資料庫連接
     try:
-        # 測試資料庫連接（但不初始化）
         from database import get_db_connection
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -2770,6 +2792,7 @@ def health():
         'status': 'ok',
         'timestamp': datetime.now().isoformat(),
         'database': db_status,
+        'db_init': db_init_status,
         'python_version': sys.version,
         'port': os.getenv('PORT', 'not set')
     }
