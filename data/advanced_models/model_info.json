@@ -1,0 +1,11 @@
+{
+  "algorithms": [
+    "popularity",
+    "collaborative_filtering",
+    "content_based",
+    "item_similarity"
+  ],
+  "num_games": 171,
+  "num_ratings": 50,
+  "trained_at": "2025-08-20T10:30:19.145771"
+}

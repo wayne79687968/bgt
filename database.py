@@ -311,9 +311,10 @@ def init_database():
             CREATE TABLE IF NOT EXISTS users (
                 id {autoincrement_type},
                 email {text_type} UNIQUE NOT NULL,
-                password_hash {text_type} NOT NULL,
-                is_paid INTEGER DEFAULT 0,
-                email_verified INTEGER DEFAULT 0,
+                google_id {text_type} UNIQUE,
+                name {text_type},
+                picture {text_type},
+                has_full_access INTEGER DEFAULT 0,
                 created_at {text_type},
                 updated_at {text_type}
             )

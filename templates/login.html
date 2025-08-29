@@ -7,23 +7,71 @@
     <div class="col-md-6 col-lg-4">
         <div class="card mt-5">
             <div class="card-header text-center">
-                <h4>🎲 BGG 熱門遊戲報表</h4>
-                <p class="text-muted">請登入以查看報表</p>
+                <h4>🎲 BGG 綜合分析平台</h4>
+                <p class="text-muted">請使用 Google 帳號登入</p>
             </div>
-            <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">帳號</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">密碼</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">登入</button>
-                </form>
+            <div class="card-body text-center">
+                <div id="g_id_onload"
+                     data-client_id="{{ google_client_id }}"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" 
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="sign_in_with"
+                     data-shape="rectangular"
+                     data-logo_alignment="left">
+                </div>
+                
+                <div class="mt-4">
+                    <small class="text-muted">
+                        登入後可使用：<br>
+                        • 📊 熱門遊戲報表檢視<br>
+                        • 🎯 個人化遊戲推薦<br>
+                        <span class="text-warning">• 🎨 設計師追蹤 (僅限管理員)</span>
+                    </small>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+function handleCredentialResponse(response) {
+    // 處理 Google 登入回應
+    const credential = response.credential;
+    
+    // 顯示載入中
+    document.querySelector('.card-body').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">載入中...</span></div><p class="mt-2">驗證中...</p></div>';
+    
+    // 發送到後端驗證
+    fetch('/auth/google?token=' + encodeURIComponent(credential))
+        .then(response => {
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                return response.text();
+            }
+        })
+        .then(data => {
+            if (data) {
+                // 如果有錯誤訊息，顯示它
+                document.body.innerHTML = data;
+            }
+        })
+        .catch(error => {
+            console.error('登入失敗:', error);
+            alert('登入失敗，請重試');
+            location.reload();
+        });
+}
+
+// 初始化 Google Sign-In
+window.onload = function() {
+    // Google Identity Services 會自動載入
+}
+</script>
 {% endblock %}

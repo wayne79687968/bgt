@@ -12,6 +12,7 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from database import get_db_connection, get_database_config
+from google_auth import GoogleAuth, login_required, admin_required, full_access_required, has_full_access, get_current_user
 import threading
 import time
 
@@ -156,9 +157,16 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 登入憑證
-ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'password')
+# Google OAuth 設定
+google_auth = GoogleAuth()
+
+# 註冊模板全域函數
+@app.context_processor
+def inject_auth_functions():
+    return {
+        'has_full_access': has_full_access,
+        'get_current_user': get_current_user
+    }
 RG_API_URL = os.getenv('RG_API_URL')  # 例如: https://api.recommend.games
 RG_API_KEY = os.getenv('RG_API_KEY')
 # 固定的 RG 預設路徑（不再由用戶設定）
@@ -1797,27 +1805,24 @@ def index():
                          last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/settings')
+@login_required
 def settings():
     """設定頁面"""
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
-
     available_dates = get_available_dates()
     bgg_username = get_app_setting('bgg_username', '')
-    user_email = session.get('user_email', '')
+    user = session.get('user', {})
     return render_template('settings.html',
                            available_dates=available_dates,
                            bgg_username=bgg_username,
-                           user_email=user_email,
+                           user=user,
                            rg_model_dir=RG_DEFAULT_MODEL_DIR,
                            rg_games_file=RG_DEFAULT_GAMES_FILE,
                            rg_ratings_file=RG_DEFAULT_RATINGS_FILE,
                            last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/api/save-settings', methods=['POST'])
+@login_required
 def api_save_settings():
-    if 'logged_in' not in session:
-        return jsonify({'success': False, 'message': '未登入'}), 401
     
     try:
         data = request.get_json() or {}
@@ -2434,31 +2439,72 @@ def api_stop_task():
         })
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/')
+def index():
+    """首頁 - 重導向到登入或儀表板"""
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+@app.route('/login')
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    """顯示 Google 登入頁面"""
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    
+    google_client_id = os.getenv('GOOGLE_CLIENT_ID', '')
+    return render_template('login.html', google_client_id=google_client_id)
 
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session['logged_in'] = True
-            flash('登入成功！', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('帳號或密碼錯誤！', 'error')
-
-    return render_template('login.html')
+@app.route('/auth/google')
+def google_auth_callback():
+    """處理 Google 登入回調"""
+    token = request.args.get('token')
+    if not token:
+        flash('登入失敗：未收到認證 token', 'error')
+        return redirect(url_for('login'))
+    
+    # 驗證 Google token
+    user_info = google_auth.verify_google_token(token)
+    if not user_info:
+        flash('登入失敗：無效的認證 token', 'error')
+        return redirect(url_for('login'))
+    
+    if not user_info['email_verified']:
+        flash('登入失敗：請先驗證您的 Google 帳戶 email', 'error')
+        return redirect(url_for('login'))
+    
+    # 創建或更新用戶
+    user_data = google_auth.create_or_update_user(
+        user_info['google_id'],
+        user_info['email'],
+        user_info['name'],
+        user_info['picture']
+    )
+    
+    if user_data:
+        session['user'] = user_data
+        flash(f'歡迎 {user_data["name"]}！', 'success')
+        return redirect(url_for('dashboard'))
+    else:
+        flash('登入失敗：無法創建用戶資料', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
+    """登出"""
+    session.clear()
     flash('已登出', 'info')
     return redirect(url_for('login'))
 
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """用戶儀表板"""
+    return render_template('index.html')
+
 @app.route('/generate')
+@admin_required
 def generate():
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
 
     success, message = generate_report()
     if success:
@@ -2468,11 +2514,16 @@ def generate():
 
     return redirect(url_for('index'))
 
+@app.route('/reports')
+@login_required  
+def reports():
+    """報表檢視頁面"""
+    return render_template('reports.html')
+
 @app.route('/newspaper')
+@login_required
 def newspaper():
     """報紙風格的報表檢視"""
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
 
     # 獲取選擇的日期，預設為今日
     selected_date = request.args.get('date')
@@ -2754,12 +2805,15 @@ def health():
 
 # 設計師/繪師追蹤相關路由
 @app.route('/creator-tracker')
+@full_access_required
 def creator_tracker():
     """設計師/繪師追蹤頁面"""
-    user_email = session.get('user_email', '')
+    user = session.get('user', {})
+    user_email = user.get('email', '')
     return render_template('creator_tracker.html', user_email=user_email)
 
 @app.route('/api/creators/search', methods=['POST'])
+@full_access_required
 def api_search_creators():
     """搜尋設計師/繪師 API"""
     try:
@@ -2822,10 +2876,12 @@ def api_get_creator_details(creator_id, creator_type):
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/creators/follow', methods=['POST'])
+@full_access_required
 def api_follow_creator():
     """追蹤/取消追蹤設計師/繪師 API"""
     try:
-        user_email = session.get('user_email')
+        user = session.get('user', {})
+        user_email = user.get('email')
         if not user_email:
             return jsonify({'success': False, 'message': '請先登入'})
         
@@ -2895,10 +2951,12 @@ def api_follow_creator():
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/creators/following')
+@full_access_required
 def api_get_following_creators():
     """獲取用戶追蹤的設計師/繪師列表 API"""
     try:
-        user_email = session.get('user_email')
+        user = session.get('user', {})
+        user_email = user.get('email')
         if not user_email:
             return jsonify({'success': False, 'message': '請先登入'})
         

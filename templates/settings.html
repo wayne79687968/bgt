@@ -6,29 +6,80 @@
 <div class="container-fluid mt-3">
     <h2>⚙️ 系統設定</h2>
 
-    <!-- Email 通知設定 -->
+    <!-- 用戶資訊 -->
     <div class="card mb-4">
         <div class="card-header">
-            <h5>📧 Email 通知設定</h5>
+            <h5>👤 帳號資訊</h5>
         </div>
         <div class="card-body">
-            <div class="row g-2 align-items-center">
+            <div class="row align-items-center">
                 <div class="col-auto">
-                    <label for="user-email" class="col-form-label">Email 地址</label>
+                    {% if user.picture %}
+                    <img src="{{ user.picture }}" alt="用戶頭像" class="rounded-circle" style="width: 48px; height: 48px;">
+                    {% else %}
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    <h6 class="mb-1">{{ user.name or '未設定姓名' }}</h6>
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-envelope"></i> {{ user.email }}
+                    </p>
+                    <div class="mt-1">
+                        {% if user.has_full_access %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-crown"></i> 完整權限
+                        </span>
+                        {% else %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-eye"></i> 檢視權限
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="col-auto">
-                    <input type="email" id="user-email" class="form-control" placeholder="your@email.com" value="{{ user_email or '' }}">
-                </div>
-                <div class="col-auto">
-                    <button class="btn btn-primary" onclick="saveUserEmail()">💾 儲存</button>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt"></i> 登出
+                    </a>
                 </div>
             </div>
-            <div class="form-text mt-2">
-                設定 Email 地址後，當您追蹤的設計師/繪師有新作品發布時，系統會自動發送通知。
-                <br><small class="text-warning">⚠️ 使用追蹤功能必須先設定 Email 地址</small>
+            <hr>
+            <div class="small text-muted">
+                <strong>可用功能：</strong>
+                <ul class="mb-0 mt-1">
+                    <li>📊 熱門遊戲報表檢視</li>
+                    <li>🎯 個人化遊戲推薦</li>
+                    {% if user.has_full_access %}
+                    <li class="text-success">🎨 設計師/繪師追蹤</li>
+                    <li class="text-success">⚙️ 系統管理功能</li>
+                    {% else %}
+                    <li class="text-muted">🔒 設計師追蹤 (需要完整權限)</li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </div>
+
+    <!-- Email 通知說明 -->
+    {% if user.has_full_access %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>📧 Email 通知</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-2">
+                <i class="fas fa-check-circle text-success"></i> 
+                您的 Email 地址已設定為：<strong>{{ user.email }}</strong>
+            </p>
+            <div class="form-text">
+                當您追蹤的設計師/繪師有新作品發布時，系統會自動發送通知到此 Email 地址。
+                <br><small class="text-info">💡 Email 地址來自您的 Google 帳號，無法在此修改</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- BGG 使用者設定 -->
     <div class="card mb-4">

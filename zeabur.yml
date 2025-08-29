@@ -12,12 +12,20 @@ services:
       PORT: 5000
       FLASK_ENV: production
       TZ: Asia/Taipei
-      ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: your-secure-password-here
       SECRET_KEY: your-secret-key-here
       DATABASE_URL: ${POSTGRES_CONNECTION_STRING}
       OPENAI_API_KEY: your-openai-api-key-here
       CRON_SECRET_TOKEN: your-cron-secret-token-here
+      # Google OAuth 設定
+      GOOGLE_CLIENT_ID: your-google-client-id-here
+      GOOGLE_CLIENT_SECRET: your-google-client-secret-here
+      # Email 通知設定 (可選)
+      SMTP_SERVER: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: your-email@gmail.com
+      SMTP_PASSWORD: your-app-password
+      FROM_EMAIL: your-email@gmail.com
+      FROM_NAME: BGG 設計師追蹤
     dependencies:
       - postgresql
     healthcheck:

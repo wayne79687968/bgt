@@ -6,7 +6,7 @@
 <div class="container-fluid mt-3">
     <h2>🧠 進階智能推薦</h2>
     <p class="text-muted">BGG 使用者：<strong>{{ bgg_username or '未設定' }}</strong></p>
-    
+
     <!-- 算法選擇器 -->
     <div class="row mb-4">
         <div class="col-md-8">
@@ -31,7 +31,7 @@
             </button>
         </div>
     </div>
-    
+
     <script>
     function changeAlgorithm() {
         const select = document.getElementById('algorithmSelect');
@@ -40,15 +40,15 @@
             '{{ algo.value }}': '{{ algo.description }}',
             {% endfor %}
         };
-        
+
         document.getElementById('algorithmDescription').textContent = descriptions[select.value];
-        
+
         // 自動重新載入推薦
         const url = new URL(window.location);
         url.searchParams.set('algorithm', select.value);
         window.location.href = url.toString();
     }
-    
+
     function refreshRecommendations() {
         window.location.reload();
     }
