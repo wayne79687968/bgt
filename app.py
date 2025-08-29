@@ -1767,42 +1767,6 @@ def generate_report(force_llm_analysis=False, force_regenerate=False):
         logger.error(f"異常堆疊: {traceback.format_exc()}")
         return False, f"報表產生異常: {e}"
 
-@app.route('/')
-def index():
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
-
-    # 獲取選擇的日期，預設為今日
-    selected_date = request.args.get('date')
-    if not selected_date:
-        selected_date = datetime.now().strftime('%Y-%m-%d')
-
-    # 獲取指定日期的報表
-    content, filename = get_report_by_date(selected_date)
-
-    # 如果找不到指定日期的報表，嘗試獲取最新報表
-    if content is None:
-        content, filename = get_latest_report()
-
-    if content is None:
-        return render_template('error.html', error=filename)
-
-    # 將 Markdown 轉換為 HTML（如果可用）
-    if MARKDOWN_AVAILABLE:
-        html_content = markdown.markdown(content, extensions=['tables', 'fenced_code'])
-    else:
-        # 如果沒有 markdown 模組，使用 <pre> 標籤顯示原始文字
-        html_content = f"<pre>{content}</pre>"
-
-    # 獲取所有可用日期
-    available_dates = get_available_dates()
-
-    return render_template('report.html',
-                         content=html_content,
-                         filename=filename,
-                         selected_date=selected_date,
-                         available_dates=available_dates,
-                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 @app.route('/settings')
 @login_required
