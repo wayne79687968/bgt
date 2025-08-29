@@ -5,7 +5,18 @@ services:
   app:
     type: python
     build:
-      command: pip install -r requirements.txt
+      # 使用分層安裝策略，優化緩存效率
+      command: |
+        echo "🚀 開始分層構建..."
+        pip install --upgrade pip
+        
+        echo "📦 安裝核心依賴（快速）..."
+        pip install -r requirements.core.txt
+        
+        echo "🧠 安裝機器學習依賴（緩存友好）..."
+        pip install -r requirements.ml.txt
+        
+        echo "✅ 構建完成！"
     start:
       command: gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --max-requests 1000 --preload start_simple:app
     env:

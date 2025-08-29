@@ -111,9 +111,22 @@ services:
 2. 抓取新作品資訊
 3. 發送 Email 通知給追蹤用戶
 
-## 開發指令 (Zeabur 環境)
+## 開發指令
 
-### 基本測試
+### 依賴安裝 (構建優化)
+```bash
+# 完整安裝（包含機器學習）
+pip install -r requirements.txt
+
+# 分層安裝（優化緩存，推薦用於 CI/CD）
+pip install -r requirements.core.txt  # 核心 Web 依賴
+pip install -r requirements.ml.txt    # 機器學習依賴
+
+# 最小化安裝（快速開發，無推薦功能）
+pip install -r requirements.minimal.txt
+```
+
+### 基本測試 (Zeabur 環境)
 ```bash
 # 測試資料庫初始化
 python database.py
