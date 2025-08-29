@@ -91,7 +91,7 @@ class CreatorTracker:
             return None
             
         # 獲取作品列表 (前5個，按平均分排序)
-        games = self._get_creator_games(creator_id, basic_info['slug'], bgg_type, limit=5, sort='average')
+        games = self._get_creator_games(creator_id, basic_info['slug'], bgg_type, basic_info['name'], limit=5, sort='average')
         
         return {
             'id': creator_id,
@@ -115,22 +115,65 @@ class CreatorTracker:
                 return None
             
             html = response.text
+            logger.debug(f"HTML length: {len(html)}")
             
-            # 解析名稱
-            name_match = re.search(r'<h1[^>]*>([^<]+)</h1>', html)
-            name = name_match.group(1).strip() if name_match else f'Creator {creator_id}'
+            # 解析名稱 - 更寬鬆的模式
+            name = f'Creator {creator_id}'  # 預設值
+            
+            # 嘗試多種名稱解析模式
+            name_patterns = [
+                r'<h1[^>]*class="[^"]*hero_name[^"]*"[^>]*>([^<]+)</h1>',
+                r'<h1[^>]*>([^<]+)</h1>',
+                r'<title>([^|]+)\s*\|',
+                r'name="twitter:title"\s+content="([^"]+)"',
+                r'"name":"([^"]+)"'
+            ]
+            
+            for pattern in name_patterns:
+                name_match = re.search(pattern, html, re.IGNORECASE)
+                if name_match:
+                    name = name_match.group(1).strip()
+                    break
+            
+            logger.info(f"解析到名稱: {name}")
             
             # 解析 slug (從 URL 中提取)
-            slug_match = re.search(rf'/{bgg_type}/{creator_id}/([^/]+)', response.url)
-            slug = slug_match.group(1) if slug_match else name.lower().replace(' ', '-')
+            slug_match = re.search(rf'/{bgg_type}/{creator_id}/([^/?]+)', response.url)
+            slug = slug_match.group(1) if slug_match else name.lower().replace(' ', '-').replace('.', '')
             
-            # 解析描述
-            desc_match = re.search(r'<div class="game_description_body"[^>]*>([^<]+)</div>', html)
-            description = desc_match.group(1).strip() if desc_match else ''
+            # 解析描述 - 嘗試多種模式
+            description = ''
+            desc_patterns = [
+                r'<div[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)</div>',
+                r'<div[^>]*class="[^"]*body[^"]*"[^>]*>(.*?)</div>',
+                r'"description":"([^"]+)"'
+            ]
             
-            # 解析頭像
-            img_match = re.search(r'<img[^>]*src="([^"]*)"[^>]*class="[^"]*avatar[^"]*"', html)
-            image_url = img_match.group(1) if img_match else ''
+            for pattern in desc_patterns:
+                desc_match = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
+                if desc_match:
+                    description = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip()
+                    if len(description) > 10:  # 避免抓到太短的無意義內容
+                        break
+            
+            # 解析頭像 - 嘗試多種模式
+            image_url = ''
+            img_patterns = [
+                r'<img[^>]*src="([^"]*)"[^>]*class="[^"]*avatar[^"]*"',
+                r'<img[^>]*class="[^"]*avatar[^"]*"[^>]*src="([^"]*)"',
+                r'<img[^>]*src="([^"]*)"[^>]*alt="[^"]*avatar[^"]*"',
+                r'"image":"([^"]+)"'
+            ]
+            
+            for pattern in img_patterns:
+                img_match = re.search(pattern, html, re.IGNORECASE)
+                if img_match:
+                    image_url = img_match.group(1)
+                    if not image_url.startswith('http'):
+                        image_url = 'https:' + image_url if image_url.startswith('//') else 'https://boardgamegeek.com' + image_url
+                    break
+            
+            logger.info(f"解析結果 - 名稱: {name}, slug: {slug}, 描述長度: {len(description)}, 圖片: {bool(image_url)}")
             
             return {
                 'name': name,
@@ -143,38 +186,108 @@ class CreatorTracker:
             logger.error(f"獲取基本資訊失敗: {e}")
             return {'name': f'Creator {creator_id}', 'slug': f'creator-{creator_id}'}
     
-    def _get_creator_games(self, creator_id: int, slug: str, bgg_type: str, 
+    def _get_creator_games(self, creator_id: int, slug: str, bgg_type: str, creator_name: str,
                           limit: Optional[int] = None, sort: str = 'average') -> List[Dict]:
         """獲取設計師/繪師的遊戲作品"""
         try:
+            # 構建正確的 linkeditems URL
+            # 注意：對於 boardgamedesigner，linkeditems 路徑是 boardgamedesigner
+            # 對於 boardgameartist，linkeditems 路徑是 boardgameartist
             url = f"https://boardgamegeek.com/{bgg_type}/{creator_id}/{slug}/linkeditems/{bgg_type}"
             params = {
                 'pageid': 1,
                 'sort': sort
             }
             
+            logger.info(f"獲取作品列表: {url}")
             response = self.session.get(url, params=params, timeout=30)
             if response.status_code != 200:
-                logger.warning(f"無法獲取 {creator_id} 的作品列表")
+                logger.warning(f"無法獲取 {creator_id} 的作品列表: {response.status_code}")
                 return []
             
             html = response.text
             games = []
             
-            # 解析遊戲列表 (簡化版，實際需要更複雜的解析)
-            # 這裡先返回模擬資料，實際實作時需要解析 HTML
-            game_pattern = r'<td class="collection_objectname"[^>]*>.*?<a href="/boardgame/(\d+)/[^"]*">([^<]+)</a>'
-            matches = re.findall(game_pattern, html, re.DOTALL)
+            # 嘗試多種遊戲列表解析模式
+            game_patterns = [
+                # 實際有效的 BGG JSON 模式 (名稱在前，ID 在後)
+                r'"name":"([^"]+)"[^}]*?boardgame\\\/(\d+)',
+                r'\{[^}]*?"name":"([^"]+)"[^}]*?boardgame\\\/(\d+)[^}]*?\}',
+                # 備用模式 (ID 在前，名稱在後)
+                r'boardgame\\\/(\d+)\\\/[^"]*"[^}]*?"name":"([^"]+)"',
+                # 直接的 objectid + name 配對  
+                r'"objectid":"?(\d+)"?[^}]*?"name":"([^"]+)"',
+                r'"objectid":(\d+)[^}]*?"name":"([^"]+)"',
+                # BGG collection table format (備用)
+                r'<td class="collection_objectname"[^>]*>.*?<a href="/boardgame/(\d+)/[^"]*"[^>]*>([^<]+)</a>',
+                # Alternative HTML format (備用)
+                r'<a[^>]*href="/boardgame/(\d+)/[^"]*"[^>]*>([^<]+)</a>'
+            ]
             
-            for i, (game_id, game_name) in enumerate(matches[:limit] if limit else matches):
+            found_games = []
+            for pattern in game_patterns:
+                matches = re.findall(pattern, html, re.DOTALL | re.IGNORECASE)
+                if matches:
+                    found_games = matches
+                    logger.info(f"找到 {len(matches)} 個遊戲使用模式: {pattern[:50]}...")
+                    break
+            
+            if not found_games:
+                logger.warning(f"沒有找到遊戲，HTML 長度: {len(html)}")
+                # 嘗試找到任何遊戲 ID 模式
+                fallback_pattern = r'boardgame/(\d+)'
+                fallback_matches = re.findall(fallback_pattern, html)
+                if fallback_matches:
+                    logger.info(f"使用備用模式找到 {len(fallback_matches)} 個遊戲 ID")
+                    for i, game_id in enumerate(set(fallback_matches)):  # 去重
+                        if limit and i >= limit:
+                            break
+                        games.append({
+                            'bgg_id': int(game_id),
+                            'name': f'Game {game_id}',  # 預設名稱
+                            'year': None,
+                            'rating': None,
+                            'rank': i + 1
+                        })
+                return games
+            
+            # 處理找到的遊戲
+            for i, match in enumerate(found_games[:limit] if limit else found_games):
+                # 根據模式決定 game_id 和 game_name 的順序
+                if len(match) == 2:
+                    # 檢查第一個是否是數字 ID
+                    try:
+                        game_id = int(match[0])
+                        game_name = match[1]
+                    except ValueError:
+                        # 如果第一個不是數字，說明順序相反
+                        try:
+                            game_id = int(match[1])
+                            game_name = match[0]
+                        except ValueError:
+                            continue  # 跳過無法解析的
+                else:
+                    continue
+                
+                # 清理遊戲名稱
+                clean_name = re.sub(r'<[^>]+>', '', game_name).strip()
+                
+                # 跳過明顯不是遊戲的結果
+                if (len(clean_name) < 2 or 
+                    'boardgame_' in clean_name.lower() or 
+                    clean_name == creator_name or  # 跳過與設計師同名的項目
+                    len(clean_name) > 100):  # 跳過過長的標題
+                    continue
+                    
                 games.append({
-                    'bgg_id': int(game_id),
-                    'name': game_name.strip(),
-                    'year': None,  # 需要進一步解析
-                    'rating': None,  # 需要進一步解析
+                    'bgg_id': game_id,
+                    'name': clean_name,
+                    'year': None,  # TODO: 解析年份
+                    'rating': None,  # TODO: 解析評分
                     'rank': i + 1
                 })
             
+            logger.info(f"成功解析 {len(games)} 個遊戲")
             return games
             
         except Exception as e:
