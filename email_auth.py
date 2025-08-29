@@ -34,7 +34,9 @@ class EmailAuth:
         self.admin_email = 'wayne79687968@gmail.com'
         
         if not all([self.smtp_username, self.smtp_password]):
-            logger.info("SMTP Email 服務未配置（驗證碼功能將不可用）")
+            # 只在開發模式顯示配置訊息
+            if os.getenv('FLASK_ENV') == 'development':
+                logger.info("SMTP Email 服務未配置（驗證碼功能將不可用）")
     
     def generate_verification_code(self, length=6):
         """生成驗證碼"""
