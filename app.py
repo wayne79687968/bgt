@@ -2513,6 +2513,8 @@ def google_auth_callback():
     
     if user_data:
         session['user'] = user_data
+        session['logged_in'] = True
+        session['user_email'] = user_data.get('email', '')
         flash(f'歡迎 {user_data["name"]}！', 'success')
         return redirect(url_for('dashboard'))
     else:
@@ -3311,6 +3313,8 @@ def register_user():
         if user_data:
             # 設定 session
             session['user'] = user_data
+            session['logged_in'] = True
+            session['user_email'] = email
             
             # 清理已使用的驗證碼
             with get_db_connection() as conn:
@@ -3349,6 +3353,8 @@ def login_user():
         if user_data:
             # 設定 session
             session['user'] = user_data
+            session['logged_in'] = True
+            session['user_email'] = email
             return jsonify({
                 'success': True,
                 'message': message,
@@ -3384,6 +3390,8 @@ def verify_login():
         if email_auth.verify_code(email, code, 'login'):
             # 設定 session
             session['user'] = user_data
+            session['logged_in'] = True
+            session['user_email'] = email
             return jsonify({
                 'success': True,
                 'message': '登入成功',
