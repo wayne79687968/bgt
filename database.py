@@ -452,6 +452,46 @@ def _migrate_existing_schema(cursor, config_type):
                 'description': '添加 users.is_active 欄位'
             }
         ]
+        
+        # 檢查並創建缺失的關鍵表
+        critical_tables = [
+            {
+                'check': "SELECT to_regclass('public.verification_codes')",
+                'migrate': """
+                    CREATE TABLE verification_codes (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        code TEXT NOT NULL,
+                        type TEXT NOT NULL,
+                        expires_at TEXT NOT NULL,
+                        used INTEGER DEFAULT 0,
+                        created_at TEXT NOT NULL
+                    )
+                """,
+                'description': '創建 verification_codes 表'
+            }
+        ]
+        
+        # 執行關鍵表檢查
+        for table_check in critical_tables:
+            try:
+                print(f"🔍 [MIGRATE_SCHEMA] 檢查: {table_check['description']}")
+                cursor.execute(table_check['check'])
+                result = cursor.fetchone()
+                
+                if not result or result[0] is None:
+                    print(f"📝 [MIGRATE_SCHEMA] 執行創建: {table_check['description']}")
+                    cursor.execute(table_check['migrate'])
+                    print(f"✅ [MIGRATE_SCHEMA] 創建完成: {table_check['description']}")
+                else:
+                    print(f"✓ [MIGRATE_SCHEMA] 已存在: {table_check['description']}")
+                    
+            except Exception as e:
+                print(f"⚠️ [MIGRATE_SCHEMA] 創建警告 {table_check['description']}: {e}")
+                # PostgreSQL 事務出錯時需要回滾
+                if config_type == 'postgresql':
+                    cursor.execute("ROLLBACK")
+                    cursor.execute("BEGIN")
     else:
         # SQLite 的遷移 (較複雜，暫時跳過)
         migrations = []

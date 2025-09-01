@@ -42,6 +42,10 @@ def initialize_app():
             print("✅ PostgreSQL 資料庫初始化完成")
         except Exception as e:
             print(f"⚠️ 資料庫初始化警告: {e}")
+            import traceback
+            print("📋 詳細錯誤信息:")
+            traceback.print_exc()
+            print("💡 提示：應用仍會繼續啟動，可稍後使用 /api/init-database 手動初始化")
     else:
         print("❌ 錯誤：未檢測到 DATABASE_URL，請設定 PostgreSQL 連線")
     
