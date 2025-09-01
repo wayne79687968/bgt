@@ -122,6 +122,14 @@ def get_db_connection():
                         keepalives_interval=30,
                         keepalives_count=3
                     )
+                    
+                    # 處理 collation version 警告
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT version()")
+                        print("🔍 PostgreSQL 版本檢查完成")
+                    except Exception:
+                        pass  # 忽略版本檢查錯誤
                     print("✅ PostgreSQL 連接建立成功")
                     yield conn
                     return
@@ -399,10 +407,85 @@ def tables_sql(autoincrement_type, text_type, timestamp_type):
         """
     ]
 
+def _migrate_existing_schema(cursor, config_type):
+    """遷移現有的資料庫 schema"""
+    print("🔄 [MIGRATE_SCHEMA] 檢查並遷移現有資料庫 schema...")
+    
+    migrations = []
+    
+    if config_type == 'postgresql':
+        # 先檢查 users 表是否存在
+        try:
+            cursor.execute("SELECT to_regclass('public.users')")
+            users_table_exists = cursor.fetchone()[0] is not None
+        except Exception:
+            users_table_exists = False
+        
+        if not users_table_exists:
+            print("✓ [MIGRATE_SCHEMA] 新資料庫，跳過 schema 遷移")
+            return
+            
+        # PostgreSQL 特有的遷移 - 只在表存在時執行
+        migrations = [
+            # 檢查 users 表是否缺少 name 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'name'",
+                'migrate': "ALTER TABLE users ADD COLUMN name TEXT",
+                'description': '添加 users.name 欄位'
+            },
+            # 檢查 users 表是否缺少 password_hash 欄位  
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash'",
+                'migrate': "ALTER TABLE users ADD COLUMN password_hash TEXT",
+                'description': '添加 users.password_hash 欄位'
+            },
+            # 檢查 users 表是否缺少 is_verified 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_verified'",
+                'migrate': "ALTER TABLE users ADD COLUMN is_verified INTEGER DEFAULT 0",
+                'description': '添加 users.is_verified 欄位'
+            },
+            # 檢查 users 表是否缺少 is_active 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_active'",
+                'migrate': "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
+                'description': '添加 users.is_active 欄位'
+            }
+        ]
+    else:
+        # SQLite 的遷移 (較複雜，暫時跳過)
+        migrations = []
+    
+    for migration in migrations:
+        try:
+            print(f"🔍 [MIGRATE_SCHEMA] 檢查: {migration['description']}")
+            cursor.execute(migration['check'])
+            result = cursor.fetchone()
+            
+            if not result:
+                print(f"📝 [MIGRATE_SCHEMA] 執行遷移: {migration['description']}")
+                cursor.execute(migration['migrate'])
+                print(f"✅ [MIGRATE_SCHEMA] 遷移完成: {migration['description']}")
+            else:
+                print(f"✓ [MIGRATE_SCHEMA] 已存在: {migration['description']}")
+                
+        except Exception as e:
+            print(f"⚠️ [MIGRATE_SCHEMA] 遷移警告 {migration['description']}: {e}")
+            # PostgreSQL 事務出錯時需要回滾
+            if config_type == 'postgresql':
+                cursor.execute("ROLLBACK")
+                cursor.execute("BEGIN")
+            # 不阻止其他遷移繼續
+    
+    print("✅ [MIGRATE_SCHEMA] Schema 遷移檢查完成")
+
 def _create_tables_and_constraints(cursor, tables, config_type):
     """創建資料表和約束的 helper 函數"""
     print("🗃️ [INIT_DATABASE] 開始創建資料表...")
     table_start_time = time.time()
+    
+    # 先執行 schema 遷移
+    _migrate_existing_schema(cursor, config_type)
     
     print(f"🗃️ [INIT_DATABASE] 準備創建 {len(tables)} 個資料表...")
 

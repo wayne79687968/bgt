@@ -172,20 +172,20 @@ def init_db_if_needed():
     if _db_initialized:
         return True
     
-    if os.getenv('DATABASE_URL'):
-        try:
-            from database import init_database
-            print("🗃️ 檢測到 PostgreSQL 環境，檢查資料庫結構...")
-            init_database()
-            print("✅ PostgreSQL 資料庫結構確認完成")
-            _db_initialized = True
-            return True
-        except Exception as e:
-            print(f"⚠️ 資料庫初始化警告: {e}")
-            return False
-    
-    _db_initialized = True
-    return True
+    try:
+        from database import init_database
+        config = get_database_config()
+        print(f"🗃️ 正在初始化 {config['type']} 資料庫結構...")
+        init_database()
+        print(f"✅ {config['type']} 資料庫結構初始化完成")
+        _db_initialized = True
+        return True
+    except Exception as e:
+        print(f"❌ 資料庫初始化失敗: {e}")
+        import traceback
+        traceback.print_exc()
+        # 不要設置 _db_initialized = True，允許重試
+        return False
 
 # 註冊模板全域函數
 @app.context_processor
@@ -2771,12 +2771,10 @@ def api_check_database():
 def health():
     """健康檢查端點"""
     # 第一次健康檢查時嘗試初始化資料庫
-    db_init_status = 'skipped'
-    if os.getenv('DATABASE_URL'):
-        try:
-            db_init_status = 'success' if init_db_if_needed() else 'failed'
-        except Exception:
-            db_init_status = 'failed'
+    try:
+        db_init_status = 'success' if init_db_if_needed() else 'failed'
+    except Exception as e:
+        db_init_status = f'failed: {str(e)[:100]}'
     
     # 測試資料庫連接
     try:
