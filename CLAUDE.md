@@ -186,3 +186,8 @@ Zeabur 平台提供即時日誌，關注：
 - BGG API 請求狀態  
 - OpenAI API 回應
 - Email 發送結果
+- 請記住現在只有兩種環境
+1. 線上使用 zeabur 建置，DB 使用 postgres
+2. 本地使用 Docker 建置，DB 使用 postgres
+3. email 寄送使用 google gmail smtp
+4. 不使用google 登入跟 sqlite
