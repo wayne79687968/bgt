@@ -39,6 +39,12 @@ def initialize_app():
     else:
         print("🔍 檢測到 DATABASE_URL，使用 PostgreSQL")
         # 在 Zeabur 環境中，PostgreSQL 初始化由應用程式在首次啟動時處理
+        
+        # 添加 PostgreSQL 服務等待邏輯
+        postgres_wait = int(os.getenv('POSTGRES_STARTUP_WAIT', '60'))
+        print(f"⏳ 等待 PostgreSQL 服務啟動 ({postgres_wait} 秒)...")
+        import time
+        time.sleep(postgres_wait)
     
     # 直接導入應用，讓 Flask 處理其餘初始化
     try:
