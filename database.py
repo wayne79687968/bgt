@@ -450,6 +450,30 @@ def _migrate_existing_schema(cursor, config_type):
                 'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'is_active'",
                 'migrate': "ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1",
                 'description': '添加 users.is_active 欄位'
+            },
+            # 檢查 users 表是否缺少 has_full_access 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'has_full_access'",
+                'migrate': "ALTER TABLE users ADD COLUMN has_full_access INTEGER DEFAULT 0",
+                'description': '添加 users.has_full_access 欄位'
+            },
+            # 檢查 users 表是否缺少 picture 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'picture'",
+                'migrate': "ALTER TABLE users ADD COLUMN picture TEXT",
+                'description': '添加 users.picture 欄位'
+            },
+            # 檢查 users 表是否缺少 created_at 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'created_at'",
+                'migrate': "ALTER TABLE users ADD COLUMN created_at TEXT",
+                'description': '添加 users.created_at 欄位'
+            },
+            # 檢查 users 表是否缺少 updated_at 欄位
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updated_at'",
+                'migrate': "ALTER TABLE users ADD COLUMN updated_at TEXT",
+                'description': '添加 users.updated_at 欄位'
             }
         ]
         
