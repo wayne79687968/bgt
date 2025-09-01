@@ -3,75 +3,245 @@
 {% block title %}登入 - BGG 綜合分析平台{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center align-items-center min-vh-100">
-        <div class="col-md-4">
-            <div class="card shadow-lg">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="card-title mb-3">🎲 BGG 分析平台</h2>
-                        <p class="text-muted">請登入您的帳號</p>
+<style>
+/* 背景漸層 */
+.auth-background {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    opacity: 0.5;
+}
+
+/* 卡片動畫 */
+.auth-card {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    transform: translateY(20px);
+    animation: slideUp 0.6s ease-out forwards;
+}
+
+@keyframes slideUp {
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* 標題動畫 */
+.auth-title {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    font-size: 2.5rem;
+    animation: fadeInDown 0.8s ease-out 0.2s both;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 表單輸入框 */
+.form-floating {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* 按鈕樣式 */
+.btn-auth {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 15px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: white;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-auth:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+.btn-auth:active {
+    transform: translateY(0);
+}
+
+.btn-auth:disabled {
+    opacity: 0.7;
+    transform: none;
+    cursor: not-allowed;
+}
+
+/* Loading spinner */
+.btn-auth .spinner-border {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-width: 2px;
+}
+
+/* 連結樣式 */
+.auth-links a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.auth-links a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* 輸入框動畫 */
+.form-group {
+    animation: fadeInUp 0.6s ease-out both;
+}
+
+.form-group:nth-child(1) { animation-delay: 0.4s; }
+.form-group:nth-child(2) { animation-delay: 0.5s; }
+.form-group:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 分割線 */
+.divider {
+    position: relative;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+}
+
+.divider span {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0 1rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* 響應式設計 */
+@media (max-width: 576px) {
+    .auth-card {
+        margin: 1rem;
+        border-radius: 15px;
+    }
+    
+    .auth-title {
+        font-size: 2rem;
+    }
+}
+</style>
+
+<div class="auth-background">
+    <div class="container-fluid">
+        <div class="row justify-content-center align-items-center min-vh-100">
+            <div class="col-md-5 col-lg-4">
+                <div class="auth-card p-5">
+                    <div class="text-center mb-5">
+                        <h1 class="auth-title mb-3">🎲 BGG 分析平台</h1>
+                        <p class="text-muted lead">歡迎回來！請登入您的帳號</p>
                     </div>
                     
                     <!-- 登入表單 -->
                     <form id="loginForm">
-                        <div class="mb-3">
+                        <div class="form-group">
                             <label for="email" class="form-label">Email 地址</label>
-                            <input type="email" class="form-control" id="email" name="email" required>
+                            <input type="email" class="form-control" id="email" name="email" required 
+                                   placeholder="請輸入您的 Email">
                         </div>
-                        <div class="mb-3">
+                        
+                        <div class="form-group">
                             <label for="password" class="form-label">密碼</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <input type="password" class="form-control" id="password" name="password" required
+                                   placeholder="請輸入您的密碼">
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
-                                <span class="spinner-border spinner-border-sm d-none" id="loginSpinner"></span>
-                                登入
-                            </button>
+                        
+                        <div class="form-group">
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-auth btn-lg" id="loginBtn">
+                                    <span class="spinner-border spinner-border-sm d-none me-2" id="loginSpinner"></span>
+                                    <span id="loginBtnText">立即登入</span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                     
-                    <hr class="my-4">
+                    <div class="divider">
+                        <span>其他選項</span>
+                    </div>
                     
                     <!-- 註冊和忘記密碼連結 -->
-                    <div class="text-center">
-                        <p class="mb-2">
-                            <small>還沒有帳號？<a href="{{ url_for('register') }}">立即註冊</a></small>
+                    <div class="text-center auth-links">
+                        <p class="mb-3">
+                            還沒有帳號？<a href="{{ url_for('register') }}" class="ms-1">立即註冊</a>
                         </p>
-                        <p>
-                            <small><a href="{{ url_for('forgot_password') }}">忘記密碼？</a></small>
+                        <p class="mb-0">
+                            <a href="{{ url_for('forgot_password') }}">忘記密碼？</a>
                         </p>
                     </div>
-                    
-                    <!-- 或分隔線 -->
-                    <div class="text-center my-3">
-                        <small class="text-muted">或使用驗證碼登入</small>
-                    </div>
-                    
-                    <!-- 驗證碼登入表單 -->
-                    <form id="codeLoginForm">
-                        <div class="mb-3">
-                            <label for="codeEmail" class="form-label">Email 地址</label>
-                            <input type="email" class="form-control" id="codeEmail" name="email" required>
-                        </div>
-                        <div class="d-grid mb-3">
-                            <button type="button" class="btn btn-outline-secondary" id="sendCodeBtn">
-                                <span class="spinner-border spinner-border-sm d-none" id="sendCodeSpinner"></span>
-                                發送驗證碼
-                            </button>
-                        </div>
-                        <div class="mb-3 d-none" id="codeInputGroup">
-                            <label for="verifyCode" class="form-label">驗證碼</label>
-                            <input type="text" class="form-control" id="verifyCode" name="code" maxlength="6" placeholder="請輸入6位數驗證碼">
-                            <div class="form-text">驗證碼將在10分鐘後失效</div>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-success btn-lg d-none" id="verifyLoginBtn">
-                                <span class="spinner-border spinner-border-sm d-none" id="verifySpinner"></span>
-                                驗證登入
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
@@ -93,9 +263,33 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('loginForm');
-    const codeLoginForm = document.getElementById('codeLoginForm');
-    const sendCodeBtn = document.getElementById('sendCodeBtn');
-    const verifyLoginBtn = document.getElementById('verifyLoginBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginSpinner = document.getElementById('loginSpinner');
+    const loginBtnText = document.getElementById('loginBtnText');
+    
+    // 輸入框動畫效果
+    [emailInput, passwordInput].forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'scale(1.02)';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'scale(1)';
+        });
+        
+        // 輸入驗證視覺反饋
+        input.addEventListener('input', function() {
+            if (this.validity.valid) {
+                this.style.borderColor = '#28a745';
+            } else if (this.value.length > 0) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#e9ecef';
+            }
+        });
+    });
     
     // 顯示通知
     function showToast(message, type = 'info') {
@@ -103,21 +297,62 @@ document.addEventListener('DOMContentLoaded', function() {
         const toastMessage = document.getElementById('toastMessage');
         
         toastMessage.textContent = message;
-        toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : type === 'success' ? 'bg-success text-white' : ''}`;
         
-        const bsToast = new bootstrap.Toast(toast);
+        // 移除舊的類別
+        toast.classList.remove('bg-danger', 'bg-success', 'bg-info', 'text-white');
+        
+        // 添加新的類別
+        if (type === 'error') {
+            toast.classList.add('bg-danger', 'text-white');
+        } else if (type === 'success') {
+            toast.classList.add('bg-success', 'text-white');
+        } else {
+            toast.classList.add('bg-info', 'text-white');
+        }
+        
+        const bsToast = new bootstrap.Toast(toast, { delay: 4000 });
         bsToast.show();
     }
     
-    // 一般登入
+    // 按鈕載入狀態
+    function setButtonLoading(loading) {
+        if (loading) {
+            loginBtn.disabled = true;
+            loginSpinner.classList.remove('d-none');
+            loginBtnText.textContent = '登入中...';
+            loginBtn.style.transform = 'scale(0.98)';
+        } else {
+            loginBtn.disabled = false;
+            loginSpinner.classList.add('d-none');
+            loginBtnText.textContent = '立即登入';
+            loginBtn.style.transform = 'scale(1)';
+        }
+    }
+    
+    // Email + 密碼登入
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const loginBtn = document.getElementById('loginBtn');
-        const loginSpinner = document.getElementById('loginSpinner');
+        // 表單驗證
+        if (!emailInput.validity.valid) {
+            showToast('請輸入有效的 Email 地址', 'error');
+            emailInput.focus();
+            return;
+        }
         
-        loginBtn.disabled = true;
-        loginSpinner.classList.remove('d-none');
+        if (passwordInput.value.length < 6) {
+            showToast('密碼至少需要6個字符', 'error');
+            passwordInput.focus();
+            return;
+        }
+        
+        setButtonLoading(true);
+        
+        // 添加提交動畫
+        loginForm.style.transform = 'scale(0.98)';
+        setTimeout(() => {
+            loginForm.style.transform = 'scale(1)';
+        }, 100);
         
         try {
             const formData = new FormData(loginForm);
@@ -135,121 +370,71 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
             
             if (result.success) {
-                showToast('登入成功，正在跳轉...', 'success');
-                setTimeout(() => {
-                    window.location.href = result.redirect || '/dashboard';
-                }, 1000);
-            } else {
-                showToast(result.message || '登入失敗', 'error');
-            }
-        } catch (error) {
-            showToast('網絡錯誤，請稍後再試', 'error');
-        } finally {
-            loginBtn.disabled = false;
-            loginSpinner.classList.add('d-none');
-        }
-    });
-    
-    // 發送驗證碼
-    sendCodeBtn.addEventListener('click', async function() {
-        const email = document.getElementById('codeEmail').value;
-        if (!email) {
-            showToast('請輸入 Email 地址', 'error');
-            return;
-        }
-        
-        const sendCodeSpinner = document.getElementById('sendCodeSpinner');
-        sendCodeBtn.disabled = true;
-        sendCodeSpinner.classList.remove('d-none');
-        
-        try {
-            const response = await fetch('/auth/send-code', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: email,
-                    type: 'login'
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast('驗證碼已發送到您的信箱', 'success');
-                document.getElementById('codeInputGroup').classList.remove('d-none');
-                document.getElementById('verifyLoginBtn').classList.remove('d-none');
+                // 成功動畫
+                loginBtn.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                loginBtnText.textContent = '登入成功！';
                 
-                // 倒數計時
-                let countdown = 60;
-                sendCodeBtn.textContent = `重新發送 (${countdown})`;
-                const timer = setInterval(() => {
-                    countdown--;
-                    sendCodeBtn.textContent = `重新發送 (${countdown})`;
-                    if (countdown <= 0) {
-                        clearInterval(timer);
-                        sendCodeBtn.textContent = '發送驗證碼';
-                        sendCodeBtn.disabled = false;
-                    }
-                }, 1000);
+                showToast('登入成功，正在跳轉...', 'success');
+                
+                // 頁面淡出效果
+                setTimeout(() => {
+                    document.body.style.transition = 'opacity 0.5s ease-out';
+                    document.body.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        window.location.href = result.redirect || '/dashboard';
+                    }, 300);
+                }, 1200);
             } else {
-                showToast(result.message || '發送失敗', 'error');
-                sendCodeBtn.disabled = false;
+                // 錯誤動畫
+                loginBtn.style.background = 'linear-gradient(135deg, #dc3545, #c82333)';
+                loginBtnText.textContent = '登入失敗';
+                
+                showToast(result.message || '登入失敗', 'error');
+                
+                // 搖擺動畫
+                loginForm.style.animation = 'shake 0.5s ease-in-out';
+                setTimeout(() => {
+                    loginForm.style.animation = '';
+                    loginBtn.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                    loginBtnText.textContent = '重試登入';
+                }, 500);
             }
         } catch (error) {
-            showToast('網絡錯誤，請稍後再試', 'error');
-            sendCodeBtn.disabled = false;
+            showToast('網絡連接失敗，請檢查網絡後重試', 'error');
+            
+            // 網絡錯誤動畫
+            loginBtn.style.background = 'linear-gradient(135deg, #ffc107, #fd7e14)';
+            loginBtnText.textContent = '網絡錯誤';
+            
+            setTimeout(() => {
+                loginBtn.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+                loginBtnText.textContent = '重試登入';
+            }, 2000);
         } finally {
-            sendCodeSpinner.classList.add('d-none');
+            setTimeout(() => {
+                setButtonLoading(false);
+            }, 1000);
         }
     });
     
-    // 驗證碼登入
-    codeLoginForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('codeEmail').value;
-        const code = document.getElementById('verifyCode').value;
-        
-        if (!code) {
-            showToast('請輸入驗證碼', 'error');
-            return;
-        }
-        
-        const verifySpinner = document.getElementById('verifySpinner');
-        verifyLoginBtn.disabled = true;
-        verifySpinner.classList.remove('d-none');
-        
-        try {
-            const response = await fetch('/auth/verify-login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: email,
-                    code: code
-                })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showToast('驗證成功，正在跳轉...', 'success');
-                setTimeout(() => {
-                    window.location.href = result.redirect || '/dashboard';
-                }, 1000);
-            } else {
-                showToast(result.message || '驗證失敗', 'error');
-            }
-        } catch (error) {
-            showToast('網絡錯誤，請稍後再試', 'error');
-        } finally {
-            verifyLoginBtn.disabled = false;
-            verifySpinner.classList.add('d-none');
+    // 鍵盤快捷鍵
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (emailInput === document.activeElement || passwordInput === document.activeElement)) {
+            loginForm.dispatchEvent(new Event('submit'));
         }
     });
 });
+
+// CSS 動畫
+const style = document.createElement('style');
+style.textContent = \`
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+\`;
+document.head.appendChild(style);
 </script>
 {% endblock %}
