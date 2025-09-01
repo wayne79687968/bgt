@@ -28,10 +28,9 @@ class GoogleAuth:
         self.client_secret = os.getenv('GOOGLE_CLIENT_SECRET')
         self.admin_email = 'wayne79687968@gmail.com'  # 管理員 email
         
-        if not self.client_id or not self.client_secret:
-            # 只在開發模式顯示配置訊息
-            if os.getenv('FLASK_ENV') == 'development':
-                logger.info("Google OAuth 未配置（已改用 Email 認證系統）")
+        # Google OAuth 已停用，改用 Email 認證系統
+        # 不再顯示配置警告訊息
+        pass
     
     def get_google_provider_cfg(self):
         """獲取 Google OAuth 配置"""
