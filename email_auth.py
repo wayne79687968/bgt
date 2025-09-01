@@ -120,11 +120,10 @@ BGG 分析平台團隊
             
             msg.attach(MIMEText(body, 'plain', 'utf-8'))
             
-            server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-            server.starttls()
-            server.login(self.smtp_username, self.smtp_password)
-            server.send_message(msg)
-            server.quit()
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_username, self.smtp_password)
+                server.send_message(msg)
             
             logger.info(f"驗證碼郵件已發送至 {email}")
             return True
@@ -134,27 +133,30 @@ BGG 分析平台團隊
             return False
     
     def store_verification_code(self, email, code, code_type='register'):
-        """儲存驗證碼到資料庫"""
+        """儲存驗證碼到資料庫，如果已存在則更新"""
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 
-                # 清除該 email 的舊驗證碼
-                execute_query(cursor, 
-                    "DELETE FROM verification_codes WHERE email = ? AND type = ?", 
-                    (email, code_type))
-                
-                # 儲存新驗證碼
                 expires_at = (datetime.now() + timedelta(minutes=10)).isoformat()
                 created_at = datetime.now().isoformat()
                 
+                # 嘗試更新現有記錄
                 execute_query(cursor, """
-                    INSERT INTO verification_codes (email, code, type, expires_at, created_at)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (email, code, code_type, expires_at, created_at))
+                    UPDATE verification_codes 
+                    SET code = ?, expires_at = ?, used = 0, created_at = ?
+                    WHERE email = ? AND type = ?
+                """, (code, expires_at, created_at, email, code_type))
+                
+                # 如果沒有更新到任何記錄，則插入新記錄
+                if cursor.rowcount == 0:
+                    execute_query(cursor, """
+                        INSERT INTO verification_codes (email, code, type, expires_at, created_at, used)
+                        VALUES (?, ?, ?, ?, ?, 0)
+                    """, (email, code, code_type, expires_at, created_at))
                 
                 conn.commit()
-                logger.info(f"驗證碼已儲存: {email} ({code_type})")
+                logger.info(f"驗證碼已儲存/更新: {email} ({code_type})")
                 return True
                 
         except Exception as e:
