@@ -175,6 +175,30 @@ google_auth = GoogleAuth() if GOOGLE_AUTH_AVAILABLE else None
 # 資料庫初始化狀態追蹤
 _db_initialized = False
 
+def force_db_initialization():
+    """強制執行資料庫初始化，用於應用啟動"""
+    global _db_initialized
+    
+    if _db_initialized:
+        print("✓ 資料庫已初始化，跳過重複初始化")
+        return True
+    
+    print("🔄 強制執行資料庫初始化...")
+    try:
+        from database import init_database
+        config = get_database_config()
+        print(f"🗃️ 強制初始化 {config['type']} 資料庫結構...")
+        init_database()
+        print(f"✅ {config['type']} 資料庫強制初始化完成")
+        _db_initialized = True
+        return True
+    except Exception as e:
+        print(f"❌ 強制資料庫初始化失敗: {e}")
+        import traceback
+        print("📋 完整錯誤堆疊:")
+        traceback.print_exc()
+        return False
+
 def init_db_if_needed():
     """延遲初始化資料庫，避免啟動阻塞"""
     global _db_initialized
@@ -3424,6 +3448,27 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# 模塊級資料庫初始化 - 適用於 Gunicorn/WSGI 環境
+try:
+    if os.getenv('DATABASE_URL'):  # 只在有資料庫配置時執行
+        print("📋 模塊載入: 檢查資料庫初始化需求...")
+        # 延遲執行，避免導入循環
+        import threading
+        def delayed_init():
+            import time
+            time.sleep(1)  # 等待 1 秒確保所有模塊載入完成
+            force_db_initialization()
+        
+        init_thread = threading.Thread(target=delayed_init, daemon=True)
+        init_thread.start()
+        print("📋 模塊載入: 資料庫初始化線程已啟動")
+except Exception as e:
+    print(f"⚠️ 模塊級初始化警告: {e}")
+
 if __name__ == '__main__':
+    # 確保資料庫在應用啟動前完成初始化
+    print("🔄 應用啟動前執行資料庫檢查...")
+    force_db_initialization()
+    
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

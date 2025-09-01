@@ -29,23 +29,30 @@ def initialize_app():
     if database_url:
         print("🔍 檢測到 DATABASE_URL，使用 PostgreSQL")
         # 添加 PostgreSQL 服務等待邏輯
-        postgres_wait = int(os.getenv('POSTGRES_STARTUP_WAIT', '60'))
+        postgres_wait = int(os.getenv('POSTGRES_STARTUP_WAIT', '2'))
         print(f"⏳ 等待 PostgreSQL 服務啟動 ({postgres_wait} 秒)...")
         import time
         time.sleep(postgres_wait)
         
-        # 嘗試初始化 PostgreSQL 資料庫
-        try:
-            print("🗃️ 初始化 PostgreSQL 資料庫...")
-            from database import init_database
-            init_database()
-            print("✅ PostgreSQL 資料庫初始化完成")
-        except Exception as e:
-            print(f"⚠️ 資料庫初始化警告: {e}")
-            import traceback
-            print("📋 詳細錯誤信息:")
-            traceback.print_exc()
-            print("💡 提示：應用仍會繼續啟動，可稍後使用 /api/init-database 手動初始化")
+        # 嘗試初始化 PostgreSQL 資料庫 (最多重試 3 次)
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                print(f"🗃️ 初始化 PostgreSQL 資料庫... (嘗試 {attempt}/{max_retries})")
+                from database import init_database
+                init_database()
+                print("✅ PostgreSQL 資料庫初始化完成")
+                break
+            except Exception as e:
+                print(f"⚠️ 資料庫初始化失敗 (嘗試 {attempt}/{max_retries}): {e}")
+                if attempt == max_retries:
+                    import traceback
+                    print("📋 詳細錯誤信息:")
+                    traceback.print_exc()
+                    print("💡 提示：應用仍會繼續啟動，請使用 /api/init-database 手動初始化")
+                else:
+                    print(f"⏳ 等待 5 秒後重試...")
+                    time.sleep(5)
     else:
         print("❌ 錯誤：未檢測到 DATABASE_URL，請設定 PostgreSQL 連線")
     
