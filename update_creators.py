@@ -72,8 +72,9 @@ def save_new_games(creator_id, new_games):
             
             # 獲取追蹤此設計師的用戶列表
             cursor.execute("""
-                SELECT user_email FROM user_follows 
-                WHERE creator_id = ?
+                SELECT u.email FROM user_follows uf
+                JOIN users u ON uf.user_id = u.id
+                WHERE uf.creator_id = ?
             """, (creator_id,))
             
             user_emails = [row[0] for row in cursor.fetchall()]

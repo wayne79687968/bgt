@@ -2957,17 +2957,17 @@ def api_get_creator_details(creator_id, creator_type):
             return jsonify({'success': False, 'message': '無法獲取詳細資料'})
         
         # 檢查用戶是否已追蹤
-        user_email = session.get('user_email')
+        user_data = session.get('user')
         is_following = False
         
-        if user_email:
+        if user_data and user_data.get('id'):
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT 1 FROM user_follows uf
                     JOIN creators c ON uf.creator_id = c.id
-                    WHERE c.bgg_id = ? AND uf.user_email = ?
-                """, (creator_id, user_email))
+                    WHERE c.bgg_id = ? AND uf.user_id = ?
+                """, (creator_id, user_data['id']))
                 is_following = cursor.fetchone() is not None
         
         details['is_following'] = is_following
@@ -2986,9 +2986,11 @@ def api_get_creator_details(creator_id, creator_type):
 def api_follow_creator():
     """追蹤/取消追蹤設計師/繪師 API"""
     try:
-        user = session.get('user', {})
-        user_email = user.get('email')
-        if not user_email:
+        user_data = session.get('user', {})
+        user_id = user_data.get('id')
+        user_email = user_data.get('email')
+        
+        if not user_id:
             return jsonify({'success': False, 'message': '請先登入'})
         
         data = request.get_json()
@@ -3030,9 +3032,9 @@ def api_follow_creator():
                 # 4. 建立追蹤關係
                 now = datetime.now().isoformat()
                 cursor.execute("""
-                    INSERT OR IGNORE INTO user_follows (user_email, creator_id, followed_at)
+                    INSERT OR IGNORE INTO user_follows (user_id, creator_id, followed_at)
                     VALUES (?, ?, ?)
-                """, (user_email, creator_id, now))
+                """, (user_id, creator_id, now))
                 
                 message = f'開始追蹤 {details["name"]}'
                 
@@ -3040,10 +3042,10 @@ def api_follow_creator():
                 # 取消追蹤
                 cursor.execute("""
                     DELETE FROM user_follows 
-                    WHERE user_email = ? AND creator_id = (
+                    WHERE user_id = ? AND creator_id = (
                         SELECT id FROM creators WHERE bgg_id = ?
                     )
-                """, (user_email, creator_bgg_id))
+                """, (user_id, creator_bgg_id))
                 
                 message = '已取消追蹤'
         
@@ -3161,7 +3163,7 @@ def cron_update_creators():
 def api_save_user_email():
     """儲存用戶 Email API"""
     try:
-        if 'user_email' not in session:
+        if 'logged_in' not in session:
             return jsonify({'success': False, 'message': '請先登入'}), 401
         
         data = request.get_json()

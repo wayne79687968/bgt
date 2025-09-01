@@ -385,10 +385,11 @@ def tables_sql(autoincrement_type, text_type, timestamp_type):
         # 用戶追蹤設計師/繪師
         f"""
         CREATE TABLE IF NOT EXISTS user_follows (
-            user_email {text_type} NOT NULL,
+            user_id INTEGER NOT NULL,
             creator_id INTEGER NOT NULL,
             followed_at {text_type},
-            PRIMARY KEY (user_email, creator_id)
+            PRIMARY KEY (user_id, creator_id),
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """,
 
@@ -400,7 +401,7 @@ def tables_sql(autoincrement_type, text_type, timestamp_type):
             bgg_game_id INTEGER NOT NULL,
             game_name {text_type},
             year_published INTEGER,
-            notified_users {text_type}, -- JSON array of user emails
+            notified_user_ids {text_type}, -- JSON array of user IDs
             created_at {text_type},
             sent_at {text_type}
         )
@@ -513,6 +514,71 @@ def _migrate_existing_schema(cursor, config_type):
             except Exception as e:
                 print(f"⚠️ [MIGRATE_SCHEMA] 創建警告 {table_check['description']}: {e}")
                 # PostgreSQL 事務出錯時需要回滾
+                if config_type == 'postgresql':
+                    cursor.execute("ROLLBACK")
+                    cursor.execute("BEGIN")
+        
+        # 用戶表結構遷移 - 從 user_email 轉換為 user_id
+        user_table_migrations = [
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'user_follows' AND column_name = 'user_id'",
+                'description': '遷移 user_follows 表從 user_email 到 user_id',
+                'migrate_sql': [
+                    # 1. 創建新表結構
+                    """CREATE TABLE IF NOT EXISTS user_follows_new (
+                        user_id INTEGER NOT NULL,
+                        creator_id INTEGER NOT NULL,
+                        followed_at TEXT,
+                        PRIMARY KEY (user_id, creator_id),
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                    )""",
+                    # 2. 遷移資料 (將 user_email 轉換為 user_id)
+                    """INSERT INTO user_follows_new (user_id, creator_id, followed_at)
+                       SELECT u.id, uf.creator_id, uf.followed_at 
+                       FROM user_follows uf 
+                       JOIN users u ON u.email = uf.user_email
+                       WHERE EXISTS (SELECT 1 FROM information_schema.columns 
+                                   WHERE table_name = 'user_follows' AND column_name = 'user_email')""",
+                    # 3. 刪除舊表
+                    "DROP TABLE IF EXISTS user_follows",
+                    # 4. 重命名新表
+                    "ALTER TABLE user_follows_new RENAME TO user_follows"
+                ]
+            },
+            {
+                'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'game_notifications' AND column_name = 'notified_user_ids'",
+                'description': '遷移 game_notifications 表從 notified_users 到 notified_user_ids',
+                'migrate_sql': [
+                    # 1. 添加新欄位
+                    "ALTER TABLE game_notifications ADD COLUMN IF NOT EXISTS notified_user_ids TEXT",
+                    # 2. 遷移資料 (將 email 轉換為 user_id，這個比較複雜，暫時保留舊欄位)
+                    # TODO: 實現 JSON email array 到 user_id array 的轉換
+                ]
+            }
+        ]
+        
+        for migration in user_table_migrations:
+            try:
+                print(f"🔍 [MIGRATE_SCHEMA] 檢查: {migration['description']}")
+                cursor.execute(migration['check'])
+                result = cursor.fetchone()
+                
+                if not result:
+                    print(f"📝 [MIGRATE_SCHEMA] 執行遷移: {migration['description']}")
+                    for sql in migration['migrate_sql']:
+                        if sql.strip():  # 跳過空的 SQL
+                            try:
+                                cursor.execute(sql)
+                            except Exception as sql_error:
+                                print(f"⚠️ [MIGRATE_SCHEMA] SQL 警告: {sql_error}")
+                                # 對於資料遷移錯誤，記錄但繼續執行
+                                pass
+                    print(f"✅ [MIGRATE_SCHEMA] 遷移完成: {migration['description']}")
+                else:
+                    print(f"✓ [MIGRATE_SCHEMA] 已遷移: {migration['description']}")
+                    
+            except Exception as e:
+                print(f"⚠️ [MIGRATE_SCHEMA] 遷移警告 {migration['description']}: {e}")
                 if config_type == 'postgresql':
                     cursor.execute("ROLLBACK")
                     cursor.execute("BEGIN")

@@ -373,7 +373,7 @@
 </div>
 
 <script>
-let currentUser = '{{ user_email or "" }}';
+let currentUser = '{{ session.user.email if session.user else "" }}';
 
 // 獲取預設頭像 URL
 function getDefaultAvatar(name) {
