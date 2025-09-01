@@ -2448,6 +2448,7 @@ def index():
     return redirect(url_for('login'))
 
 @app.route('/login')
+@app.route('/login_email')
 def login():
     """顯示登入頁面"""
     if 'user' in session:
