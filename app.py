@@ -11,9 +11,17 @@ import re
 import json
 import requests
 from bs4 import BeautifulSoup
-from database import get_db_connection, get_database_config
-from google_auth import GoogleAuth, login_required, admin_required, full_access_required, has_full_access, get_current_user
-from email_auth import EmailAuth
+from database import get_db_connection, get_database_config, execute_query
+# 認證系統導入 - 優先使用 email_auth，Google 認證為可選
+from email_auth import EmailAuth, login_required, admin_required, full_access_required, has_full_access, get_current_user
+
+# 嘗試導入 Google 認證 (可選)
+try:
+    from google_auth import GoogleAuth
+    GOOGLE_AUTH_AVAILABLE = True
+except ImportError:
+    GoogleAuth = None
+    GOOGLE_AUTH_AVAILABLE = False
 import threading
 import time
 
@@ -158,9 +166,11 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-here')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Google OAuth 設定
-google_auth = GoogleAuth()
+# 認證系統設定
 email_auth = EmailAuth()
+
+# Google OAuth 設定 (可選)
+google_auth = GoogleAuth() if GOOGLE_AUTH_AVAILABLE else None
 
 # 資料庫初始化狀態追蹤
 _db_initialized = False
@@ -2449,6 +2459,10 @@ def login():
 @app.route('/auth/google')
 def google_auth_callback():
     """處理 Google 登入回調"""
+    if not GOOGLE_AUTH_AVAILABLE or not google_auth:
+        flash('Google 登入功能暫不可用', 'error')
+        return redirect(url_for('login'))
+    
     token = request.args.get('token')
     if not token:
         flash('登入失敗：未收到認證 token', 'error')
@@ -2485,7 +2499,7 @@ def google_auth_callback():
 @login_required
 def dashboard():
     """用戶儀表板"""
-    return render_template('index.html')
+    return render_template('reports.html')
 
 @app.route('/generate')
 @admin_required
@@ -3171,7 +3185,6 @@ def register_user():
         data = request.get_json()
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
-        name = data.get('name', '').strip()
         
         if not email or not password:
             return jsonify({'success': False, 'message': '請提供 Email 和密碼'})
@@ -3179,12 +3192,36 @@ def register_user():
         if len(password) < 6:
             return jsonify({'success': False, 'message': '密碼至少需要6個字符'})
         
+        # 檢查是否有有效的驗證碼（確保用戶已通過驗證）
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            execute_query(cursor, """
+                SELECT id FROM verification_codes 
+                WHERE email = ? AND type = 'register' AND used = 1
+                AND expires_at > ?
+            """, (email, datetime.now().isoformat()))
+            
+            if not cursor.fetchone():
+                return jsonify({'success': False, 'message': '請先完成 Email 驗證'})
+        
+        # 使用 email 前綴作為預設名稱
+        name = email.split('@')[0]
+        
         # 創建用戶
         user_data, message = email_auth.create_user(email, password, name)
         
         if user_data:
             # 設定 session
             session['user'] = user_data
+            
+            # 清理已使用的驗證碼
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                execute_query(cursor, 
+                    "DELETE FROM verification_codes WHERE email = ? AND type = 'register'", 
+                    (email,))
+                conn.commit()
+            
             return jsonify({
                 'success': True, 
                 'message': message,
