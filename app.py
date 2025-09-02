@@ -2944,6 +2944,11 @@ def api_search_creators():
         logger.error(f"搜尋設計師失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/creator/<int:creator_id>/<creator_type>')
+def creator_details_page(creator_id, creator_type):
+    """設計師/繪師詳細資料頁面"""
+    return render_template('creator_details.html', creator_id=creator_id, creator_type=creator_type)
+
 @app.route('/api/creators/<int:creator_id>/<creator_type>')
 def api_get_creator_details(creator_id, creator_type):
     """獲取設計師/繪師詳細資料 API"""
@@ -2955,6 +2960,32 @@ def api_get_creator_details(creator_id, creator_type):
         details = tracker.get_creator_details(creator_id, creator_type)
         if not details:
             return jsonify({'success': False, 'message': '無法獲取詳細資料'})
+        
+        # 確定正確的 API 類型
+        api_type = 'boardgamedesigner' if creator_type in ['designer', 'boardgamedesigner'] else 'boardgameartist'
+        slug = details.get('slug')
+        
+        # 獲取 average 排序的第一筆遊戲（top game）
+        top_game = None
+        if slug:
+            top_games = tracker.get_all_creator_games(creator_id, slug, api_type, sort='average', limit=1)
+            if top_games:
+                game = top_games[0]
+                top_game = {
+                    'name': game.get('name'),
+                    'url': f"https://boardgamegeek.com/boardgame/{game.get('bgg_id')}"
+                }
+        
+        # 獲取 yearpublished 排序的前5筆遊戲
+        recent_games = []
+        if slug:
+            games = tracker.get_all_creator_games(creator_id, slug, api_type, sort='yearpublished', limit=5)
+            for game in games:
+                recent_games.append({
+                    'name': game.get('name'),
+                    'year': game.get('year'),
+                    'url': f"https://boardgamegeek.com/boardgame/{game.get('bgg_id')}"
+                })
         
         # 檢查用戶是否已追蹤
         user_data = session.get('user')
@@ -2971,6 +3002,8 @@ def api_get_creator_details(creator_id, creator_type):
                 is_following = cursor.fetchone() is not None
         
         details['is_following'] = is_following
+        details['top_game'] = top_game
+        details['recent_games'] = recent_games
         
         return jsonify({
             'success': True,
@@ -3023,45 +3056,51 @@ def api_follow_creator():
                 if not creator_id:
                     return jsonify({'success': False, 'message': '儲存設計師資料失敗'})
                 
-                # 3. 獲取所有作品並儲存
-                all_games = tracker.get_all_creator_games(
-                    creator_bgg_id, details['slug'], 
-                    'boardgamedesigner' if creator_type == 'designer' else 'boardgameartist'
-                )
-                tracker.save_creator_games(creator_id, all_games)
+                # 3. 檢查是否已存在此設計師的遊戲，並進行增量更新
+                cursor.execute("""
+                    SELECT bgg_game_id FROM creator_games WHERE creator_id = %s
+                """, (creator_id,))
+                existing_game_ids = [row[0] for row in cursor.fetchall()]
+                
+                # 獲取所有作品（用於新追蹤的設計師）或新作品（用於已存在的設計師）
+                api_type = 'boardgamedesigner' if creator_type == 'designer' else 'boardgameartist'
+                
+                if existing_game_ids:
+                    # 已存在設計師，進行增量更新檢查新遊戲
+                    new_games = tracker.get_new_creator_games(
+                        creator_bgg_id, details['slug'], api_type, 
+                        existing_games=existing_game_ids,
+                        stop_on_existing=True
+                    )
+                    if new_games:
+                        tracker.save_creator_games(creator_id, new_games)
+                        message = f'開始追蹤 {details["name"]}，發現 {len(new_games)} 個新作品'
+                    else:
+                        message = f'開始追蹤 {details["name"]}'
+                else:
+                    # 新設計師，獲取所有作品
+                    all_games = tracker.get_all_creator_games(
+                        creator_bgg_id, details['slug'], api_type
+                    )
+                    tracker.save_creator_games(creator_id, all_games)
+                    message = f'開始追蹤 {details["name"]}，已記錄 {len(all_games)} 個作品'
                 
                 # 4. 建立追蹤關係
                 now = datetime.now().isoformat()
-                if config['type'] == 'postgresql':
-                    cursor.execute("""
-                        INSERT INTO user_follows (user_id, creator_id, followed_at)
-                        VALUES (%s, %s, %s)
-                        ON CONFLICT (user_id, creator_id) DO NOTHING
-                    """, (user_id, creator_id, now))
-                else:
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO user_follows (user_id, creator_id, followed_at)
-                        VALUES (?, ?, ?)
-                    """, (user_id, creator_id, now))
-                
-                message = f'開始追蹤 {details["name"]}'
+                cursor.execute("""
+                    INSERT INTO user_follows (user_id, creator_id, followed_at)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (user_id, creator_id) DO NOTHING
+                """, (user_id, creator_id, now))
                 
             else:  # unfollow
                 # 取消追蹤
-                if config['type'] == 'postgresql':
-                    cursor.execute("""
-                        DELETE FROM user_follows 
-                        WHERE user_id = %s AND creator_id = (
-                            SELECT id FROM creators WHERE bgg_id = %s
-                        )
-                    """, (user_id, creator_bgg_id))
-                else:
-                    cursor.execute("""
-                        DELETE FROM user_follows 
-                        WHERE user_id = ? AND creator_id = (
-                            SELECT id FROM creators WHERE bgg_id = ?
-                        )
-                    """, (user_id, creator_bgg_id))
+                cursor.execute("""
+                    DELETE FROM user_follows 
+                    WHERE user_id = %s AND creator_id = (
+                        SELECT id FROM creators WHERE bgg_id = %s
+                    )
+                """, (user_id, creator_bgg_id))
                 
                 message = '已取消追蹤'
         
