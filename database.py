@@ -5,6 +5,7 @@
 """
 
 import os
+import sqlite3
 from urllib.parse import urlparse
 from contextlib import contextmanager
 import time

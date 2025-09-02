@@ -3,6 +3,7 @@
 {% block title %}設計師/繪師追蹤 - BGG 熱門桌遊追蹤器{% endblock %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
 .creator-search {
     max-width: 800px;
@@ -298,6 +299,160 @@
     color: white;
 }
 
+/* 卡片腳部樣式 */
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.click-indicator {
+    color: #007bff;
+    font-size: 14px;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.creator-card:hover .click-indicator {
+    opacity: 1;
+}
+
+.creator-stats {
+    font-size: 12px;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.creator-stats i {
+    font-size: 10px;
+}
+
+/* Modal 樣式 */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideIn 0.3s;
+    position: relative;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    z-index: 1001;
+    cursor: pointer;
+    background: rgba(255,255,255,0.9);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.creator-detail {
+    padding: 30px;
+}
+
+.creator-detail .creator-header {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.creator-detail .creator-avatar {
+    width: 80px;
+    height: 80px;
+}
+
+.creator-detail .creator-info h2 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 28px;
+}
+
+.creator-detail .creator-description {
+    margin-bottom: 25px;
+}
+
+.creator-detail .creator-description h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.creator-detail .creator-games h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 20px;
+}
+
+.creator-detail .creator-actions {
+    margin-top: 30px;
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.creator-detail .follow-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+    border-radius: 25px;
+    min-width: 120px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 .tab:hover:not(.active) {
     background: #e9ecef;
 }
@@ -474,7 +629,7 @@ function displaySearchResults(results) {
     }
     
     resultsList.innerHTML = results.map(creator => `
-        <div class="creator-card" onclick="goToCreatorDetails(${creator.id}, '${creator.type}')">
+        <div class="creator-card clickable" onclick="showCreatorDetails(${creator.id}, '${creator.type}')">
             <div class="creator-header">
                 <img src="${creator.image_url || getDefaultAvatar(creator.name)}" 
                      alt="${creator.name}" class="creator-avatar"
@@ -490,13 +645,12 @@ function displaySearchResults(results) {
                     ` : ''}
                 </div>
             </div>
-            <div class="creator-actions">
-                <button class="follow-btn not-following" 
-                        onclick="event.stopPropagation(); toggleFollow(${creator.id}, '${creator.type}', this)">
-                    追蹤
-                </button>
+            <div class="card-footer">
                 <div class="creator-stats">
-                    點擊查看詳細資料
+                    <i class="fas fa-eye"></i> 點擊查看詳細資料
+                </div>
+                <div class="click-indicator">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
         </div>
@@ -653,7 +807,7 @@ function displayFollowingCreators(creators) {
     const followingList = document.getElementById('following-list');
     
     followingList.innerHTML = creators.map(creator => `
-        <div class="creator-card" onclick="showCreatorDetails(${creator.bgg_id}, '${creator.type}')">
+        <div class="creator-card clickable" onclick="showCreatorDetails(${creator.bgg_id}, '${creator.type}')">
             <div class="creator-header">
                 <img src="${creator.image_url || getDefaultAvatar(creator.name)}" 
                      alt="${creator.name}" class="creator-avatar"
@@ -666,13 +820,12 @@ function displayFollowingCreators(creators) {
             <div class="creator-description">
                 ${creator.description ? creator.description.substring(0, 100) + '...' : '暫無簡介'}
             </div>
-            <div class="creator-actions">
-                <button class="follow-btn following" 
-                        onclick="event.stopPropagation(); toggleFollow(${creator.bgg_id}, '${creator.type}', this)">
-                    取消追蹤
-                </button>
+            <div class="card-footer">
                 <div class="creator-stats">
-                    追蹤於 ${new Date(creator.followed_at).toLocaleDateString()}
+                    <i class="fas fa-calendar"></i> 追蹤於 ${new Date(creator.followed_at).toLocaleDateString()}
+                </div>
+                <div class="click-indicator">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
         </div>
@@ -692,59 +845,4 @@ window.onclick = function(event) {
     }
 }
 </script>
-
-<!-- 彈窗樣式 -->
-<style>
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-    position: relative;
-    background-color: white;
-    margin: 5% auto;
-    padding: 20px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.close {
-    position: absolute;
-    right: 20px;
-    top: 15px;
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close:hover,
-.close:focus {
-    color: #333;
-}
-
-.creator-detail .creator-header {
-    margin-bottom: 20px;
-}
-
-.creator-detail .creator-description,
-.creator-detail .creator-games {
-    margin-bottom: 20px;
-}
-
-.creator-detail .creator-actions {
-    text-align: center;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef;
-}
-</style>
 {% endblock %}
