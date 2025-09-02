@@ -56,10 +56,34 @@ class CreatorTracker:
                 creator_id = item.get('id')
                 creator_name = item.find('name').get('value') if item.find('name') is not None else 'Unknown'
                 
+                # 獲取設計師的基本資料（包含照片）
+                basic_details = self.get_creator_details(int(creator_id), creator_type)
+                image_url = basic_details.get('image_url') if basic_details else None
+                
+                # 獲取 average 排序的第一筆遊戲
+                top_game = None
+                try:
+                    # 確定正確的 API 類型
+                    api_type = 'boardgamedesigner' if creator_type in ['designer', 'boardgamedesigner'] else 'boardgameartist'
+                    slug = basic_details.get('slug') if basic_details else None
+                    
+                    if slug:
+                        games = self.get_all_creator_games(int(creator_id), slug, api_type, sort='average', limit=1)
+                        if games:
+                            game = games[0]
+                            top_game = {
+                                'name': game.get('name'),
+                                'url': f"https://boardgamegeek.com/boardgame/{game.get('id')}"
+                            }
+                except Exception as e:
+                    logger.warning(f"無法獲取 {creator_name} 的 top game: {e}")
+                
                 results.append({
                     'id': int(creator_id),
                     'name': creator_name,
-                    'type': creator_type
+                    'type': creator_type,
+                    'image_url': image_url,
+                    'top_game': top_game
                 })
                 
             logger.info(f"找到 {len(results)} 個結果")
@@ -460,7 +484,8 @@ class CreatorTracker:
         return all_new_games
     
     def get_all_creator_games(self, creator_id: int, slug: str, bgg_type: str, 
-                             existing_games: List[int] = None) -> List[Dict]:
+                             existing_games: List[int] = None, sort: str = 'yearpublished', 
+                             limit: int = None) -> List[Dict]:
         """
         獲取設計師/繪師的所有作品 (用於追蹤時的完整同步)
         
@@ -469,6 +494,8 @@ class CreatorTracker:
             slug: URL slug
             bgg_type: BGG 類型
             existing_games: 已存在的遊戲 ID 列表，用於增量更新
+            sort: 排序方式 ('yearpublished', 'average')
+            limit: 限制數量
         
         Returns:
             List[Dict]: 所有遊戲作品
@@ -482,7 +509,7 @@ class CreatorTracker:
                 url = f"https://boardgamegeek.com/{bgg_type}/{creator_id}/{slug}/linkeditems/{bgg_type}"
                 params = {
                     'pageid': page,
-                    'sort': 'yearpublished'  # 按年份排序，用於增量更新
+                    'sort': sort  # 使用指定的排序方式
                 }
                 
                 response = self.session.get(url, params=params, timeout=30)
@@ -517,6 +544,11 @@ class CreatorTracker:
                     break
                     
                 all_games.extend(page_games)
+                
+                # 如果設置了限制且已達到限制數量，提前結束
+                if limit and len(all_games) >= limit:
+                    break
+                    
                 page += 1
                 time.sleep(1)  # 避免請求過於頻繁
                 
@@ -524,6 +556,10 @@ class CreatorTracker:
                 logger.error(f"獲取第 {page} 頁作品失敗: {e}")
                 break
         
+        # 如果設置了限制，截取到指定數量
+        if limit:
+            all_games = all_games[:limit]
+            
         return all_games
     
     def save_creator_to_db(self, creator_data: Dict) -> int:
