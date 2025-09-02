@@ -149,6 +149,21 @@
     color: #7b1fa2;
 }
 
+.top-game {
+    margin-top: 8px;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.top-game a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.top-game a:hover {
+    text-decoration: underline;
+}
+
 .creator-description {
     color: #666;
     margin-bottom: 15px;
@@ -459,7 +474,7 @@ function displaySearchResults(results) {
     }
     
     resultsList.innerHTML = results.map(creator => `
-        <div class="creator-card" onclick="showCreatorDetails(${creator.id}, '${creator.type}')">
+        <div class="creator-card" onclick="goToCreatorDetails(${creator.id}, '${creator.type}')">
             <div class="creator-header">
                 <img src="${creator.image_url || getDefaultAvatar(creator.name)}" 
                      alt="${creator.name}" class="creator-avatar"
@@ -467,6 +482,12 @@ function displaySearchResults(results) {
                 <div class="creator-info">
                     <h3>${creator.name}</h3>
                     <span class="creator-type ${creator.type === 'boardgameartist' ? 'artist' : ''}">${creator.type === 'boardgameartist' ? '繪師' : '設計師'}</span>
+                    ${creator.top_game ? `
+                        <div class="top-game">
+                            <strong>代表作品:</strong> 
+                            <a href="${creator.top_game.url}" target="_blank" onclick="event.stopPropagation()">${creator.top_game.name}</a>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
             <div class="creator-actions">
@@ -656,6 +677,11 @@ function displayFollowingCreators(creators) {
             </div>
         </div>
     `).join('');
+}
+
+// 跳轉到設計師詳細頁面
+function goToCreatorDetails(creatorId, type) {
+    window.location.href = `/creator/${creatorId}/${type}`;
 }
 
 // 點擊彈窗外部關閉彈窗
