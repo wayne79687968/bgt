@@ -1,46 +1,311 @@
 {% extends "base.html" %}
 
-{% block title %}推薦 - BGG 熱門遊戲報表{% endblock %}
+{% block title %}遊戲推薦系統 - BGG 桌遊分析平台{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-3">
-    <h2>✨ 個人化推薦</h2>
-    <p class="text-muted">BGG 使用者：<strong>{{ bgg_username }}</strong></p>
-
-    {% if recommendations and recommendations|length > 0 %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-        {% for g in recommendations %}
-        <div class="col">
-            <div class="card h-100">
-                {% if g.image %}
-                <img src="{{ g.image }}" class="card-img-top" alt="{{ g.name }}">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <a href="https://boardgamegeek.com/boardgame/{{ g.objectid }}" target="_blank" rel="noopener noreferrer">{{ g.name }}</a>
-                    </h5>
-                    <p class="card-text">
-                        評分：{{ '%.2f'|format(g.rating) if g.rating is not none else 'N/A' }}
-                        · 排名：{{ g.bgg_rank if g.bgg_rank else 'N/A' }}
-                        · 相似度：{{ '%.2f'|format(g.similarity) }}
-                    </p>
-                    <p class="card-text">
-                        人數：{{ g.min_players }}–{{ g.max_players }}
-                        · 時間：{{ g.minplaytime }}–{{ g.maxplaytime }} 分
-                    </p>
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">🎯 智慧遊戲推薦系統</h2>
+        </div>
+        <div class="card-body">
+            <div id="welcome-state" class="text-center py-4">
+                <div style="font-size: 48px; margin-bottom: 16px;">🎲</div>
+                <h3>歡迎使用智慧遊戲推薦系統</h3>
+                <p>選擇您喜歡的桌遊，我們將為您推薦相似的優質遊戲</p>
+            </div>
+            
+            <!-- 遊戲搜尋 -->
+            <div class="mb-3" style="position: relative;">
+                <input type="text" id="game-search-input" class="form-control" 
+                       placeholder="搜尋桌遊名稱..." autocomplete="off">
+                <div id="search-results" class="border rounded shadow-sm bg-white" 
+                     style="position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
                 </div>
             </div>
+            
+            <!-- 已選擇的遊戲 -->
+            <div id="selected-games" class="mb-3 p-3 border-2 border-dashed rounded bg-light" style="min-height: 60px;">
+                <div class="text-center text-muted">
+                    請搜尋並選擇您喜歡的桌遊（最多10款）
+                </div>
+            </div>
+            
+            <!-- 推薦按鈕 -->
+            <button id="recommend-btn" class="btn btn-primary btn-lg w-100" onclick="getRecommendations()" disabled>
+                獲得推薦
+            </button>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-        <div class="alert alert-info">尚無推薦結果，請先在「設定」頁同步收藏。</div>
-    {% endif %}
-
-    <div class="mt-3">
-        <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ 前往設定</a>
+    
+    <!-- 推薦結果 -->
+    <div class="card" id="recommendations-section" style="display: none;">
+        <div class="card-header bg-success text-white">
+            <h2 class="mb-0">✨ 為您推薦</h2>
+        </div>
+        <div class="card-body">
+            <div id="recommendations-content"></div>
+        </div>
     </div>
 </div>
+
+<script>
+let selectedGames = [];
+let searchTimeout = null;
+
+// 搜尋遊戲
+document.getElementById('game-search-input').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+        hideSearchResults();
+        return;
+    }
+    
+    searchTimeout = setTimeout(() => {
+        searchGames(query);
+    }, 300);
+});
+
+// 點擊外部隱藏搜尋結果
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#game-search-input') && !e.target.closest('#search-results')) {
+        hideSearchResults();
+    }
+});
+
+async function searchGames(query) {
+    try {
+        const response = await fetch('/api/games/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query, limit: 20 })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displaySearchResults(data.games);
+        } else {
+            console.error('搜尋失敗:', data.message);
+        }
+    } catch (error) {
+        console.error('搜尋錯誤:', error);
+    }
+}
+
+function displaySearchResults(games) {
+    const resultsDiv = document.getElementById('search-results');
+    
+    if (games.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-3 text-center text-muted">找不到相關遊戲</div>';
+        resultsDiv.style.display = 'block';
+        return;
+    }
+    
+    const selectedIds = selectedGames.map(game => game.objectid);
+    
+    resultsDiv.innerHTML = games.map(game => {
+        const isSelected = selectedIds.includes(game.objectid);
+        return `
+            <div class="p-2 border-bottom d-flex align-items-center ${isSelected ? 'bg-light' : ''}" 
+                 style="cursor: ${isSelected ? 'default' : 'pointer'};"
+                 onclick="${isSelected ? '' : `selectGame(${JSON.stringify(game).replace(/"/g, '&quot;')})`}">
+                <img src="${game.image || '/static/default-game.png'}" 
+                     alt="${game.name}" class="me-2 rounded"
+                     style="width: 40px; height: 40px; object-fit: cover;"
+                     onerror="this.src='/static/default-game.png'">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${game.name}</h6>
+                    <small class="text-muted">
+                        評分: ${game.rating ? game.rating.toFixed(1) : 'N/A'} | 
+                        排名: ${game.rank || 'N/A'} | 
+                        年份: ${game.year || 'N/A'}
+                    </small>
+                </div>
+                ${isSelected ? '<span class="text-success">✓ 已選擇</span>' : ''}
+            </div>
+        `;
+    }).join('');
+    
+    resultsDiv.style.display = 'block';
+}
+
+function hideSearchResults() {
+    document.getElementById('search-results').style.display = 'none';
+}
+
+function selectGame(game) {
+    if (selectedGames.length >= 10) {
+        alert('最多只能選擇10款遊戲');
+        return;
+    }
+    
+    if (selectedGames.find(g => g.objectid === game.objectid)) {
+        return; // 已經選擇過
+    }
+    
+    selectedGames.push(game);
+    updateSelectedGamesDisplay();
+    hideSearchResults();
+    document.getElementById('game-search-input').value = '';
+    
+    // 隱藏歡迎頁面
+    document.getElementById('welcome-state').style.display = 'none';
+}
+
+function removeGame(objectid) {
+    selectedGames = selectedGames.filter(game => game.objectid !== objectid);
+    updateSelectedGamesDisplay();
+    
+    if (selectedGames.length === 0) {
+        document.getElementById('welcome-state').style.display = 'block';
+    }
+}
+
+function updateSelectedGamesDisplay() {
+    const container = document.getElementById('selected-games');
+    const recommendBtn = document.getElementById('recommend-btn');
+    
+    if (selectedGames.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                請搜尋並選擇您喜歡的桌遊（最多10款）
+            </div>
+        `;
+        recommendBtn.disabled = true;
+    } else {
+        container.innerHTML = selectedGames.map(game => `
+            <span class="badge bg-primary me-2 mb-2" style="font-size: 14px;">
+                ${game.name}
+                <button class="btn-close btn-close-white ms-2" style="font-size: 10px;" 
+                        onclick="removeGame(${game.objectid})" title="移除"></button>
+            </span>
+        `).join('');
+        recommendBtn.disabled = false;
+    }
+}
+
+async function getRecommendations() {
+    const recommendBtn = document.getElementById('recommend-btn');
+    const recommendationsSection = document.getElementById('recommendations-section');
+    const recommendationsContent = document.getElementById('recommendations-content');
+    
+    if (selectedGames.length === 0) {
+        alert('請先選擇至少一款遊戲');
+        return;
+    }
+    
+    // 顯示載入狀態
+    recommendBtn.disabled = true;
+    recommendBtn.textContent = '分析中...';
+    
+    recommendationsSection.style.display = 'block';
+    recommendationsContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="mt-2">正在分析您的偏好並生成推薦...</p>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/recommendations/by-games', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                games: selectedGames.map(game => game.objectid),
+                num_recommendations: 10
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            displayRecommendations(data.recommendations, data.metadata);
+        } else {
+            recommendationsContent.innerHTML = `
+                <div class="alert alert-danger">
+                    推薦失敗: ${data.message}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('獲取推薦失敗:', error);
+        recommendationsContent.innerHTML = `
+            <div class="alert alert-danger">
+                獲取推薦時發生錯誤，請稍後重試。
+            </div>
+        `;
+    } finally {
+        recommendBtn.disabled = false;
+        recommendBtn.textContent = '重新推薦';
+    }
+}
+
+function displayRecommendations(recommendations, metadata) {
+    const content = document.getElementById('recommendations-content');
+    
+    if (recommendations.length === 0) {
+        content.innerHTML = `
+            <div class="text-center py-4">
+                <div style="font-size: 48px; margin-bottom: 16px;">🤷‍♀️</div>
+                <h3>暫無推薦</h3>
+                <p>抱歉，根據您選擇的遊戲，我們暫時找不到合適的推薦</p>
+            </div>
+        `;
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="alert alert-info mb-4">
+            <h5 class="alert-heading">📊 推薦分析</h5>
+            <p class="mb-0">
+                基於您選擇的 ${selectedGames.length} 款遊戲，使用 ${metadata.methods_used.join(' + ')} 方法，
+                為您推薦 ${recommendations.length} 款高品質桌遊
+            </p>
+        </div>
+        
+        ${recommendations.map((rec, index) => `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">${index + 1}. ${rec.name}</h5>
+                        <span class="badge bg-success" style="font-size: 14px;">${rec.score}/10</span>
+                    </div>
+                    <div class="card-text">
+                        <p class="mb-2">
+                            <strong>BGG 評分:</strong> ${rec.rating ? rec.rating.toFixed(1) : 'N/A'} | 
+                            <strong>排名:</strong> ${rec.rank || 'N/A'} | 
+                            <strong>推薦方法:</strong> ${rec.method || rec.source}
+                        </p>
+                        ${rec.similarity ? `<p class="mb-2"><strong>相似度:</strong> ${(rec.similarity * 100).toFixed(1)}%</p>` : ''}
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: ${(rec.confidence * 100).toFixed(1)}%"
+                                 aria-valuenow="${(rec.confidence * 100).toFixed(1)}" 
+                                 aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-muted">置信度: ${(rec.confidence * 100).toFixed(1)}%</small>
+                    </div>
+                </div>
+            </div>
+        `).join('')}
+        
+        <div class="alert alert-light mt-4">
+            <p class="mb-0">
+                <strong>說明:</strong> 推薦分數基於遊戲相似性、BGG評分和排名計算。
+                置信度表示推薦的可靠程度，分數越高表示越符合您的偏好。
+            </p>
+        </div>
+    `;
+}
+</script>
 {% endblock %}
-
-

@@ -51,20 +51,20 @@ def execute_query(cursor, query, params=()):
 def get_db_connection():
     """取得 PostgreSQL 資料庫連接的 context manager"""
     config = get_database_config()
-        # PostgreSQL 連接
-        try:
-            import psycopg2
-        except ImportError:
-            # 在 Zeabur 環境中，PostgreSQL 套件必須可用
-            if os.getenv('DATABASE_URL'):
-                raise ImportError("PostgreSQL 套件未安裝，但 DATABASE_URL 已設定")
-            else:
-                print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
-                                conn = sqlite3.connect('data/bgg_rag.db')
-                yield conn
-                if 'conn' in locals() and conn:
-                    conn.close()
-                return
+    # PostgreSQL 連接
+    try:
+        import psycopg2
+    except ImportError:
+        # 在 Zeabur 環境中，PostgreSQL 套件必須可用
+        if os.getenv('DATABASE_URL'):
+            raise ImportError("PostgreSQL 套件未安裝，但 DATABASE_URL 已設定")
+        else:
+            print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
+            conn = sqlite3.connect('data/bgg_rag.db')
+            yield conn
+            if 'conn' in locals() and conn:
+                conn.close()
+            return
 
         # 添加連接重試邏輯 - 指數退避算法
         max_retries = 10
@@ -119,7 +119,7 @@ def get_db_connection():
                             raise e
                         else:
                             print("🔄 回退到 SQLite 資料庫...")
-                                                        conn = sqlite3.connect('data/bgg_rag.db')
+                            conn = sqlite3.connect('data/bgg_rag.db')
                             print("✅ SQLite 連接建立成功")
                             yield conn
                             return
@@ -129,7 +129,7 @@ def get_db_connection():
     else:
         # SQLite 連接
         try:
-                        conn = sqlite3.connect(config['path'])
+            conn = sqlite3.connect(config['path'])
             yield conn
         finally:
             if 'conn' in locals() and conn:

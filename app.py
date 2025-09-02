@@ -3113,6 +3113,88 @@ def api_follow_creator():
         logger.error(f"追蹤操作失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/recommendations/by-games', methods=['POST'])
+@full_access_required
+def api_get_recommendations_by_games():
+    """根據用戶選擇的遊戲獲得推薦 API"""
+    try:
+        data = request.get_json()
+        selected_games = data.get('games', [])
+        num_recommendations = data.get('num_recommendations', 10)
+        
+        if not selected_games:
+            return jsonify({'success': False, 'message': '請選擇至少一款遊戲'})
+        
+        if len(selected_games) > 10:
+            return jsonify({'success': False, 'message': '最多只能選擇10款遊戲'})
+        
+        from game_recommendation_service import GameRecommendationService
+        service = GameRecommendationService()
+        
+        result = service.get_game_recommendations_by_selection(selected_games, num_recommendations)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"獲取遊戲推薦失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/games/search', methods=['POST'])
+def api_search_games():
+    """搜尋遊戲 API（用於推薦系統的遊戲選擇）"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        limit = min(data.get('limit', 20), 50)  # 最多返回50個結果
+        
+        if not query:
+            return jsonify({'success': False, 'message': '請輸入搜尋關鍵字'})
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT objectid, name, year, rating, rank, image, 
+                       categories, mechanics
+                FROM game_detail 
+                WHERE name ILIKE %s 
+                    AND rating IS NOT NULL 
+                    AND rating > 5.0
+                ORDER BY rating DESC, rank ASC
+                LIMIT %s
+            """, (f'%{query}%', limit))
+            
+            results = cursor.fetchall()
+            games = []
+            
+            for row in results:
+                games.append({
+                    'objectid': row[0],
+                    'name': row[1],
+                    'year': row[2],
+                    'rating': row[3],
+                    'rank': row[4],
+                    'image': row[5],
+                    'categories': row[6],
+                    'mechanics': row[7],
+                    'display_name': f"{row[1]} ({row[2]})" if row[2] else row[1]
+                })
+            
+            return jsonify({
+                'success': True,
+                'games': games,
+                'query': query,
+                'total': len(games)
+            })
+            
+    except Exception as e:
+        logger.error(f"搜尋遊戲失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/recommendations')
+def recommendations_page():
+    """遊戲推薦頁面"""
+    return render_template('recommendations.html')
+
 @app.route('/api/creators/following')
 @full_access_required
 def api_get_following_creators():
