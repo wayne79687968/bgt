@@ -164,22 +164,16 @@ def initialize_app():
 
                 for table in required_tables:
                     try:
-                        if config['type'] == 'postgresql':
-                            cursor.execute("""
-                                SELECT EXISTS (
-                                    SELECT FROM information_schema.tables
-                                    WHERE table_schema = 'public'
-                                    AND table_name = %s
-                                )
-                            """, (table,))
-                        else:
-                            cursor.execute("""
-                                SELECT name FROM sqlite_master
-                                WHERE type='table' AND name=?
-                            """, (table,))
+                        cursor.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables
+                                WHERE table_schema = 'public'
+                                AND table_name = %s
+                            )
+                        """, (table,))
 
                         result = cursor.fetchone()
-                        if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                        if not result or not result[0]:
                             missing_tables.append(table)
                     except Exception as check_error:
                         print(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
@@ -201,13 +195,10 @@ def initialize_app():
 
                     for table in required_tables:
                         try:
-                            if config['type'] == 'postgresql':
-                                cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s)", (table,))
-                            else:
-                                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+                            cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = %s)", (table,))
 
                             result = cursor.fetchone()
-                            if result and ((config['type'] == 'postgresql' and result[0]) or (config['type'] == 'sqlite' and result)):
+                            if result and result[0]:
                                 created_tables.append(table)
                         except:
                             pass

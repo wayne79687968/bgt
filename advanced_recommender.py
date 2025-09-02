@@ -22,12 +22,8 @@ class AdvancedBoardGameRecommender:
     
     def __init__(self, db_path=None):
         # 使用統一的資料庫配置
-        try:
-            from database import get_database_config
-            self.db_config = get_database_config()
-        except ImportError:
-            # 後備選項：使用 SQLite
-            self.db_config = {'type': 'sqlite', 'path': db_path or 'data/bgg_rag.db'}
+        from database import get_database_config
+        self.db_config = get_database_config()
         
         self.games_df = None
         self.ratings_df = None
@@ -42,10 +38,7 @@ class AdvancedBoardGameRecommender:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 # 測試基本連接
-                if self.db_config['type'] == 'postgresql':
-                    cursor.execute("SELECT 1")
-                else:
-                    cursor.execute("SELECT 1")
+                cursor.execute("SELECT 1")
                 cursor.fetchone()
                 return True
         except Exception as e:
@@ -60,18 +53,11 @@ class AdvancedBoardGameRecommender:
                 cursor = conn.cursor()
                 
                 # 檢查 game_detail 表
-                if self.db_config['type'] == 'postgresql':
-                    execute_query(cursor, "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = ?", ('game_detail',), self.db_config['type'])
-                    game_detail_exists = cursor.fetchone() is not None
-                    
-                    execute_query(cursor, "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = ?", ('collection',), self.db_config['type'])
-                    collection_exists = cursor.fetchone() is not None
-                else:
-                    execute_query(cursor, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", ('game_detail',), self.db_config['type'])
-                    game_detail_exists = cursor.fetchone() is not None
-                    
-                    execute_query(cursor, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", ('collection',), self.db_config['type'])
-                    collection_exists = cursor.fetchone() is not None
+                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = %s", ('game_detail',))
+                game_detail_exists = cursor.fetchone() is not None
+                
+                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = %s", ('collection',))
+                collection_exists = cursor.fetchone() is not None
                 
                 return game_detail_exists and collection_exists
                 

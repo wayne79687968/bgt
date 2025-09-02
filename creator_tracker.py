@@ -13,6 +13,8 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from database import get_db_connection, get_database_config
 import logging
+from bs4 import BeautifulSoup
+import urllib.parse
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +108,8 @@ class CreatorTracker:
     def _get_creator_basic_info(self, creator_id: int, bgg_type: str) -> Optional[Dict]:
         """獲取設計師/繪師基本資訊"""
         try:
-            # 嘗試從 BGG 頁面獲取基本資訊
-            url = f"https://boardgamegeek.com/{bgg_type}/{creator_id}"
+            # 從 linkeditems 頁面獲取完整資訊
+            url = f"https://boardgamegeek.com/{bgg_type}/{creator_id}/linkeditems/{bgg_type}?pageid=1&sort=average"
             response = self.session.get(url, timeout=30)
             
             if response.status_code != 200:
@@ -141,37 +143,52 @@ class CreatorTracker:
             slug_match = re.search(rf'/{bgg_type}/{creator_id}/([^/?]+)', response.url)
             slug = slug_match.group(1) if slug_match else name.lower().replace(' ', '-').replace('.', '')
             
-            # 解析描述 - 嘗試多種模式
+            # 嘗試從 JavaScript 物件中提取詳細資料
             description = ''
-            desc_patterns = [
-                r'<div[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)</div>',
-                r'<div[^>]*class="[^"]*body[^"]*"[^>]*>(.*?)</div>',
-                r'"description":"([^"]+)"'
-            ]
-            
-            for pattern in desc_patterns:
-                desc_match = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
-                if desc_match:
-                    description = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip()
-                    if len(description) > 10:  # 避免抓到太短的無意義內容
-                        break
-            
-            # 解析頭像 - 嘗試多種模式
             image_url = ''
-            img_patterns = [
-                r'<img[^>]*src="([^"]*)"[^>]*class="[^"]*avatar[^"]*"',
-                r'<img[^>]*class="[^"]*avatar[^"]*"[^>]*src="([^"]*)"',
-                r'<img[^>]*src="([^"]*)"[^>]*alt="[^"]*avatar[^"]*"',
-                r'"image":"([^"]+)"'
-            ]
             
-            for pattern in img_patterns:
-                img_match = re.search(pattern, html, re.IGNORECASE)
-                if img_match:
-                    image_url = img_match.group(1)
-                    if not image_url.startswith('http'):
-                        image_url = 'https:' + image_url if image_url.startswith('//') else 'https://boardgamegeek.com' + image_url
-                    break
+            # 尋找 GEEK.geekitemPreload JavaScript 物件
+            js_match = re.search(r'GEEK\.geekitemPreload\s*=\s*({.+?});', html, re.DOTALL)
+            if js_match:
+                try:
+                    import json
+                    js_data = json.loads(js_match.group(1))
+                    
+                    # 提取描述
+                    if 'item' in js_data and 'description' in js_data['item']:
+                        desc_html = js_data['item']['description']
+                        if desc_html:
+                            # 使用 BeautifulSoup 清理 HTML 標籤
+                            from bs4 import BeautifulSoup
+                            desc_soup = BeautifulSoup(desc_html, 'html.parser')
+                            description = desc_soup.get_text(separator=' ', strip=True)
+                            logger.info(f"從 JS 資料解析到描述: {len(description)} 字元")
+                    
+                    # 圖片將使用 Images API 獲取，不從頁面解析
+                
+                except Exception as e:
+                    logger.warning(f"解析 JavaScript 資料失敗: {e}")
+                    # 列印更多除錯資訊
+                    if js_match:
+                        js_snippet = js_match.group(1)[:200] + "..." if len(js_match.group(1)) > 200 else js_match.group(1)
+                        logger.debug(f"JS 資料片段: {js_snippet}")
+            
+            # 如果 JS 解析失敗，嘗試備用方法
+            if not description:
+                desc_patterns = [
+                    r'<div[^>]*class="[^"]*description[^"]*"[^>]*>(.*?)</div>',
+                    r'<p[^>]*>(Born in [^<]+.*?)</p>'
+                ]
+                
+                for pattern in desc_patterns:
+                    desc_match = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
+                    if desc_match:
+                        description = re.sub(r'<[^>]+>', '', desc_match.group(1)).strip()
+                        if len(description) > 20:
+                            break
+            
+            # 使用 Images API 獲取設計師照片
+            image_url = self._get_creator_image(creator_id)
             
             logger.info(f"解析結果 - 名稱: {name}, slug: {slug}, 描述長度: {len(description)}, 圖片: {bool(image_url)}")
             
@@ -186,8 +203,59 @@ class CreatorTracker:
             logger.error(f"獲取基本資訊失敗: {e}")
             return {'name': f'Creator {creator_id}', 'slug': f'creator-{creator_id}'}
     
+    def _get_creator_image(self, creator_id: int) -> Optional[str]:
+        """使用 BGG Images API 獲取設計師/繪師的第一張照片"""
+        try:
+            api_url = "https://api.geekdo.com/api/images"
+            params = {
+                'ajax': 1,
+                'foritempage': 1,
+                'galleries[]': 'game',
+                'nosession': 1,
+                'objectid': creator_id,
+                'objecttype': 'person',
+                'showcount': 17,
+                'size': 'crop100',
+                'sort': 'hot'
+            }
+            
+            logger.info(f"抓取設計師 {creator_id} 的照片...")
+            response = self.session.get(api_url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    # 檢查是否有圖片資料
+                    if 'images' in data and data['images']:
+                        # 取得第一張圖片的 URL
+                        first_image = data['images'][0]
+                        if 'src' in first_image:
+                            image_url = first_image['src']
+                            # 如果是相對路徑，轉換為完整 URL
+                            if image_url.startswith('//'):
+                                image_url = 'https:' + image_url
+                            elif image_url.startswith('/'):
+                                image_url = 'https://boardgamegeek.com' + image_url
+                            
+                            logger.info(f"找到設計師照片: {image_url}")
+                            return image_url
+                    
+                    logger.warning(f"設計師 {creator_id} 沒有找到照片")
+                    return None
+                    
+                except json.JSONDecodeError:
+                    logger.error(f"無法解析設計師 {creator_id} 的圖片 API 回應")
+                    return None
+            else:
+                logger.error(f"圖片 API 請求失敗: {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"獲取設計師 {creator_id} 照片失敗: {e}")
+            return None
+    
     def _get_creator_games(self, creator_id: int, slug: str, bgg_type: str, creator_name: str,
-                          limit: Optional[int] = None, sort: str = 'average') -> List[Dict]:
+                          limit: Optional[int] = None, sort: str = 'yearpublished', page: int = 1) -> List[Dict]:
         """使用 BGG API 獲取設計師/繪師的遊戲作品"""
         try:
             # 使用官方 BGG API
@@ -206,8 +274,8 @@ class CreatorTracker:
                 'nosession': 1,
                 'objectid': creator_id,
                 'objecttype': 'person',
-                'pageid': 1,
-                'showcount': limit or 100,  # 預設最多 100 個
+                'pageid': page,
+                'showcount': limit or 25,  # 預設每頁 25 個
                 'sort': sort,
                 'subtype': 'boardgame'
             }
@@ -317,6 +385,80 @@ class CreatorTracker:
             logger.error(f"獲取作品列表失敗: {e}")
             return []
     
+    def get_creator_games_paginated(self, creator_id: int, slug: str, bgg_type: str, 
+                                   creator_name: str, existing_games: List[int] = None,
+                                   stop_on_existing: bool = True) -> List[Dict]:
+        """
+        使用分頁獲取設計師/繪師的所有作品（按年份倒序）
+        
+        Args:
+            creator_id: 設計師/繪師 ID
+            slug: URL slug  
+            bgg_type: BGG 類型
+            creator_name: 設計師名稱
+            existing_games: 已存在的遊戲 BGG ID 列表
+            stop_on_existing: 是否在遇到已存在遊戲時停止（用於增量更新）
+        
+        Returns:
+            List[Dict]: 新遊戲作品列表
+        """
+        all_new_games = []
+        page = 1
+        existing_games = set(existing_games or [])
+        
+        logger.info(f"開始獲取設計師 {creator_id} ({creator_name}) 的作品 (停止於已存在: {stop_on_existing})")
+        
+        while True:
+            try:
+                games = self._get_creator_games(
+                    creator_id=creator_id,
+                    slug=slug, 
+                    bgg_type=bgg_type,
+                    creator_name=creator_name,
+                    limit=25,
+                    sort='yearpublished', 
+                    page=page
+                )
+                
+                if not games:
+                    logger.info(f"第 {page} 頁沒有更多遊戲，停止分頁")
+                    break
+                
+                new_games_in_page = []
+                for game in games:
+                    if game['bgg_id'] in existing_games:
+                        if stop_on_existing:
+                            logger.info(f"遇到已存在遊戲 {game['name']} ({game['bgg_id']})，停止獲取")
+                            all_new_games.extend(new_games_in_page)
+                            return all_new_games
+                        # 不停止模式，跳過已存在的遊戲
+                        continue
+                    else:
+                        new_games_in_page.append(game)
+                
+                all_new_games.extend(new_games_in_page)
+                
+                logger.info(f"第 {page} 頁: 找到 {len(games)} 個遊戲，{len(new_games_in_page)} 個新遊戲")
+                
+                # 如果這頁遊戲數量少於 25，說明已經到最後一頁
+                if len(games) < 25:
+                    logger.info(f"第 {page} 頁遊戲數量 < 25，已到最後一頁")
+                    break
+                
+                page += 1
+                
+                # 防止無限循環，最多獲取 20 頁
+                if page > 20:
+                    logger.warning(f"已達到最大頁數限制 (20)，停止獲取")
+                    break
+                    
+            except Exception as e:
+                logger.error(f"獲取第 {page} 頁時發生錯誤: {e}")
+                break
+        
+        logger.info(f"總共找到 {len(all_new_games)} 個新遊戲")
+        return all_new_games
+    
     def get_all_creator_games(self, creator_id: int, slug: str, bgg_type: str, 
                              existing_games: List[int] = None) -> List[Dict]:
         """
@@ -393,40 +535,22 @@ class CreatorTracker:
                 now = datetime.now().isoformat()
                 
                 # 插入或更新設計師/繪師
-                if get_database_config()['type'] == 'postgresql':
-                    cursor.execute("""
-                        INSERT INTO creators (bgg_id, name, type, description, image_url, slug, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (bgg_id) DO UPDATE SET
-                            name = EXCLUDED.name,
-                            description = EXCLUDED.description,
-                            image_url = EXCLUDED.image_url,
-                            slug = EXCLUDED.slug,
-                            updated_at = EXCLUDED.updated_at
-                        RETURNING id
-                    """, (
-                        creator_data['id'], creator_data['name'], creator_data['type'],
-                        creator_data.get('description', ''), creator_data.get('image_url', ''),
-                        creator_data.get('slug', ''), now, now
-                    ))
-                    creator_id = cursor.fetchone()[0]
-                else:
-                    # SQLite
-                    cursor.execute("""
-                        INSERT OR REPLACE INTO creators 
-                        (bgg_id, name, type, description, image_url, slug, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        creator_data['id'], creator_data['name'], creator_data['type'],
-                        creator_data.get('description', ''), creator_data.get('image_url', ''),
-                        creator_data.get('slug', ''), now, now
-                    ))
-                    creator_id = cursor.lastrowid
-                    
-                    # 獲取實際的 creator_id
-                    cursor.execute("SELECT id FROM creators WHERE bgg_id = ?", (creator_data['id'],))
-                    result = cursor.fetchone()
-                    creator_id = result[0] if result else creator_id
+                cursor.execute("""
+                    INSERT INTO creators (bgg_id, name, type, description, image_url, slug, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (bgg_id) DO UPDATE SET
+                        name = EXCLUDED.name,
+                        description = EXCLUDED.description,
+                        image_url = EXCLUDED.image_url,
+                        slug = EXCLUDED.slug,
+                        updated_at = EXCLUDED.updated_at
+                    RETURNING id
+                """, (
+                    creator_data['id'], creator_data['name'], creator_data['type'],
+                    creator_data.get('description', ''), creator_data.get('image_url', ''),
+                    creator_data.get('slug', ''), now, now
+                ))
+                creator_id = cursor.fetchone()[0]
                 
                 logger.info(f"儲存設計師/繪師: {creator_data['name']} (ID: {creator_id})")
                 return creator_id
@@ -447,35 +571,267 @@ class CreatorTracker:
                 now = datetime.now().isoformat()
                 
                 for game in games:
-                    if get_database_config()['type'] == 'postgresql':
-                        cursor.execute("""
-                            INSERT INTO creator_games 
-                            (creator_id, bgg_game_id, game_name, year_published, rating, rank_position, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                            ON CONFLICT (creator_id, bgg_game_id) DO UPDATE SET
-                                game_name = EXCLUDED.game_name,
-                                year_published = EXCLUDED.year_published,
-                                rating = EXCLUDED.rating,
-                                rank_position = EXCLUDED.rank_position
-                        """, (
-                            creator_id, game['bgg_id'], game['name'],
-                            game.get('year'), game.get('rating'), game.get('rank'), now
-                        ))
-                    else:
-                        # SQLite
-                        cursor.execute("""
-                            INSERT OR REPLACE INTO creator_games
-                            (creator_id, bgg_game_id, game_name, year_published, rating, rank_position, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            creator_id, game['bgg_id'], game['name'],
-                            game.get('year'), game.get('rating'), game.get('rank'), now
-                        ))
+                    cursor.execute("""
+                        INSERT INTO creator_games 
+                        (creator_id, bgg_game_id, game_name, year_published, rating, rank_position, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (creator_id, bgg_game_id) DO UPDATE SET
+                            game_name = EXCLUDED.game_name,
+                            year_published = EXCLUDED.year_published,
+                            rating = EXCLUDED.rating,
+                            rank_position = EXCLUDED.rank_position
+                    """, (
+                        creator_id, game['bgg_id'], game['name'],
+                        game.get('year'), game.get('rating'), game.get('rank'), now
+                    ))
                 
                 logger.info(f"儲存 {len(games)} 個遊戲作品")
                 
         except Exception as e:
             logger.error(f"儲存遊戲作品失敗: {e}")
+
+    def follow_creator(self, user_id: int, creator_id: int, bgg_type: str, creator_name: str) -> Dict:
+        """
+        用戶追蹤設計師/繪師
+        
+        Args:
+            user_id: 用戶 ID
+            creator_id: BGG 設計師 ID
+            bgg_type: BGG 類型 ('boardgamedesigner' 或 'boardgameartist')
+            creator_name: 設計師名稱
+        
+        Returns:
+            Dict: 操作結果 {'success': bool, 'message': str, 'creator_db_id': int}
+        """
+        try:
+            # 1. 獲取或創建設計師記錄
+            creator_db_id = self._get_or_create_creator(creator_id, bgg_type, creator_name)
+            if not creator_db_id:
+                return {
+                    'success': False,
+                    'message': '創建設計師記錄失敗',
+                    'creator_db_id': None
+                }
+            
+            # 2. 添加追蹤記錄
+            return self._add_user_follow(user_id, creator_db_id, creator_name)
+            
+        except Exception as e:
+            logger.error(f"追蹤設計師失敗: {e}")
+            return {
+                'success': False,
+                'message': f'追蹤失敗: {str(e)}',
+                'creator_db_id': None
+            }
+    
+    def _get_or_create_creator(self, creator_id: int, bgg_type: str, creator_name: str) -> int:
+        """獲取或創建設計師記錄，返回資料庫 ID"""
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 檢查是否已存在
+                cursor.execute("SELECT id FROM creators WHERE bgg_id = %s", (creator_id,))
+                    
+                existing = cursor.fetchone()
+                if existing:
+                    logger.info(f"找到已存在的設計師記錄: ID {existing[0]}")
+                    return existing[0]
+            
+            # 需要創建新記錄，先獲取詳細資訊
+            logger.info(f"創建新設計師記錄: {creator_name}")
+            creator_info = self.get_creator_details(creator_id, bgg_type)
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                creator_type = 'designer' if bgg_type == 'boardgamedesigner' else 'artist'
+                now = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    INSERT INTO creators (bgg_id, name, type, description, image_url, slug, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
+                """, (creator_id, creator_info['name'], creator_type, 
+                      creator_info.get('description'), creator_info.get('image_url'),
+                      creator_info.get('slug'), now, now))
+                creator_db_id = cursor.fetchone()[0]
+                
+                logger.info(f"創建設計師記錄成功: {creator_info['name']} (ID: {creator_db_id})")
+                conn.commit()
+                return creator_db_id
+                
+        except Exception as e:
+            logger.error(f"獲取或創建設計師失敗: {e}")
+            return None
+    
+    def _add_user_follow(self, user_id: int, creator_db_id: int, creator_name: str) -> Dict:
+        """添加用戶追蹤記錄"""
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 檢查是否已追蹤
+                cursor.execute("SELECT 1 FROM user_follows WHERE user_id = %s AND creator_id = %s", 
+                             (user_id, creator_db_id))
+                
+                if cursor.fetchone():
+                    return {
+                        'success': False,
+                        'message': f'您已經在追蹤 {creator_name} 了',
+                        'creator_db_id': creator_db_id
+                    }
+                
+                # 添加追蹤記錄
+                follow_time = datetime.now().isoformat()
+                cursor.execute("""
+                    INSERT INTO user_follows (user_id, creator_id, followed_at)
+                    VALUES (%s, %s, %s)
+                """, (user_id, creator_db_id, follow_time))
+                
+                logger.info(f"用戶 {user_id} 開始追蹤設計師 {creator_name} (DB ID: {creator_db_id})")
+                conn.commit()
+                
+                return {
+                    'success': True,
+                    'message': f'成功追蹤 {creator_name}！我們會在有新作品時通知您。',
+                    'creator_db_id': creator_db_id
+                }
+                
+        except Exception as e:
+            logger.error(f"添加追蹤記錄失敗: {e}")
+            return {
+                'success': False,
+                'message': f'追蹤失敗: {str(e)}',
+                'creator_db_id': None
+            }
+
+    def _sync_creator_games_to_db(self, creator_db_id: int, creator_bgg_id: int, 
+                                  bgg_type: str, creator_name: str) -> int:
+        """
+        同步設計師遊戲到資料庫（增量更新）
+        
+        Returns:
+            int: 新增的遊戲數量
+        """
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 獲取已存在的遊戲 BGG ID
+                cursor.execute("SELECT bgg_game_id FROM creator_games WHERE creator_id = %s", 
+                             (creator_db_id,))
+                
+                existing_game_ids = [row[0] for row in cursor.fetchall()]
+            
+                # 獲取新遊戲（按年份倒序，遇到已存在的就停止）
+                new_games = self.get_creator_games_paginated(
+                    creator_id=creator_bgg_id,
+                    slug="",  # 不需要 slug
+                    bgg_type=bgg_type,
+                    creator_name=creator_name,
+                    existing_games=existing_game_ids,
+                    stop_on_existing=True  # 遇到已存在的遊戲就停止
+                )
+                
+                if not new_games:
+                    logger.info(f"設計師 {creator_name} 沒有新遊戲")
+                    return 0
+                
+                # 儲存新遊戲到資料庫
+                now = datetime.now().isoformat()
+                
+                for game in new_games:
+                    cursor.execute("""
+                        INSERT INTO creator_games 
+                        (creator_id, bgg_game_id, game_name, year_published, rating, rank_position, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (creator_id, bgg_game_id) DO NOTHING
+                    """, (creator_db_id, game['bgg_id'], game['name'],
+                          game.get('year'), game.get('rating'), game.get('rank'), now))
+                
+                logger.info(f"設計師 {creator_name} 新增 {len(new_games)} 個遊戲作品")
+                return len(new_games)
+            
+        except Exception as e:
+            logger.error(f"同步設計師遊戲失敗: {e}")
+            return 0
+
+    def update_all_followed_creators(self) -> Dict:
+        """
+        更新所有被追蹤設計師的作品（用於定期執行）
+        
+        Returns:
+            Dict: 更新結果統計
+        """
+        try:
+            # 獲取所有被追蹤的設計師
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT DISTINCT c.id, c.bgg_id, c.name, c.type
+                    FROM creators c 
+                    JOIN user_follows uf ON c.id = uf.creator_id
+                """)
+                followed_creators = cursor.fetchall()
+            
+            stats = {
+                'total_creators': len(followed_creators),
+                'updated_creators': 0,
+                'new_games_found': 0,
+                'errors': 0,
+                'details': []
+            }
+            
+            logger.info(f"開始更新 {len(followed_creators)} 個被追蹤的設計師")
+            
+            for creator_db_id, creator_bgg_id, creator_name, creator_type in followed_creators:
+                try:
+                    # 轉換類型
+                    bgg_type = 'boardgamedesigner' if creator_type == 'designer' else 'boardgameartist'
+                    
+                    # 同步新遊戲
+                    new_games_count = self._sync_creator_games_to_db(
+                        creator_db_id, creator_bgg_id, bgg_type, creator_name
+                    )
+                    
+                    stats['updated_creators'] += 1
+                    stats['new_games_found'] += new_games_count
+                    
+                    creator_stats = {
+                        'name': creator_name,
+                        'new_games': new_games_count,
+                        'success': True
+                    }
+                    stats['details'].append(creator_stats)
+                    
+                    if new_games_count > 0:
+                        logger.info(f"設計師 {creator_name} 新增了 {new_games_count} 個遊戲")
+                    
+                    # 避免 API 限流
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    logger.error(f"更新設計師 {creator_name} 失敗: {e}")
+                    stats['errors'] += 1
+                    stats['details'].append({
+                        'name': creator_name,
+                        'new_games': 0,
+                        'success': False,
+                        'error': str(e)
+                    })
+            
+            logger.info(f"更新完成: {stats['updated_creators']} 個設計師, {stats['new_games_found']} 個新遊戲")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"批量更新失敗: {e}")
+            return {
+                'total_creators': 0,
+                'updated_creators': 0,
+                'new_games_found': 0,
+                'errors': 1,
+                'details': [],
+                'error': str(e)
+            }
 
 # 測試函數
 if __name__ == '__main__':

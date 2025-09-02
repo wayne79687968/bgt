@@ -10,12 +10,6 @@ import sys
 import re
 import pytz
 
-def get_db_connection_sqlite(config):
-    """SQLite 連接（備用）"""
-    import sqlite3
-    import os
-    os.makedirs('data', exist_ok=True)
-    return sqlite3.connect(config['path'])
 
 def generate_single_report(target_date_str, detail_mode, lang):
     """
@@ -521,25 +515,19 @@ def main():
                     config_check = get_database_config()
 
                     # 檢查 hot_games 表是否存在且有數據
-                    if config_check['type'] == 'postgresql':
-                        cursor_check.execute("""
-                            SELECT EXISTS (
-                                SELECT FROM information_schema.tables
-                                WHERE table_name = 'hot_games'
-                            )
-                        """)
-                    else:
-                        cursor_check.execute("""
-                            SELECT name FROM sqlite_master
-                            WHERE type='table' AND name='hot_games'
-                        """)
+                    cursor_check.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_name = 'hot_games'
+                        )
+                    """)
 
                     table_exists = cursor_check.fetchone()
                     if not table_exists or (isinstance(table_exists, tuple) and not table_exists[0]):
                         print("❌ hot_games 表不存在。請先執行數據抓取流程（fetch_hotgames.py）。")
                         return
 
-                    execute_query(cursor_check, "SELECT MIN(snapshot_date) FROM hot_games", (), config_check['type'])
+                    cursor_check.execute("SELECT MIN(snapshot_date) FROM hot_games")
                     earliest_date_result = cursor_check.fetchone()
                     earliest_date_str = earliest_date_result[0] if earliest_date_result else None
                     print(f"📅 資料庫中最早日期: {earliest_date_str}")

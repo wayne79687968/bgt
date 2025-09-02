@@ -4,7 +4,6 @@ BGG 資料提取器
 從現有資料庫中提取遊戲和評分資料，轉換為推薦系統所需的格式
 """
 
-import sqlite3
 import json
 import os
 import logging
@@ -16,14 +15,9 @@ class BGGDataExtractor:
     def __init__(self, db_path=None):
         # 總是使用統一的資料庫連接方法
         self.db_path = db_path  # 保留用於向後相容
-        try:
-            from database import get_database_config
-            self.db_config = get_database_config()
-            logger.info(f"資料庫配置: {self.db_config['type']}")
-        except ImportError:
-            # 如果無法導入，使用預設 SQLite 配置
-            self.db_config = {'type': 'sqlite'}
-            self.db_path = db_path or 'data/bgg_rag.db'
+        from database import get_database_config
+        self.db_config = get_database_config()
+        logger.info(f"資料庫配置: {self.db_config['type']}")
         
     def extract_games_data(self, output_file='data/bgg_GameItem.jl'):
         """從資料庫提取遊戲資料並輸出為 JSONL 格式"""
@@ -155,10 +149,7 @@ class BGGDataExtractor:
                 cursor = conn.cursor()
                 
                 # 檢查資料表是否存在
-                if config['type'] == 'postgresql':
-                    cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
-                else:
-                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
                     
                 tables = [row[0] for row in cursor.fetchall()]
                 logger.info(f"資料庫中的表: {tables}")

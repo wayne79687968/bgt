@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """
 資料庫配置和連接管理模組
-支援 SQLite (本地開發) 和 PostgreSQL (生產環境)
+支援 PostgreSQL 資料庫
 """
 
 import os
-import sqlite3
 from urllib.parse import urlparse
 from contextlib import contextmanager
 import time
@@ -20,66 +19,38 @@ def get_database_config():
     if database_url:
         print(f"🔍 DATABASE_URL 前綴: {database_url[:20]}...")
 
-    if database_url:
-        # 生產環境使用 PostgreSQL
-        parsed = urlparse(database_url)
-        config = {
-            'type': 'postgresql',
-            'host': parsed.hostname,
-            'port': parsed.port,
-            'database': parsed.path[1:],  # 移除開頭的 /
-            'username': parsed.username,
-            'password': parsed.password,
-            'url': database_url
-        }
-        print(f"✅ 配置 PostgreSQL: {parsed.hostname}:{parsed.port}/{parsed.path[1:]}")
-        return config
-    else:
-        # 本地開發使用 SQLite
-        config = {
-            'type': 'sqlite',
-            'path': 'data/bgg_rag.db'
-        }
-        print(f"✅ 配置 SQLite: {config['path']}")
-        return config
+    if not database_url:
+        raise ValueError("DATABASE_URL 環境變數未設定，請配置 PostgreSQL 連接字串")
 
-def execute_query(cursor, query, params=(), config_type=None):
+    # 解析 PostgreSQL 連接字串
+    parsed = urlparse(database_url)
+    config = {
+        'type': 'postgresql',
+        'host': parsed.hostname,
+        'port': parsed.port,
+        'database': parsed.path[1:],  # 移除開頭的 /
+        'username': parsed.username,
+        'password': parsed.password,
+        'url': database_url
+    }
+    print(f"✅ 配置 PostgreSQL: {parsed.hostname}:{parsed.port}/{parsed.path[1:]}")
+    return config
+
+def execute_query(cursor, query, params=()):
     """
-    執行相容性查詢，自動處理參數占位符
+    執行 PostgreSQL 查詢
 
     Args:
         cursor: 數據庫游標
-        query: SQL 查詢語句（使用 ? 作為占位符）
+        query: SQL 查詢語句（使用 %s 作為占位符）
         params: 查詢參數
-        config_type: 數據庫類型，如果不提供會自動獲取
     """
-    if config_type is None:
-        try:
-            config_type = get_database_config()['type']
-            # 如果配置是 PostgreSQL 但實際連接失敗回退到 SQLite，則使用 SQLite 語法
-            # 這裡通過檢查 cursor 類型來判斷實際使用的資料庫
-            if hasattr(cursor, '__class__'):
-                if 'sqlite3' in str(cursor.__class__):
-                    config_type = 'sqlite'
-                elif 'psycopg2' in str(cursor.__class__):
-                    config_type = 'postgresql'
-        except:
-            config_type = 'sqlite'  # 預設使用 SQLite
-
-    if config_type == 'postgresql':
-        # PostgreSQL 使用 %s
-        query_pg = query.replace('?', '%s')
-        return cursor.execute(query_pg, params)
-    else:
-        # SQLite 使用 ?
-        return cursor.execute(query, params)
+    return cursor.execute(query, params)
 
 @contextmanager
 def get_db_connection():
-    """取得資料庫連接的 context manager"""
+    """取得 PostgreSQL 資料庫連接的 context manager"""
     config = get_database_config()
-
-    if config['type'] == 'postgresql':
         # PostgreSQL 連接
         try:
             import psycopg2
@@ -89,8 +60,7 @@ def get_db_connection():
                 raise ImportError("PostgreSQL 套件未安裝，但 DATABASE_URL 已設定")
             else:
                 print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
-                import sqlite3
-                conn = sqlite3.connect('data/bgg_rag.db')
+                                conn = sqlite3.connect('data/bgg_rag.db')
                 yield conn
                 if 'conn' in locals() and conn:
                     conn.close()
@@ -149,8 +119,7 @@ def get_db_connection():
                             raise e
                         else:
                             print("🔄 回退到 SQLite 資料庫...")
-                            import sqlite3
-                            conn = sqlite3.connect('data/bgg_rag.db')
+                                                        conn = sqlite3.connect('data/bgg_rag.db')
                             print("✅ SQLite 連接建立成功")
                             yield conn
                             return
@@ -160,8 +129,7 @@ def get_db_connection():
     else:
         # SQLite 連接
         try:
-            import sqlite3
-            conn = sqlite3.connect(config['path'])
+                        conn = sqlite3.connect(config['path'])
             yield conn
         finally:
             if 'conn' in locals() and conn:
@@ -582,9 +550,6 @@ def _migrate_existing_schema(cursor, config_type):
                 if config_type == 'postgresql':
                     cursor.execute("ROLLBACK")
                     cursor.execute("BEGIN")
-    else:
-        # SQLite 的遷移 (較複雜，暫時跳過)
-        migrations = []
     
     for migration in migrations:
         try:

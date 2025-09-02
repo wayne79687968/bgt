@@ -2966,7 +2966,7 @@ def api_get_creator_details(creator_id, creator_type):
                 cursor.execute("""
                     SELECT 1 FROM user_follows uf
                     JOIN creators c ON uf.creator_id = c.id
-                    WHERE c.bgg_id = ? AND uf.user_id = ?
+                    WHERE c.bgg_id = %s AND uf.user_id = %s
                 """, (creator_id, user_data['id']))
                 is_following = cursor.fetchone() is not None
         
@@ -3010,6 +3010,7 @@ def api_follow_creator():
         
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            config = get_database_config()
             
             if action == 'follow':
                 # 1. 獲取並儲存設計師詳細資料
@@ -3031,21 +3032,36 @@ def api_follow_creator():
                 
                 # 4. 建立追蹤關係
                 now = datetime.now().isoformat()
-                cursor.execute("""
-                    INSERT OR IGNORE INTO user_follows (user_id, creator_id, followed_at)
-                    VALUES (?, ?, ?)
-                """, (user_id, creator_id, now))
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        INSERT INTO user_follows (user_id, creator_id, followed_at)
+                        VALUES (%s, %s, %s)
+                        ON CONFLICT (user_id, creator_id) DO NOTHING
+                    """, (user_id, creator_id, now))
+                else:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO user_follows (user_id, creator_id, followed_at)
+                        VALUES (?, ?, ?)
+                    """, (user_id, creator_id, now))
                 
                 message = f'開始追蹤 {details["name"]}'
                 
             else:  # unfollow
                 # 取消追蹤
-                cursor.execute("""
-                    DELETE FROM user_follows 
-                    WHERE user_id = ? AND creator_id = (
-                        SELECT id FROM creators WHERE bgg_id = ?
-                    )
-                """, (user_id, creator_bgg_id))
+                if config['type'] == 'postgresql':
+                    cursor.execute("""
+                        DELETE FROM user_follows 
+                        WHERE user_id = %s AND creator_id = (
+                            SELECT id FROM creators WHERE bgg_id = %s
+                        )
+                    """, (user_id, creator_bgg_id))
+                else:
+                    cursor.execute("""
+                        DELETE FROM user_follows 
+                        WHERE user_id = ? AND creator_id = (
+                            SELECT id FROM creators WHERE bgg_id = ?
+                        )
+                    """, (user_id, creator_bgg_id))
                 
                 message = '已取消追蹤'
         
@@ -3064,19 +3080,30 @@ def api_get_following_creators():
     """獲取用戶追蹤的設計師/繪師列表 API"""
     try:
         user = session.get('user', {})
-        user_email = user.get('email')
-        if not user_email:
+        user_id = user.get('id')
+        if not user_id:
             return jsonify({'success': False, 'message': '請先登入'})
         
         with get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
-                FROM creators c
-                JOIN user_follows uf ON c.id = uf.creator_id
-                WHERE uf.user_email = ?
-                ORDER BY uf.followed_at DESC
-            """, (user_email,))
+            config = get_database_config()
+            
+            if config['type'] == 'postgresql':
+                cursor.execute("""
+                    SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
+                    FROM creators c
+                    JOIN user_follows uf ON c.id = uf.creator_id
+                    WHERE uf.user_id = %s
+                    ORDER BY uf.followed_at DESC
+                """, (user_id,))
+            else:
+                cursor.execute("""
+                    SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
+                    FROM creators c
+                    JOIN user_follows uf ON c.id = uf.creator_id
+                    WHERE uf.user_id = ?
+                    ORDER BY uf.followed_at DESC
+                """, (user_id,))
             
             creators = []
             for row in cursor.fetchall():

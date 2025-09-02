@@ -97,28 +97,16 @@ with get_db_connection() as conn:
             print(f"💾 正在插入第 {inserted_count + 1} 筆數據...")
 
         try:
-            if config['type'] == 'postgresql':
-                # PostgreSQL 使用 ON CONFLICT
-                cursor.execute("""
-                    INSERT INTO hot_games (snapshot_date, rank, objectid, name, year, thumbnail)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT(snapshot_date, rank) DO UPDATE SET
-                        objectid=EXCLUDED.objectid,
-                        name=EXCLUDED.name,
-                        year=EXCLUDED.year,
-                        thumbnail=EXCLUDED.thumbnail
-                """, (snapshot_date, rank, objectid, name, year, thumbnail))
-            else:
-                # SQLite 使用 ON CONFLICT
-                cursor.execute("""
-                    INSERT INTO hot_games (snapshot_date, rank, objectid, name, year, thumbnail)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(snapshot_date, rank) DO UPDATE SET
-                        objectid=excluded.objectid,
-                        name=excluded.name,
-                        year=excluded.year,
-                        thumbnail=excluded.thumbnail
-                """, (snapshot_date, rank, objectid, name, year, thumbnail))
+            # PostgreSQL 使用 ON CONFLICT
+            cursor.execute("""
+                INSERT INTO hot_games (snapshot_date, rank, objectid, name, year, thumbnail)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT(snapshot_date, rank) DO UPDATE SET
+                    objectid=EXCLUDED.objectid,
+                    name=EXCLUDED.name,
+                    year=EXCLUDED.year,
+                    thumbnail=EXCLUDED.thumbnail
+            """, (snapshot_date, rank, objectid, name, year, thumbnail))
 
             inserted_count += 1
 

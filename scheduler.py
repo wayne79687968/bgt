@@ -292,27 +292,20 @@ def main():
                     table_check_start = time.time()
 
                     try:
-                        if config['type'] == 'postgresql':
-                            print(f"🔍 [SCHEDULER] 執行 PostgreSQL 表格檢查查詢: {table}")
-                            cursor.execute("""
-                                SELECT EXISTS (
-                                    SELECT FROM information_schema.tables
-                                    WHERE table_schema = 'public'
-                                    AND table_name = %s
-                                )
-                            """, (table,))
-                        else:
-                            print(f"🔍 [SCHEDULER] 執行 SQLite 表格檢查查詢: {table}")
-                            cursor.execute("""
-                                SELECT name FROM sqlite_master
-                                WHERE type='table' AND name=?
-                            """, (table,))
+                        print(f"🔍 [SCHEDULER] 執行 PostgreSQL 表格檢查查詢: {table}")
+                        cursor.execute("""
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables
+                                WHERE table_schema = 'public'
+                                AND table_name = %s
+                            )
+                        """, (table,))
 
                         print(f"🔍 [SCHEDULER] 正在獲取查詢結果: {table}")
                         result = cursor.fetchone()
                         table_check_time = time.time() - table_check_start
 
-                        if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                        if not result or not result[0]:
                             print(f"❌ [SCHEDULER] 表格 {table} 不存在 (耗時: {table_check_time:.2f}秒)")
                             missing_tables.append(table)
                         else:
@@ -376,22 +369,16 @@ def main():
 
             for table in required_tables:
                 try:
-                    if config['type'] == 'postgresql':
-                        cursor.execute("""
-                            SELECT EXISTS (
-                                SELECT FROM information_schema.tables
-                                WHERE table_schema = 'public'
-                                AND table_name = %s
-                            )
-                        """, (table,))
-                    else:
-                        cursor.execute("""
-                            SELECT name FROM sqlite_master
-                            WHERE type='table' AND name=?
-                        """, (table,))
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                            AND table_name = %s
+                        )
+                    """, (table,))
 
                     result = cursor.fetchone()
-                    if not result or (config['type'] == 'postgresql' and not result[0]) or (config['type'] == 'sqlite' and not result):
+                    if not result or not result[0]:
                         missing_tables.append(table)
                 except Exception as check_error:
                     logger.warning(f"⚠️ 檢查表格 {table} 時發生錯誤: {check_error}")
