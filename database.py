@@ -52,6 +52,7 @@ def execute_query(cursor, query, params=()):
 def get_db_connection():
     """取得 PostgreSQL 資料庫連接的 context manager"""
     config = get_database_config()
+    
     # PostgreSQL 連接
     try:
         import psycopg2
@@ -67,74 +68,59 @@ def get_db_connection():
                 conn.close()
             return
 
-        # 添加連接重試邏輯 - 指數退避算法
-        max_retries = 10
-        initial_delay = 2
-        max_delay = 60
-        conn = None
-        
-        try:
-            for attempt in range(max_retries):
+    # 添加連接重試邏輯 - 指數退避算法
+    max_retries = 10
+    initial_delay = 2
+    max_delay = 60
+    conn = None
+    
+    try:
+        for attempt in range(max_retries):
+            try:
+                # 計算動態延遲時間 (指數退避)
+                delay = min(initial_delay * (2 ** attempt), max_delay)
+                
+                if attempt > 0:
+                    print(f"⏳ 等待 {delay} 秒後重試...")
+                    time.sleep(delay)
+                
+                print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
+                print(f"📡 連接目標: {config['host']}:{config['port']}")
+                
+                conn = psycopg2.connect(
+                    config['url'],
+                    connect_timeout=60,  # 增加連接超時到 60 秒
+                    keepalives_idle=600,
+                    keepalives_interval=30,
+                    keepalives_count=3
+                )
+                
+                # 處理 collation version 警告
                 try:
-                    # 計算動態延遲時間 (指數退避)
-                    delay = min(initial_delay * (2 ** attempt), max_delay)
-                    
-                    if attempt > 0:
-                        print(f"⏳ 等待 {delay} 秒後重試...")
-                        time.sleep(delay)
-                    
-                    print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
-                    print(f"📡 連接目標: {config['host']}:{config['port']}")
-                    
-                    conn = psycopg2.connect(
-                        config['url'],
-                        connect_timeout=60,  # 增加連接超時到 60 秒
-                        keepalives_idle=600,
-                        keepalives_interval=30,
-                        keepalives_count=3
-                    )
-                    
-                    # 處理 collation version 警告
-                    try:
-                        cursor = conn.cursor()
-                        cursor.execute("SELECT version()")
-                        print("🔍 PostgreSQL 版本檢查完成")
-                    except Exception:
-                        pass  # 忽略版本檢查錯誤
-                    print("✅ PostgreSQL 連接建立成功")
-                    yield conn
-                    return
-                except psycopg2.OperationalError as e:
-                    print(f"❌ PostgreSQL 連接失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
-                    
-                    # 檢查是否是連接拒絕錯誤
-                    if "Connection refused" in str(e):
-                        print("🔍 檢測到連接被拒絕，可能是 PostgreSQL 服務尚未就緒")
-                        print("🔍 Zeabur PostgreSQL 服務可能需要更多時間啟動")
-                    
-                    if attempt == max_retries - 1:
-                        # 如果有 DATABASE_URL，說明是在 Zeabur 環境，不應該回退
-                        if os.getenv('DATABASE_URL'):
-                            print("🚨 在 Zeabur 環境中 PostgreSQL 連接完全失敗")
-                            print("💡 請檢查 Zeabur PostgreSQL 服務狀態")
-                            raise e
-                        else:
-                            print("🔄 回退到 SQLite 資料庫...")
-                            conn = sqlite3.connect('data/bgg_rag.db')
-                            print("✅ SQLite 連接建立成功")
-                            yield conn
-                            return
-        finally:
-            if conn:
-                conn.close()
-    else:
-        # SQLite 連接
-        try:
-            conn = sqlite3.connect(config['path'])
-            yield conn
-        finally:
-            if 'conn' in locals() and conn:
-                conn.close()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT version()")
+                    print("🔍 PostgreSQL 版本檢查完成")
+                except Exception:
+                    pass  # 忽略版本檢查錯誤
+                print("✅ PostgreSQL 連接建立成功")
+                yield conn
+                return
+            except psycopg2.OperationalError as e:
+                print(f"❌ PostgreSQL 連接失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
+                
+                # 檢查是否是連接拒絕錯誤
+                if "Connection refused" in str(e):
+                    print("🔍 檢測到連接被拒絕，可能是 PostgreSQL 服務尚未就緒")
+                    print("🔍 Zeabur PostgreSQL 服務可能需要更多時間啟動")
+                
+                if attempt == max_retries - 1:
+                    # 在 Zeabur 環境中，不回退到 SQLite，直接拋出錯誤
+                    print("🚨 在 Zeabur 環境中 PostgreSQL 連接完全失敗")
+                    print("💡 請檢查 Zeabur PostgreSQL 服務狀態")
+                    raise e
+    finally:
+        if conn:
+            conn.close()
 
 def tables_sql(autoincrement_type, text_type, timestamp_type):
     """返回創建資料表的 SQL 語句列表"""
