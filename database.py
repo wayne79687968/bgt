@@ -5,7 +5,6 @@
 """
 
 import os
-import sqlite3
 from urllib.parse import urlparse
 from contextlib import contextmanager
 import time
@@ -58,15 +57,7 @@ def get_db_connection():
         import psycopg2
     except ImportError:
         # 在 Zeabur 環境中，PostgreSQL 套件必須可用
-        if os.getenv('DATABASE_URL'):
-            raise ImportError("PostgreSQL 套件未安裝，但 DATABASE_URL 已設定")
-        else:
-            print("⚠️ PostgreSQL 套件未安裝，回退到 SQLite")
-            conn = sqlite3.connect('data/bgg_rag.db')
-            yield conn
-            if 'conn' in locals() and conn:
-                conn.close()
-            return
+        raise ImportError("PostgreSQL 套件未安裝，但系統需要 PostgreSQL 連接")
 
     # 添加連接重試邏輯 - 指數退避算法
     max_retries = 10
@@ -682,36 +673,6 @@ def init_database():
                     commit_time = time.time() - commit_start_time
                     print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
                     raise
-        else:
-            # SQLite 連接
-            import sqlite3 as _sqlite3
-            conn = _sqlite3.connect(config['path'])
-            try:
-                connection_time = time.time() - connection_start_time
-                print(f"✅ [INIT_DATABASE] SQLite 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
-
-                print("🗃️ [INIT_DATABASE] 正在創建游標...")
-                cursor = conn.cursor()
-                print("✅ [INIT_DATABASE] 游標創建成功")
-
-                # 創建資料表
-                _create_tables_and_constraints(cursor, tables_sql(autoincrement_type, text_type, timestamp_type), config['type'])
-                
-                print("🗃️ [INIT_DATABASE] 開始提交事務...")
-                commit_start_time = time.time()
-                try:
-                    conn.commit()
-                    commit_time = time.time() - commit_start_time
-                    print(f"✅ [INIT_DATABASE] 事務提交成功 (耗時: {commit_time:.2f}秒)")
-                except Exception as e:
-                    commit_time = time.time() - commit_start_time
-                    print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
-                    raise
-            finally:
-                try:
-                    conn.close()
-                except Exception:
-                    pass
 
     except Exception as e:
         connection_time = time.time() - connection_start_time if 'connection_start_time' in locals() else 0

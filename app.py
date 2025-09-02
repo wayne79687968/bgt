@@ -382,13 +382,9 @@ def ensure_app_settings_table():
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
-            # 檢查表是否已存在
-            if config['type'] == 'postgresql':
-                cursor.execute("SELECT to_regclass('app_settings')")
-                table_exists = cursor.fetchone()[0] is not None
-            else:
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='app_settings'")
-                table_exists = cursor.fetchone() is not None
+            # 檢查表是否已存在 (PostgreSQL)
+            cursor.execute("SELECT to_regclass('app_settings')")
+            table_exists = cursor.fetchone()[0] is not None
             
             if table_exists:
                 logger.info("✅ app_settings 表已存在")
@@ -1334,7 +1330,7 @@ def parse_game_data_from_report(content):
                 with get_db_connection() as conn:
                     cursor = conn.cursor()
                     config = get_database_config()
-                    placeholders = ','.join(['?' if config['type'] == 'sqlite' else '%s'] * len(reason_objectids))
+                    placeholders = ','.join(['%s'] * len(reason_objectids))
                     query = f"SELECT objectid, reason FROM forum_threads_i18n WHERE objectid IN ({placeholders}) AND lang = 'zh-tw'"
                     cursor.execute(query, reason_objectids)
                     for oid, reason in cursor.fetchall():
@@ -2750,14 +2746,11 @@ def api_check_database():
 
             # 檢查現有表格
             existing_tables = []
-            if config['type'] == 'postgresql':
-                cursor.execute("""
-                    SELECT table_name FROM information_schema.tables
-                    WHERE table_schema = 'public'
-                    ORDER BY table_name
-                """)
-            else:
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            cursor.execute("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public'
+                ORDER BY table_name
+            """)
 
             existing_tables = [row[0] for row in cursor.fetchall()]
 
