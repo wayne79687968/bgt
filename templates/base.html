@@ -57,18 +57,7 @@
                         <a class="nav-link" href="{{ url_for('dashboard') }}">🏠 首頁</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('reports') }}">📊 報表</a>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            📰 報表檢視
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('newspaper') }}">📰 報紙風格</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('portfolio') }}">🎨 Portfolio</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('lablog') }}">🧪 Lab Log</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('bgg_times') }}">📜 The BGG Times</a></li>
-                        </ul>
+                        <a class="nav-link" href="{{ url_for('bgg_times') }}">📜 The BGG Times</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('recommendations') }}">✨ 推薦</a>
