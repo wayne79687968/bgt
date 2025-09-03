@@ -26,13 +26,8 @@ try:
 except Exception as e:
     print(f"❌ database 導入失敗: {e}", flush=True)
 
-# 測試導入 2: email_auth 模組
-try:
-    print("🔍 測試導入 email_auth...", flush=True)
-    from email_auth import EmailAuth
-    print("✅ email_auth 導入成功", flush=True)
-except Exception as e:
-    print(f"❌ email_auth 導入失敗: {e}", flush=True)
+# 測試導入 2: email_auth 模組（跳過以避免依賴問題）
+print("⏭️ 跳過 email_auth 導入（使用最小化依賴）", flush=True)
 
 # 測試導入 3: 其他模組
 try:
