@@ -2522,7 +2522,7 @@ def google_auth_callback():
 @login_required
 def dashboard():
     """用戶儀表板"""
-    return render_template('reports.html')
+    return redirect(url_for('bgg_times'))
 
 @app.route('/generate')
 @admin_required
