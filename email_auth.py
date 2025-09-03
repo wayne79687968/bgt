@@ -144,15 +144,15 @@ BGG 分析平台團隊
                 # 嘗試更新現有記錄
                 execute_query(cursor, """
                     UPDATE verification_codes 
-                    SET code = ?, expires_at = ?, used = 0, created_at = ?
-                    WHERE email = ? AND type = ?
+                    SET code = %s, expires_at = %s, used = 0, created_at = %s
+                    WHERE email = %s AND type = %s
                 """, (code, expires_at, created_at, email, code_type))
                 
                 # 如果沒有更新到任何記錄，則插入新記錄
                 if cursor.rowcount == 0:
                     execute_query(cursor, """
                         INSERT INTO verification_codes (email, code, type, expires_at, created_at, used)
-                        VALUES (?, ?, ?, ?, ?, 0)
+                        VALUES (%s, %s, %s, %s, %s, 0)
                     """, (email, code, code_type, expires_at, created_at))
                 
                 conn.commit()
@@ -171,7 +171,7 @@ BGG 分析平台團隊
                 
                 execute_query(cursor, """
                     SELECT id, expires_at FROM verification_codes 
-                    WHERE email = ? AND code = ? AND type = ? AND used = 0
+                    WHERE email = %s AND code = %s AND type = %s AND used = 0
                 """, (email, code, code_type))
                 
                 result = cursor.fetchone()
@@ -186,7 +186,7 @@ BGG 分析平台團隊
                 
                 # 標記為已使用
                 execute_query(cursor, 
-                    "UPDATE verification_codes SET used = 1 WHERE id = ?", 
+                    "UPDATE verification_codes SET used = 1 WHERE id = %s", 
                     (code_id,))
                 
                 conn.commit()
@@ -203,7 +203,7 @@ BGG 分析平台團隊
                 cursor = conn.cursor()
                 
                 # 檢查用戶是否已存在
-                execute_query(cursor, "SELECT id FROM users WHERE email = ?", (email,))
+                execute_query(cursor, "SELECT id FROM users WHERE email = %s", (email,))
                 if cursor.fetchone():
                     return None, "用戶已存在"
                 
@@ -216,11 +216,11 @@ BGG 分析平台團隊
                 
                 execute_query(cursor, """
                     INSERT INTO users (email, password_hash, name, is_verified, has_full_access, created_at, updated_at)
-                    VALUES (?, ?, ?, 1, ?, ?, ?)
+                    VALUES (%s, %s, %s, 1, %s, %s, %s)
                 """, (email, password_hash, name or email.split('@')[0], has_full_access, created_at, created_at))
                 
                 # 獲取用戶 ID
-                execute_query(cursor, "SELECT id FROM users WHERE email = ?", (email,))
+                execute_query(cursor, "SELECT id FROM users WHERE email = %s", (email,))
                 user_id = cursor.fetchone()[0]
                 
                 conn.commit()
@@ -248,7 +248,7 @@ BGG 分析平台團隊
                 
                 execute_query(cursor, """
                     SELECT id, email, password_hash, name, is_verified, is_active, has_full_access
-                    FROM users WHERE email = ?
+                    FROM users WHERE email = %s
                 """, (email,))
                 
                 user = cursor.fetchone()
@@ -284,7 +284,7 @@ BGG 分析平台團隊
                 cursor = conn.cursor()
                 execute_query(cursor, """
                     SELECT id, email, name, is_verified, is_active, has_full_access, created_at
-                    FROM users WHERE email = ?
+                    FROM users WHERE email = %s
                 """, (email,))
                 
                 user = cursor.fetchone()
