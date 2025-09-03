@@ -2328,151 +2328,290 @@ def api_rg_recommend_score():
         logger.error(f"推薦分數 API 發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
 
-def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm='hybrid'):
-    """使用進階推薦器計算單個遊戲的推薦分數"""
+def create_temp_jsonl_files():
+    """從資料庫創建臨時 JSONL 文件供 RG BGGRecommender 使用"""
+    import tempfile
+    import json
+    
     try:
-        logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}")
-        
-        from advanced_recommender import AdvancedBoardGameRecommender
-        
-        recommender = AdvancedBoardGameRecommender()
-        
-        # 檢查資料庫狀態
-        if not recommender.check_database_connection():
-            logger.error("❌ 資料庫檔案不存在")
-            return None
-            
-        if not recommender.check_tables_exist():
-            logger.error("❌ 資料庫中缺少必要的資料表")
-            return None
-        
-        logger.info("📊 載入推薦資料...")
-        if not recommender.load_data():
-            logger.error("❌ 無法載入資料庫資料")
-            return None
-        
-        # 檢查是否有足夠的資料
-        if len(recommender.games_df) == 0:
-            logger.error("❌ 沒有遊戲資料可用於推薦")
-            return None
-        
-        logger.info("🧠 準備推薦模型...")
-        if not recommender.prepare_models():
-            logger.error("❌ 無法準備推薦模型")
-            return None
-        
-        # 檢查遊戲是否在資料庫中
-        game_exists = game_id in recommender.games_df.index
-        if not game_exists:
-            logger.warning(f"⚠️ 遊戲 {game_id} 不在資料庫中，使用基礎評分")
-            # 可以返回一個基於熱門度的默認分數
-            return 5.0  # 中等推薦分數
-        
-        # 計算推薦分數
-        if algorithm == 'hybrid':
-            score = recommender.get_game_hybrid_score(game_id, owned_ids)
-        elif algorithm == 'content':
-            score = recommender.get_game_content_score(game_id, owned_ids)
-        elif algorithm == 'popularity':
-            score = recommender.get_game_popularity_score(game_id)
-        else:
-            score = recommender.get_game_hybrid_score(game_id, owned_ids)
-        
-        logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score}")
-        return float(score) if score is not None else None
-        
-    except Exception as e:
-        logger.error(f"進階推薦分數計算失敗: {e}")
-        return None
-
-def get_basic_game_recommendation_score(username, owned_ids, game_id):
-    """使用基礎方法計算單個遊戲的推薦分數"""
-    try:
-        logger.info(f"🎯 使用基礎方法計算遊戲 {game_id} 的推薦分數")
-        
         with get_db_connection() as conn:
             cursor = conn.cursor()
             
-            # 從資料庫獲取遊戲資訊
+            # 創建遊戲數據 JSONL 文件
+            games_fd, games_file = tempfile.mkstemp(suffix='.jl', text=True)
             cursor.execute("""
                 SELECT 
-                    objectid, name, rating, rank, weight,
-                    minplayers, maxplayers, playingtime,
-                    age, yearpublished
-                FROM bgg_items 
-                WHERE objectid = %s
-            """, (game_id,))
+                    objectid as bgg_id,
+                    name,
+                    yearpublished as year,
+                    minplayers as min_players,
+                    maxplayers as max_players,
+                    minplaytime as min_time,
+                    maxplaytime as max_time,
+                    minage as min_age,
+                    rating as avg_rating,
+                    rank,
+                    weight as complexity,
+                    num_votes
+                FROM bgg_items
+                WHERE rating > 0 AND num_votes > 10
+                ORDER BY rank ASC NULLS LAST
+                LIMIT 10000
+            """)
             
-            game_info = cursor.fetchone()
-            if not game_info:
-                logger.warning(f"遊戲 {game_id} 不在本地資料庫中")
-                return 5.0  # 默認分數
+            with os.fdopen(games_fd, 'w', encoding='utf-8') as f:
+                for row in cursor.fetchall():
+                    game_data = {
+                        'bgg_id': row[0],
+                        'name': row[1] or 'Unknown',
+                        'year': row[2] or 2000,
+                        'min_players': row[3] or 1,
+                        'max_players': row[4] or 4,
+                        'min_time': row[5] or 30,
+                        'max_time': row[6] or 120,
+                        'min_age': row[7] or 8,
+                        'avg_rating': float(row[8] or 0),
+                        'rank': int(row[9]) if row[9] else 99999,
+                        'complexity': float(row[10] or 2.0),
+                        'num_votes': int(row[11] or 0),
+                        'cooperative': False,
+                        'compilation': False
+                    }
+                    f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
             
-            # 解析遊戲資訊
-            _, name, rating, rank, weight, min_players, max_players, playing_time, age, year = game_info
+            # 創建評分數據 JSONL 文件 (使用遊戲收藏作為隱式評分)
+            ratings_fd, ratings_file = tempfile.mkstemp(suffix='.jl', text=True)
+            cursor.execute("""
+                SELECT DISTINCT
+                    objectid as bgg_id,
+                    'synthetic_user_' || (objectid % 100) as bgg_user_name,
+                    CASE 
+                        WHEN rating >= 8 THEN 9.0
+                        WHEN rating >= 7 THEN 8.0  
+                        WHEN rating >= 6 THEN 7.0
+                        ELSE 6.0
+                    END as bgg_user_rating
+                FROM bgg_items
+                WHERE rating > 0 AND num_votes > 50
+                ORDER BY objectid
+                LIMIT 50000
+            """)
+            
+            with os.fdopen(ratings_fd, 'w', encoding='utf-8') as f:
+                for row in cursor.fetchall():
+                    rating_data = {
+                        'bgg_id': row[0],
+                        'bgg_user_name': row[1],
+                        'bgg_user_rating': float(row[2])
+                    }
+                    f.write(json.dumps(rating_data, ensure_ascii=False) + '\n')
+            
+            logger.info(f"📄 創建臨時 JSONL 文件: {games_file}, {ratings_file}")
+            return games_file, ratings_file
+            
+    except Exception as e:
+        logger.error(f"創建 JSONL 文件失敗: {e}")
+        return None, None
+
+def get_similarity_based_score(recommender, user_ratings_data, game_id):
+    """當遊戲不在推薦結果中時，使用相似度計算分數"""
+    try:
+        import turicreate as tc
+        
+        # 獲取用戶喜好的遊戲特徵
+        user_game_ids = [r['bgg_id'] for r in user_ratings_data]
+        
+        # 從推薦器獲取遊戲相似度
+        if hasattr(recommender, 'similarity_model') and recommender.similarity_model:
+            similar_games = recommender.similarity_model.query(tc.SFrame([{'bgg_id': game_id}]), k=10)
+            
+            # 計算與用戶收藏遊戲的相似度分數
+            similarity_scores = []
+            for _, row in similar_games.iterrows():
+                if row['bgg_id'] in user_game_ids:
+                    similarity_scores.append(row.get('score', 0))
+            
+            if similarity_scores:
+                avg_similarity = sum(similarity_scores) / len(similarity_scores)
+                score = min(10, max(0, avg_similarity * 10))
+                logger.info(f"🔄 使用相似度計算分數: {score:.3f}")
+                return score
+        
+        # 降級到基礎分數
+        return 5.0
+        
+    except Exception as e:
+        logger.error(f"相似度計算失敗: {e}")
+        return 5.0
+
+def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm='hybrid'):
+    """使用 RG BGGRecommender 計算單個遊戲的推薦分數"""
+    try:
+        logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}")
+        
+        import tempfile
+        import json
+        import os
+        from board_game_recommender.recommend import BGGRecommender
+        
+        # 從資料庫創建臨時 JSONL 文件
+        games_file, ratings_file = create_temp_jsonl_files()
+        if not games_file or not ratings_file:
+            logger.error("❌ 無法創建 JSONL 資料檔案")
+            return None
+        
+        try:
+            # 訓練 BGGRecommender
+            logger.info("📊 訓練 BGG 推薦器...")
+            recommender = BGGRecommender.train_from_files(
+                games_file=games_file,
+                ratings_file=ratings_file,
+                max_iterations=50,
+                verbose=False
+            )
+            
+            # 構建用戶評分數據 - 寫入到臨時 ratings 文件
+            user_ratings_data = []
+            for owned_game_id in owned_ids:
+                user_ratings_data.append({
+                    'bgg_id': int(owned_game_id),
+                    'bgg_user_name': username,
+                    'bgg_user_rating': 8.0  # 假設收藏的遊戲評分都是8分
+                })
+            
+            if not user_ratings_data:
+                logger.warning(f"用戶 {username} 沒有收藏的遊戲")
+                return None
+            
+            # 將用戶評分添加到推薦器
+            import turicreate as tc
+            user_ratings_sf = tc.SFrame(user_ratings_data)
+            
+            logger.info(f"💫 開始推薦計算，用戶評分: {len(user_ratings_data)} 個遊戲")
+            
+            # 執行推薦計算
+            recommendations = recommender.recommend(
+                users=[username],
+                num_games=1000,  # 取較多結果以找到目標遊戲
+                diversity=0.1 if algorithm == 'hybrid' else 0.0
+            )
+            
+            if not recommendations or recommendations.num_rows() == 0:
+                logger.warning("推薦器未返回任何結果")
+                return None
+            
+            # 尋找目標遊戲的推薦分數
+            target_recommendations = recommendations[recommendations['bgg_id'] == game_id]
+            
+            if target_recommendations.num_rows() == 0:
+                logger.warning(f"目標遊戲 {game_id} 不在推薦結果中")
+                # 嘗試使用相似度模型計算
+                return get_similarity_based_score(recommender, user_ratings_data, game_id)
+            
+            # 返回推薦分數（rank 越小越好，轉換為分數）
+            rank = target_recommendations['rank'].mean()
+            score = max(0, 10 - (rank / 100))  # 將排名轉換為0-10分數
+            logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score:.3f} (排名: {rank})")
+            return float(score)
+            
+        finally:
+            # 清理臨時文件
+            try:
+                os.unlink(games_file)
+                os.unlink(ratings_file)
+            except:
+                pass
+        
+    except Exception as e:
+        logger.error(f"RG 推薦分數計算失敗: {e}")
+        return None
+
+def get_basic_game_recommendation_score(username, owned_ids, game_id):
+    """使用基礎方法從 JSONL 資料計算單個遊戲的推薦分數"""
+    try:
+        logger.info(f"🎯 使用基礎方法計算遊戲 {game_id} 的推薦分數")
+        
+        import tempfile
+        import json
+        import turicreate as tc
+        
+        # 從資料庫創建臨時 JSONL 文件
+        games_file, ratings_file = create_temp_jsonl_files()
+        if not games_file or not ratings_file:
+            logger.error("❌ 無法創建 JSONL 資料檔案")
+            return None
+        
+        try:
+            # 讀取遊戲資料
+            games_data = tc.SFrame.read_json(url=games_file, orient="lines")
+            target_game = games_data[games_data['bgg_id'] == game_id]
+            
+            if target_game.num_rows() == 0:
+                logger.warning(f"遊戲 {game_id} 不在資料中")
+                return 5.0
+            
+            game_info = target_game[0]
+            name = game_info.get('name', 'Unknown')
+            rating = game_info.get('avg_rating', 0)
+            rank = game_info.get('rank', 0)
+            weight = game_info.get('complexity', 0)
+            year = game_info.get('year', 0)
+            
+            logger.info(f"📊 遊戲資訊: {name} (評分: {rating}, 排名: {rank})")
             
             # 基礎推薦分數計算
-            base_score = 0.0
+            base_score = 0
             
-            # 1. BGG 評分權重 (40%)
+            # 根據 BGG 評分計算 (40%)
             if rating and rating > 0:
-                base_score += (rating - 5.5) * 0.4  # 5.5 為中位數
-            
-            # 2. BGG 排名權重 (30%)
+                rating_score = min(rating / 10 * 4, 4)  # 最高4分
+                base_score += rating_score
+                
+            # 根據排名計算 (30%)
             if rank and rank > 0:
-                rank_score = max(0, (10000 - rank) / 10000) * 10
-                base_score += rank_score * 0.3
+                if rank <= 100:
+                    rank_score = 3
+                elif rank <= 1000:
+                    rank_score = 2
+                elif rank <= 10000:
+                    rank_score = 1
+                else:
+                    rank_score = 0.5
+                base_score += rank_score
             
-            # 3. 與用戶收藏的相似性 (30%)
-            if owned_ids:
-                similarity_score = calculate_game_similarity(game_id, owned_ids, cursor)
-                base_score += similarity_score * 0.3
+            # 根據複雜度適配性計算 (20%)
+            if weight and weight > 0:
+                # 假設用戶偏好中等複雜度遊戲
+                complexity_score = max(0, 2 - abs(weight - 2.5))
+                base_score += complexity_score
+                
+            # 根據年份新鮮度計算 (10%)
+            if year and year > 0:
+                current_year = 2024
+                if year >= current_year - 3:
+                    freshness_score = 1
+                elif year >= current_year - 10:
+                    freshness_score = 0.5
+                else:
+                    freshness_score = 0.2
+                base_score += freshness_score
             
-            # 確保分數在 0-10 範圍內
-            final_score = max(0, min(10, base_score + 5))  # 加5使分數居中
+            logger.info(f"✅ 基礎推薦分數: {base_score:.2f}")
+            return base_score
             
-            logger.info(f"✅ 遊戲 {game_id} ({name}) 基礎推薦分數: {final_score:.2f}")
-            return final_score
-        
+        finally:
+            # 清理臨時文件
+            try:
+                import os
+                os.unlink(games_file)
+                os.unlink(ratings_file)
+            except:
+                pass
+            
     except Exception as e:
         logger.error(f"基礎推薦分數計算失敗: {e}")
         return None
 
-def calculate_game_similarity(target_game_id, owned_ids, cursor):
-    """計算目標遊戲與用戶收藏的相似性"""
-    try:
-        # 獲取目標遊戲的分類
-        cursor.execute("""
-            SELECT category_name FROM game_categories 
-            WHERE objectid = %s
-        """, (target_game_id,))
-        target_categories = set(row[0] for row in cursor.fetchall())
-        
-        if not target_categories:
-            return 0.0
-        
-        similarity_scores = []
-        
-        for owned_id in owned_ids:
-            cursor.execute("""
-                SELECT category_name FROM game_categories 
-                WHERE objectid = %s
-            """, (owned_id,))
-            owned_categories = set(row[0] for row in cursor.fetchall())
-            
-            if owned_categories:
-                # 計算 Jaccard 相似性
-                intersection = target_categories.intersection(owned_categories)
-                union = target_categories.union(owned_categories)
-                similarity = len(intersection) / len(union) if union else 0
-                similarity_scores.append(similarity)
-        
-        # 返回平均相似性
-        return sum(similarity_scores) / len(similarity_scores) if similarity_scores else 0.0
-        
-    except Exception as e:
-        logger.error(f"相似性計算失敗: {e}")
-        return 0.0
 
 @app.route('/api/task-status', methods=['GET'])
 def api_task_status():
