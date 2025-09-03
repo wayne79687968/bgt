@@ -2965,13 +2965,13 @@ def api_follow_creator():
                 existing_game_ids = [row[0] for row in cursor.fetchall()]
                 
                 # 獲取所有作品（用於新追蹤的設計師）或新作品（用於已存在的設計師）
-                api_type = 'boardgamedesigner' if creator_type == 'designer' else 'boardgameartist'
+                api_type = creator_type  # 前端已經傳遞正確的 API 類型
                 
                 if existing_game_ids:
                     # 已存在設計師，進行增量更新檢查新遊戲
-                    new_games = tracker.get_new_creator_games(
+                    new_games = tracker.get_creator_games_paginated(
                         creator_bgg_id, details['slug'], api_type, 
-                        existing_games=existing_game_ids,
+                        details['name'], existing_games=existing_game_ids,
                         stop_on_existing=True
                     )
                     if new_games:
@@ -3005,6 +3005,9 @@ def api_follow_creator():
                 """, (user_id, creator_bgg_id))
                 
                 message = '已取消追蹤'
+            
+            # 提交數據庫事務
+            conn.commit()
         
         return jsonify({
             'success': True,
