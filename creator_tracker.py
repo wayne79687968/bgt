@@ -669,6 +669,7 @@ class CreatorTracker:
                         game.get('year'), game.get('rating'), game.get('rank'), now
                     ))
                 
+                conn.commit()
                 logger.info(f"儲存 {len(games)} 個遊戲作品")
                 
         except Exception as e:
@@ -697,8 +698,21 @@ class CreatorTracker:
                     'creator_db_id': None
                 }
             
-            # 2. 添加追蹤記錄
-            return self._add_user_follow(user_id, creator_db_id, creator_name)
+            # 2. 添加追蹤記錄並獲取遊戲數量
+            follow_result = self._add_user_follow(user_id, creator_db_id, creator_name)
+            
+            # 3. 獲取已儲存的遊戲數量並更新消息
+            if follow_result['success']:
+                try:
+                    with get_db_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM creator_games WHERE creator_id = %s", (creator_db_id,))
+                        game_count = cursor.fetchone()[0]
+                        follow_result['message'] = f'開始追蹤 {creator_name}，已記錄 {game_count} 個作品'
+                except Exception as e:
+                    logger.warning(f"無法獲取遊戲數量: {e}")
+            
+            return follow_result
             
         except Exception as e:
             logger.error(f"追蹤設計師失敗: {e}")
@@ -745,6 +759,24 @@ class CreatorTracker:
                 
                 logger.info(f"創建設計師記錄成功: {creator_info['name']} (ID: {creator_db_id})")
                 conn.commit()
+                
+                # 3. 獲取並儲存設計師的遊戲作品
+                try:
+                    slug = creator_info.get('slug')
+                    if slug:
+                        logger.info(f"開始獲取設計師 {creator_info['name']} 的遊戲作品...")
+                        # 使用更可靠的 _get_creator_games 方法 (使用 BGG API)
+                        games = self._get_creator_games(creator_id, slug, bgg_type, creator_info['name'])
+                        if games:
+                            self.save_creator_games(creator_db_id, games)
+                            logger.info(f"已儲存 {len(games)} 個遊戲作品")
+                        else:
+                            logger.warning(f"未能獲取設計師 {creator_info['name']} 的遊戲作品")
+                    else:
+                        logger.warning(f"設計師 {creator_info['name']} 缺少 slug，無法獲取遊戲作品")
+                except Exception as games_error:
+                    logger.warning(f"獲取設計師 {creator_info['name']} 的遊戲作品失敗: {games_error}")
+                
                 return creator_db_id
                 
         except Exception as e:

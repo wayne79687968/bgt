@@ -2943,76 +2943,42 @@ def api_follow_creator():
         from creator_tracker import CreatorTracker
         tracker = CreatorTracker()
         
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            config = get_database_config()
+        if action == 'follow':
+            # 映射前端類型到 BGG API 類型
+            bgg_type_map = {
+                'designer': 'boardgamedesigner',
+                'artist': 'boardgameartist'
+            }
+            bgg_type = bgg_type_map.get(creator_type, 'boardgamedesigner')
             
-            if action == 'follow':
-                # 1. 獲取並儲存設計師詳細資料
-                details = tracker.get_creator_details(creator_bgg_id, creator_type)
-                if not details:
-                    return jsonify({'success': False, 'message': '無法獲取設計師資料'})
-                
-                # 2. 儲存設計師到資料庫
-                creator_id = tracker.save_creator_to_db(details)
-                if not creator_id:
-                    return jsonify({'success': False, 'message': '儲存設計師資料失敗'})
-                
-                # 3. 檢查是否已存在此設計師的遊戲，並進行增量更新
-                cursor.execute("""
-                    SELECT bgg_game_id FROM creator_games WHERE creator_id = %s
-                """, (creator_id,))
-                existing_game_ids = [row[0] for row in cursor.fetchall()]
-                
-                # 獲取所有作品（用於新追蹤的設計師）或新作品（用於已存在的設計師）
-                api_type = creator_type  # 前端已經傳遞正確的 API 類型
-                
-                if existing_game_ids:
-                    # 已存在設計師，進行增量更新檢查新遊戲
-                    new_games = tracker.get_creator_games_paginated(
-                        creator_bgg_id, details['slug'], api_type, 
-                        details['name'], existing_games=existing_game_ids,
-                        stop_on_existing=True
-                    )
-                    if new_games:
-                        tracker.save_creator_games(creator_id, new_games)
-                        message = f'開始追蹤 {details["name"]}，發現 {len(new_games)} 個新作品'
-                    else:
-                        message = f'開始追蹤 {details["name"]}'
-                else:
-                    # 新設計師，獲取所有作品
-                    all_games = tracker.get_all_creator_games(
-                        creator_bgg_id, details['slug'], api_type
-                    )
-                    tracker.save_creator_games(creator_id, all_games)
-                    message = f'開始追蹤 {details["name"]}，已記錄 {len(all_games)} 個作品'
-                
-                # 4. 建立追蹤關係
-                now = datetime.now().isoformat()
-                cursor.execute("""
-                    INSERT INTO user_follows (user_id, creator_id, followed_at)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (user_id, creator_id) DO NOTHING
-                """, (user_id, creator_id, now))
-                
-            else:  # unfollow
-                # 取消追蹤
+            # 獲取設計師名稱
+            details = tracker.get_creator_details(creator_bgg_id, bgg_type)
+            if not details:
+                return jsonify({'success': False, 'message': '無法獲取設計師資料'})
+            
+            creator_name = details['name']
+            
+            # 使用修復過的 follow_creator 方法
+            result = tracker.follow_creator(user_id, int(creator_bgg_id), bgg_type, creator_name)
+            
+            return jsonify(result)
+            
+        else:  # unfollow
+            # 取消追蹤
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
                 cursor.execute("""
                     DELETE FROM user_follows 
                     WHERE user_id = %s AND creator_id = (
                         SELECT id FROM creators WHERE bgg_id = %s
                     )
                 """, (user_id, creator_bgg_id))
-                
-                message = '已取消追蹤'
+                conn.commit()
             
-            # 提交數據庫事務
-            conn.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': message
-        })
+            return jsonify({
+                'success': True,
+                'message': '已取消追蹤'
+            })
         
     except Exception as e:
         logger.error(f"追蹤操作失敗: {e}")
