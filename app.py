@@ -2803,30 +2803,54 @@ def api_check_database():
 
 @app.route('/health')
 def health():
-    """健康檢查端點"""
-    # 第一次健康檢查時嘗試初始化資料庫
-    try:
-        db_init_status = 'success' if init_db_if_needed() else 'failed'
-    except Exception as e:
-        db_init_status = f'failed: {str(e)[:100]}'
+    """健康檢查端點 - 快速響應版本"""
     
-    # 測試資料庫連接
-    try:
-        from database import get_db_connection
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            db_status = 'connected'
-    except Exception as e:
-        db_status = f'error: {str(e)[:100]}'
+    # 簡單健康檢查，不阻塞啟動
+    health_info = {
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'python_version': sys.version,
+        'port': os.getenv('PORT', 'not set'),
+        'database_url_configured': 'yes' if os.getenv('DATABASE_URL') else 'no'
+    }
     
+    # 只有在應用已經完全啟動後才嘗試資料庫檢查
+    if os.getenv('SKIP_DB_HEALTH_CHECK') != '1':
+        # 非阻塞式資料庫狀態檢查
+        try:
+            from database import get_db_connection
+            import signal
+            
+            # 設置 5 秒超時
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Database connection timeout")
+            
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(5)  # 5 秒超時
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                health_info['database'] = 'connected'
+            
+            signal.alarm(0)  # 取消超時
+            
+        except TimeoutError:
+            health_info['database'] = 'timeout'
+        except Exception as e:
+            health_info['database'] = f'error: {str(e)[:50]}'
+    else:
+        health_info['database'] = 'check_skipped'
+    
+    return health_info
+
+@app.route('/health/quick')
+def health_quick():
+    """快速健康檢查端點 - 僅用於啟動時檢查"""
     return {
         'status': 'ok',
         'timestamp': datetime.now().isoformat(),
-        'database': db_status,
-        'db_init': db_init_status,
-        'python_version': sys.version,
-        'port': os.getenv('PORT', 'not set')
+        'app': 'running'
     }
 
 @app.route('/api/init-database', methods=['POST'])
@@ -3601,7 +3625,8 @@ def logout():
 
 # 模塊級資料庫初始化 - 適用於 Gunicorn/WSGI 環境
 try:
-    if os.getenv('DATABASE_URL'):  # 只在有資料庫配置時執行
+    # 檢查是否應跳過模組級初始化（由 start_simple.py 設置）
+    if not os.getenv('SKIP_MODULE_DB_INIT') and os.getenv('DATABASE_URL'):
         print("📋 模塊載入: 檢查資料庫初始化需求...")
         # 延遲執行，避免導入循環
         import threading
@@ -3613,6 +3638,8 @@ try:
         init_thread = threading.Thread(target=delayed_init, daemon=True)
         init_thread.start()
         print("📋 模塊載入: 資料庫初始化線程已啟動")
+    elif os.getenv('SKIP_MODULE_DB_INIT'):
+        print("📋 模塊載入: 跳過資料庫初始化（由啟動腳本管理）")
 except Exception as e:
     print(f"⚠️ 模塊級初始化警告: {e}")
 

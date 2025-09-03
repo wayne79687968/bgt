@@ -27,18 +27,20 @@ services:
       SMTP_PASSWORD: your-app-password
       FROM_EMAIL: your-email@gmail.com
       FROM_NAME: BGG 設計師追蹤
-      # PostgreSQL 啟動等待配置
-      POSTGRES_STARTUP_WAIT: 120
+      # PostgreSQL 啟動等待配置 - 減少初始等待時間
+      POSTGRES_STARTUP_WAIT: 10
+      # 跳過模組級初始化，讓應用快速啟動
+      SKIP_MODULE_DB_INIT: 1
     dependencies:
       - postgresql
     wait_for:
       - postgresql
     healthcheck:
-      endpoint: /health
-      interval: 90s
-      timeout: 60s
-      retries: 8
-      start_period: 300s
+      endpoint: /health/quick
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs

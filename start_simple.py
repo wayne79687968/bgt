@@ -18,45 +18,24 @@ def ensure_basic_directories():
             pass  # 忽略目錄創建錯誤，運行時再處理
 
 def initialize_app():
-    """最小化的應用初始化"""
+    """最小化的應用初始化，避免在啟動時阻塞"""
     print("🚀 BGG RAG Daily 應用啟動中...")
     
     # 創建基本目錄
     ensure_basic_directories()
     
-    # 檢查 PostgreSQL 配置
+    # 檢查 PostgreSQL 配置但不執行初始化（避免啟動阻塞）
     database_url = os.getenv('DATABASE_URL')
     if database_url:
         print("🔍 檢測到 DATABASE_URL，使用 PostgreSQL")
-        # 添加 PostgreSQL 服務等待邏輯
-        postgres_wait = int(os.getenv('POSTGRES_STARTUP_WAIT', '2'))
-        print(f"⏳ 等待 PostgreSQL 服務啟動 ({postgres_wait} 秒)...")
-        import time
-        time.sleep(postgres_wait)
-        
-        # 嘗試初始化 PostgreSQL 資料庫 (最多重試 3 次)
-        max_retries = 3
-        for attempt in range(1, max_retries + 1):
-            try:
-                print(f"🗃️ 初始化 PostgreSQL 資料庫... (嘗試 {attempt}/{max_retries})")
-                from database import init_database
-                init_database()
-                print("✅ PostgreSQL 資料庫初始化完成")
-                break
-            except Exception as e:
-                print(f"⚠️ 資料庫初始化失敗 (嘗試 {attempt}/{max_retries}): {e}")
-                if attempt == max_retries:
-                    import traceback
-                    print("📋 詳細錯誤信息:")
-                    traceback.print_exc()
-                    print("💡 提示：應用仍會繼續啟動，請使用 /api/init-database 手動初始化")
-                else:
-                    print(f"⏳ 等待 5 秒後重試...")
-                    time.sleep(5)
+        print("💡 資料庫將在應用內部按需初始化")
     else:
         print("❌ 錯誤：未檢測到 DATABASE_URL，請設定 PostgreSQL 連線")
     
-    # 直接導入應用，讓 Flask 處理其餘初始化
+    # 設置環境變數告知 app.py 跳過模組級初始化
+    os.environ['SKIP_MODULE_DB_INIT'] = '1'
+    
+    # 直接導入應用
     try:
         from app import app
         print("✅ Flask 應用導入成功")
