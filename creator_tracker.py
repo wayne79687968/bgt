@@ -211,8 +211,8 @@ class CreatorTracker:
                         if len(description) > 20:
                             break
             
-            # 使用 Images API 獲取設計師照片
-            image_url = self._get_creator_image(creator_id)
+            # 從設計師頁面獲取照片
+            image_url = self._get_creator_image(creator_id, slug)
             
             logger.info(f"解析結果 - 名稱: {name}, slug: {slug}, 描述長度: {len(description)}, 圖片: {bool(image_url)}")
             
@@ -227,51 +227,55 @@ class CreatorTracker:
             logger.error(f"獲取基本資訊失敗: {e}")
             return {'name': f'Creator {creator_id}', 'slug': f'creator-{creator_id}'}
     
-    def _get_creator_image(self, creator_id: int) -> Optional[str]:
-        """使用 BGG Images API 獲取設計師/繪師的第一張照片"""
+    def _get_creator_image(self, creator_id: int, slug: str) -> Optional[str]:
+        """從設計師頁面解析獲取設計師/繪師的照片"""
         try:
-            api_url = "https://api.geekdo.com/api/images"
-            params = {
-                'ajax': 1,
-                'foritempage': 1,
-                'galleries[]': 'game',
-                'nosession': 1,
-                'objectid': creator_id,
-                'objecttype': 'person',
-                'showcount': 17,
-                'size': 'crop100',
-                'sort': 'hot'
-            }
+            # 構建設計師頁面 URL
+            page_url = f"https://boardgamegeek.com/boardgamedesigner/{creator_id}/{slug}"
             
-            logger.info(f"抓取設計師 {creator_id} 的照片...")
-            response = self.session.get(api_url, params=params, timeout=10)
+            logger.info(f"從設計師頁面抓取照片: {page_url}")
+            response = self.session.get(page_url, timeout=15)
             
             if response.status_code == 200:
-                try:
-                    data = response.json()
-                    # 檢查是否有圖片資料
-                    if 'images' in data and data['images']:
-                        # 取得第一張圖片的 URL
-                        first_image = data['images'][0]
-                        if 'src' in first_image:
-                            image_url = first_image['src']
-                            # 如果是相對路徑，轉換為完整 URL
-                            if image_url.startswith('//'):
-                                image_url = 'https:' + image_url
-                            elif image_url.startswith('/'):
-                                image_url = 'https://boardgamegeek.com' + image_url
-                            
-                            logger.info(f"找到設計師照片: {image_url}")
-                            return image_url
-                    
-                    logger.warning(f"設計師 {creator_id} 沒有找到照片")
-                    return None
-                    
-                except json.JSONDecodeError:
-                    logger.error(f"無法解析設計師 {creator_id} 的圖片 API 回應")
-                    return None
+                html_content = response.text
+                
+                # 方法1: 從 JavaScript 物件中解析圖片 URL
+                import re
+                # 尋找 GEEK.geekitemPreload 或類似的 JavaScript 物件
+                js_pattern = r'"images":\s*\{[^}]*"imageurl":\s*"([^"]+)"'
+                match = re.search(js_pattern, html_content)
+                
+                if match:
+                    image_url = match.group(1)
+                    # 處理 URL 轉義字元
+                    image_url = image_url.replace('\\/', '/')
+                    logger.info(f"找到設計師照片: {image_url}")
+                    return image_url
+                
+                # 方法2: 尋找縮圖版本
+                thumb_pattern = r'"images":\s*\{[^}]*"thumb":\s*"([^"]+)"'
+                match = re.search(thumb_pattern, html_content)
+                
+                if match:
+                    image_url = match.group(1)
+                    image_url = image_url.replace('\\/', '/')
+                    logger.info(f"找到設計師縮圖: {image_url}")
+                    return image_url
+                
+                # 方法3: 尋找原始圖片URL模式
+                original_pattern = r'"original":\s*"([^"]+)"'
+                match = re.search(original_pattern, html_content)
+                
+                if match:
+                    image_url = match.group(1)
+                    image_url = image_url.replace('\\/', '/')
+                    logger.info(f"找到設計師原始圖片: {image_url}")
+                    return image_url
+                
+                logger.warning(f"設計師 {creator_id} 頁面中沒有找到照片")
+                return None
             else:
-                logger.error(f"圖片 API 請求失敗: {response.status_code}")
+                logger.error(f"設計師頁面請求失敗: {response.status_code}")
                 return None
                 
         except Exception as e:
