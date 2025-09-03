@@ -566,19 +566,19 @@ class CreatorTracker:
         """確保 creators 表的 id 欄位有自動遞增功能"""
         try:
             # 檢查是否已經設定自動遞增
-            cursor.execute(\"\"\"
+            cursor.execute("""
                 SELECT column_default 
                 FROM information_schema.columns 
                 WHERE table_name = 'creators' AND column_name = 'id'
-            \"\"\")
+            """)
             result = cursor.fetchone()
             
             # 如果沒有設定 nextval，表示需要修復
             if not result or not (result[0] and 'nextval' in str(result[0])):
-                logger.info(\"檢測到 creators 表 id 欄位缺少自動遞增，正在修復...\")
+                logger.info("檢測到 creators 表 id 欄位缺少自動遞增，正在修復...")
                 
                 # 修復序列
-                cursor.execute(\"\"\"
+                cursor.execute("""
                     DO $$
                     BEGIN
                         -- 創建序列（如果不存在）
@@ -593,14 +593,14 @@ class CreatorTracker:
                         -- 設置序列擁有者
                         ALTER SEQUENCE creators_id_seq OWNED BY creators.id;
                     END $$
-                \"\"\")
+                """)
                 
-                logger.info(\"creators 表 id 欄位自動遞增修復完成\")
+                logger.info("creators 表 id 欄位自動遞增修復完成")
             else:
-                logger.debug(\"creators 表 id 欄位自動遞增已正確設定\")
+                logger.debug("creators 表 id 欄位自動遞增已正確設定")
                 
         except Exception as e:
-            logger.error(f\"修復 creators 表自動遞增失敗: {e}\")
+            logger.error(f"修復 creators 表自動遞增失敗: {e}")
             # 不拋出異常，讓主流程繼續
     
     def save_creator_to_db(self, creator_data: Dict) -> int:
