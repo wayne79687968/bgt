@@ -2197,6 +2197,283 @@ def api_rg_task_status():
         st['last_update'] = st['last_update'].isoformat()
     return jsonify({'success': True, 'status': st})
 
+@app.route('/api/bgg/search', methods=['POST'])
+@login_required
+def api_bgg_search():
+    """BGG 遊戲搜尋 API"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '').strip()
+        exact = data.get('exact', False)
+        
+        if not query:
+            return jsonify({'success': False, 'message': '搜尋關鍵字不能為空'})
+        
+        # 使用 BGG XML API 2 搜尋遊戲
+        import xml.etree.ElementTree as ET
+        import urllib.parse
+        
+        # 構建搜尋 URL
+        base_url = "https://boardgamegeek.com/xmlapi2/search"
+        params = {
+            'query': query,
+            'type': 'boardgame',
+            'exact': '1' if exact else '0'
+        }
+        
+        url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # 解析 XML 回應
+        root = ET.fromstring(response.text)
+        
+        results = []
+        for item in root.findall('item')[:10]:  # 限制最多10個結果
+            game_id = item.get('id')
+            name_element = item.find('name')
+            year_element = item.find('yearpublished')
+            
+            if game_id and name_element is not None:
+                game_info = {
+                    'id': game_id,
+                    'name': name_element.get('value', ''),
+                    'year': year_element.get('value') if year_element is not None else None
+                }
+                results.append(game_info)
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'query': query,
+            'exact': exact
+        })
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"BGG API 請求失敗: {e}")
+        return jsonify({'success': False, 'message': f'BGG API 請求失敗: {str(e)}'})
+    except ET.ParseError as e:
+        logger.error(f"BGG XML 解析失敗: {e}")
+        return jsonify({'success': False, 'message': 'BGG 回應格式錯誤'})
+    except Exception as e:
+        logger.error(f"BGG 搜尋發生錯誤: {e}")
+        return jsonify({'success': False, 'message': f'搜尋失敗: {str(e)}'})
+
+@app.route('/api/rg/recommend-score', methods=['POST'])
+@login_required
+def api_rg_recommend_score():
+    """計算特定遊戲的 RG 推薦分數"""
+    try:
+        data = request.get_json()
+        game_id = data.get('game_id')
+        game_name = data.get('game_name')
+        algorithm = data.get('algorithm', 'hybrid')
+        
+        if not game_id:
+            return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
+        
+        # 獲取使用者收藏
+        username = get_app_setting('bgg_username', '')
+        owned_ids = []
+        
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT objectid FROM collection")
+                owned_ids = [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            logger.warning(f"無法獲取使用者收藏: {e}")
+        
+        if not owned_ids:
+            return jsonify({
+                'success': False, 
+                'message': '請先同步您的 BGG 收藏才能計算推薦分數'
+            })
+        
+        # 使用 RG 推薦引擎計算分數
+        try:
+            # 首先嘗試使用進階推薦器
+            score = get_single_game_recommendation_score(username, owned_ids, int(game_id), algorithm)
+            
+            if score is None:
+                # 如果進階推薦器不可用，嘗試基礎推薦器
+                score = get_basic_game_recommendation_score(username, owned_ids, int(game_id))
+            
+            if score is None:
+                return jsonify({
+                    'success': False,
+                    'message': '無法計算推薦分數，可能是模型未訓練或遊戲資料不足'
+                })
+            
+            return jsonify({
+                'success': True,
+                'result': {
+                    'game_id': game_id,
+                    'name': game_name,
+                    'score': score,
+                    'algorithm': algorithm,
+                    'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"推薦分數計算失敗: {e}")
+            return jsonify({
+                'success': False,
+                'message': f'推薦分數計算失敗: {str(e)}'
+            })
+        
+    except Exception as e:
+        logger.error(f"推薦分數 API 發生錯誤: {e}")
+        return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
+
+def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm='hybrid'):
+    """使用進階推薦器計算單個遊戲的推薦分數"""
+    try:
+        logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}")
+        
+        from advanced_recommender import AdvancedBoardGameRecommender
+        
+        recommender = AdvancedBoardGameRecommender()
+        
+        # 檢查資料庫狀態
+        if not recommender.check_database_connection():
+            logger.error("❌ 資料庫檔案不存在")
+            return None
+            
+        if not recommender.check_tables_exist():
+            logger.error("❌ 資料庫中缺少必要的資料表")
+            return None
+        
+        logger.info("📊 載入推薦資料...")
+        if not recommender.load_data():
+            logger.error("❌ 無法載入資料庫資料")
+            return None
+        
+        # 檢查是否有足夠的資料
+        if len(recommender.games_df) == 0:
+            logger.error("❌ 沒有遊戲資料可用於推薦")
+            return None
+        
+        logger.info("🧠 準備推薦模型...")
+        if not recommender.prepare_models():
+            logger.error("❌ 無法準備推薦模型")
+            return None
+        
+        # 檢查遊戲是否在資料庫中
+        game_exists = game_id in recommender.games_df.index
+        if not game_exists:
+            logger.warning(f"⚠️ 遊戲 {game_id} 不在資料庫中，使用基礎評分")
+            # 可以返回一個基於熱門度的默認分數
+            return 5.0  # 中等推薦分數
+        
+        # 計算推薦分數
+        if algorithm == 'hybrid':
+            score = recommender.get_game_hybrid_score(game_id, owned_ids)
+        elif algorithm == 'content':
+            score = recommender.get_game_content_score(game_id, owned_ids)
+        elif algorithm == 'popularity':
+            score = recommender.get_game_popularity_score(game_id)
+        else:
+            score = recommender.get_game_hybrid_score(game_id, owned_ids)
+        
+        logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score}")
+        return float(score) if score is not None else None
+        
+    except Exception as e:
+        logger.error(f"進階推薦分數計算失敗: {e}")
+        return None
+
+def get_basic_game_recommendation_score(username, owned_ids, game_id):
+    """使用基礎方法計算單個遊戲的推薦分數"""
+    try:
+        logger.info(f"🎯 使用基礎方法計算遊戲 {game_id} 的推薦分數")
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 從資料庫獲取遊戲資訊
+            cursor.execute("""
+                SELECT 
+                    objectid, name, rating, rank, weight,
+                    minplayers, maxplayers, playingtime,
+                    age, yearpublished
+                FROM bgg_items 
+                WHERE objectid = %s
+            """, (game_id,))
+            
+            game_info = cursor.fetchone()
+            if not game_info:
+                logger.warning(f"遊戲 {game_id} 不在本地資料庫中")
+                return 5.0  # 默認分數
+            
+            # 解析遊戲資訊
+            _, name, rating, rank, weight, min_players, max_players, playing_time, age, year = game_info
+            
+            # 基礎推薦分數計算
+            base_score = 0.0
+            
+            # 1. BGG 評分權重 (40%)
+            if rating and rating > 0:
+                base_score += (rating - 5.5) * 0.4  # 5.5 為中位數
+            
+            # 2. BGG 排名權重 (30%)
+            if rank and rank > 0:
+                rank_score = max(0, (10000 - rank) / 10000) * 10
+                base_score += rank_score * 0.3
+            
+            # 3. 與用戶收藏的相似性 (30%)
+            if owned_ids:
+                similarity_score = calculate_game_similarity(game_id, owned_ids, cursor)
+                base_score += similarity_score * 0.3
+            
+            # 確保分數在 0-10 範圍內
+            final_score = max(0, min(10, base_score + 5))  # 加5使分數居中
+            
+            logger.info(f"✅ 遊戲 {game_id} ({name}) 基礎推薦分數: {final_score:.2f}")
+            return final_score
+        
+    except Exception as e:
+        logger.error(f"基礎推薦分數計算失敗: {e}")
+        return None
+
+def calculate_game_similarity(target_game_id, owned_ids, cursor):
+    """計算目標遊戲與用戶收藏的相似性"""
+    try:
+        # 獲取目標遊戲的分類
+        cursor.execute("""
+            SELECT category_name FROM game_categories 
+            WHERE objectid = %s
+        """, (target_game_id,))
+        target_categories = set(row[0] for row in cursor.fetchall())
+        
+        if not target_categories:
+            return 0.0
+        
+        similarity_scores = []
+        
+        for owned_id in owned_ids:
+            cursor.execute("""
+                SELECT category_name FROM game_categories 
+                WHERE objectid = %s
+            """, (owned_id,))
+            owned_categories = set(row[0] for row in cursor.fetchall())
+            
+            if owned_categories:
+                # 計算 Jaccard 相似性
+                intersection = target_categories.intersection(owned_categories)
+                union = target_categories.union(owned_categories)
+                similarity = len(intersection) / len(union) if union else 0
+                similarity_scores.append(similarity)
+        
+        # 返回平均相似性
+        return sum(similarity_scores) / len(similarity_scores) if similarity_scores else 0.0
+        
+    except Exception as e:
+        logger.error(f"相似性計算失敗: {e}")
+        return 0.0
+
 @app.route('/api/task-status', methods=['GET'])
 def api_task_status():
     """API端點：查詢任務狀態"""

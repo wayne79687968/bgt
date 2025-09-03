@@ -32,6 +32,51 @@
         </div>
     </div>
 
+    <!-- BGG 遊戲搜尋區域 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">🔍 搜尋遊戲並獲取推薦分數</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="gameSearchInput" placeholder="輸入遊戲名稱..." onkeypress="if(event.key=='Enter') searchGames()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchGames()">
+                            🔍 搜尋
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="exactSearch" value="">
+                        <label class="form-check-label" for="exactSearch">
+                            精確搜尋
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 搜尋結果區域 -->
+            <div id="searchResults" class="d-none">
+                <h6>搜尋結果：</h6>
+                <div id="searchResultsList" class="list-group mb-3">
+                    <!-- 動態填入搜尋結果 -->
+                </div>
+            </div>
+            
+            <!-- 推薦分數結果區域 -->
+            <div id="recommendationResult" class="d-none">
+                <div class="alert alert-success">
+                    <h6 class="alert-heading">📊 推薦分數結果</h6>
+                    <div id="recommendationContent">
+                        <!-- 動態填入推薦結果 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
     function changeAlgorithm() {
         const select = document.getElementById('algorithmSelect');
@@ -51,6 +96,115 @@
 
     function refreshRecommendations() {
         window.location.reload();
+    }
+
+    // BGG 遊戲搜尋功能
+    async function searchGames() {
+        const query = document.getElementById('gameSearchInput').value.trim();
+        const exact = document.getElementById('exactSearch').checked;
+        
+        if (!query) {
+            alert('請輸入搜尋關鍵字');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/bgg/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query, exact: exact })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displaySearchResults(data.results);
+            } else {
+                alert('搜尋失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('搜尋錯誤:', error);
+            alert('搜尋時發生錯誤');
+        }
+    }
+
+    function displaySearchResults(results) {
+        const searchResults = document.getElementById('searchResults');
+        const searchResultsList = document.getElementById('searchResultsList');
+        
+        if (results.length === 0) {
+            searchResultsList.innerHTML = '<div class="alert alert-warning">沒有找到相關遊戲</div>';
+        } else {
+            let html = '';
+            results.forEach(game => {
+                html += `
+                    <div class="list-group-item list-group-item-action" onclick="getGameRecommendation('${game.id}', '${game.name}')">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${game.name}</h6>
+                            <small class="text-muted">ID: ${game.id}</small>
+                        </div>
+                        <p class="mb-1">${game.year ? '發行年份: ' + game.year : ''}</p>
+                        <small class="text-muted">點擊獲取推薦分數</small>
+                    </div>
+                `;
+            });
+            searchResultsList.innerHTML = html;
+        }
+        
+        searchResults.classList.remove('d-none');
+        document.getElementById('recommendationResult').classList.add('d-none');
+    }
+
+    async function getGameRecommendation(gameId, gameName) {
+        try {
+            const response = await fetch('/api/rg/recommend-score', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    game_id: gameId,
+                    game_name: gameName,
+                    algorithm: document.getElementById('algorithmSelect').value
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                displayRecommendationResult(data.result);
+            } else {
+                alert('獲取推薦分數失敗: ' + data.message);
+            }
+        } catch (error) {
+            console.error('推薦分數計算錯誤:', error);
+            alert('計算推薦分數時發生錯誤');
+        }
+    }
+
+    function displayRecommendationResult(result) {
+        const recommendationResult = document.getElementById('recommendationResult');
+        const recommendationContent = document.getElementById('recommendationContent');
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-8">
+                    <h5>${result.name} ${result.year ? '(' + result.year + ')' : ''}</h5>
+                    <p><strong>推薦分數: ${result.score ? result.score.toFixed(2) : 'N/A'}</strong></p>
+                    ${result.details ? '<p><small class="text-muted">詳情: ' + result.details + '</small></p>' : ''}
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="https://boardgamegeek.com/boardgame/${result.game_id}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        在 BGG 查看
+                    </a>
+                </div>
+            </div>
+        `;
+        
+        recommendationContent.innerHTML = html;
+        recommendationResult.classList.remove('d-none');
     }
     </script>
 
