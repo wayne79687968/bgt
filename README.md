@@ -113,7 +113,7 @@ bgg_rag_daily/
 │   ├── report.html                # 報表顯示
 │   └── error.html                 # 錯誤頁面
 ├── data/                          # 資料庫檔案
-│   └── bgg_rag.db                # SQLite 資料庫
+│   └── cache/                    # 快取目錄
 ├── frontend/public/outputs/       # 報表輸出目錄
 ├── requirements.txt               # Python 依賴
 ├── Procfile                      # 部署配置

@@ -39,7 +39,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 4. Web 應用程式
 - **app.py**: Flask 主應用程式，包含所有 API 端點
 - **start_simple.py**: Zeabur 優化的啟動腳本
-- **database.py**: 資料庫管理 (SQLite 本地 / PostgreSQL 生產)
+- **database.py**: PostgreSQL 資料庫管理
 
 ## Zeabur 部署配置
 
@@ -190,4 +190,4 @@ Zeabur 平台提供即時日誌，關注：
 1. 線上使用 zeabur 建置，DB 使用 postgres
 2. 本地使用 Docker 建置，DB 使用 postgres
 3. email 寄送使用 google gmail smtp
-4. 不使用google 登入跟 sqlite
+4. 不使用 Google 登入，專門使用 PostgreSQL 資料庫

@@ -105,7 +105,7 @@ def get_db_connection():
                     print("🔍 Zeabur PostgreSQL 服務可能需要更多時間啟動")
                 
                 if attempt == max_retries - 1:
-                    # 在 Zeabur 環境中，不回退到 SQLite，直接拋出錯誤
+                    # PostgreSQL 連接完全失敗，直接拋出錯誤
                     print("🚨 在 Zeabur 環境中 PostgreSQL 連接完全失敗")
                     print("💡 請檢查 Zeabur PostgreSQL 服務狀態")
                     raise e
@@ -637,42 +637,34 @@ def init_database():
     try:
         # 設置 SQL 語法類型
         print("🗃️ [INIT_DATABASE] 設置 SQL 語法類型...")
-        if config['type'] == 'postgresql':
-            # PostgreSQL 使用 SERIAL 代替 AUTOINCREMENT
-            autoincrement_type = "SERIAL PRIMARY KEY"
-            text_type = "TEXT"
-            timestamp_type = "TIMESTAMP"
-            print("✅ [INIT_DATABASE] PostgreSQL SQL 語法設置完成")
-        else:
-            # SQLite
-            autoincrement_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
-            text_type = "TEXT"
-            timestamp_type = "TIMESTAMP"
-            print("✅ [INIT_DATABASE] SQLite SQL 語法設置完成")
+        # PostgreSQL SQL 語法設置
+        autoincrement_type = "SERIAL PRIMARY KEY"
+        text_type = "TEXT"
+        timestamp_type = "TIMESTAMP"
+        print("✅ [INIT_DATABASE] PostgreSQL SQL 語法設置完成")
 
-        # 處理不同資料庫類型的連接
-        if config['type'] == 'postgresql':
-            with get_db_connection() as conn:
-                connection_time = time.time() - connection_start_time
-                print(f"✅ [INIT_DATABASE] PostgreSQL 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
+        # PostgreSQL 連接
+        with get_db_connection() as conn:
+            connection_time = time.time() - connection_start_time
+            print(f"✅ [INIT_DATABASE] PostgreSQL 數據庫連接建立成功 (耗時: {connection_time:.2f}秒)")
 
-                print("🗃️ [INIT_DATABASE] 正在創建游標...")
-                cursor = conn.cursor()
-                print("✅ [INIT_DATABASE] 游標創建成功")
+            print("🗃️ [INIT_DATABASE] 正在創建游標...")
+            cursor = conn.cursor()
+            print("✅ [INIT_DATABASE] 游標創建成功")
 
-                # 創建資料表和處理 PostgreSQL 特有約束
-                _create_tables_and_constraints(cursor, tables_sql(autoincrement_type, text_type, timestamp_type), config['type'])
-                
-                print("🗃️ [INIT_DATABASE] 開始提交事務...")
-                commit_start_time = time.time()
-                try:
-                    conn.commit()
-                    commit_time = time.time() - commit_start_time
-                    print(f"✅ [INIT_DATABASE] 事務提交成功 (耗時: {commit_time:.2f}秒)")
-                except Exception as e:
-                    commit_time = time.time() - commit_start_time
-                    print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
-                    raise
+            # 創建資料表和處理 PostgreSQL 特有約束
+            _create_tables_and_constraints(cursor, tables_sql(autoincrement_type, text_type, timestamp_type), config['type'])
+            
+            print("🗃️ [INIT_DATABASE] 開始提交事務...")
+            commit_start_time = time.time()
+            try:
+                conn.commit()
+                commit_time = time.time() - commit_start_time
+                print(f"✅ [INIT_DATABASE] 事務提交成功 (耗時: {commit_time:.2f}秒)")
+            except Exception as e:
+                commit_time = time.time() - commit_start_time
+                print(f"❌ [INIT_DATABASE] 事務提交失敗 (耗時: {commit_time:.2f}秒): {e}")
+                raise
 
     except Exception as e:
         connection_time = time.time() - connection_start_time if 'connection_start_time' in locals() else 0

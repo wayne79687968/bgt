@@ -46,8 +46,7 @@ Thumbs.db
 *.log
 
 # Database
-*.db
-*.sqlite3
+# (Only using PostgreSQL now)
 
 # Temporary files
 tmp/
@@ -74,9 +73,6 @@ Portfolio Site Texture.jpg
 
 # External packages/submodules
 board-game-recommender/
-
-# Data directory (keep structure but ignore some content)
-data/bgg_rag.db
 data/cache/
 
 # Docker
