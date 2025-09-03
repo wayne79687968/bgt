@@ -4,7 +4,7 @@
 
 {% block content %}
 <style>
-/* Vintage Newspaper Style - True Retro Design */
+/* BGG Times Newspaper Style - True Retro Design */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Old+Standard+TT:wght@400;700&display=swap');
 
 * {
@@ -21,8 +21,8 @@ body {
     overflow-x: auto;
 }
 
-/* Vintage Paper Background */
-.vintage-paper {
+/* BGG Times Paper Background */
+.bgg-times-paper {
     min-height: 100vh;
     background: 
         /* Paper texture overlay */
@@ -36,8 +36,8 @@ body {
     position: relative;
 }
 
-/* Vintage stains and aging effects */
-.vintage-paper::before {
+/* BGG Times stains and aging effects */
+.bgg-times-paper::before {
     content: '';
     position: absolute;
     top: 0;
@@ -71,7 +71,7 @@ body {
 }
 
 /* Newspaper Header */
-.vintage-masthead {
+.bgg-times-masthead {
     text-align: center;
     padding: 3rem 2rem 2rem;
     border-bottom: 4px double #654321;
@@ -121,7 +121,7 @@ body {
 }
 
 /* Date Selector */
-.vintage-date-selector {
+.bgg-times-date-selector {
     position: fixed;
     top: 2rem;
     right: 2rem;
@@ -134,7 +134,7 @@ body {
     font-family: 'Old Standard TT', serif;
 }
 
-.vintage-date-selector label {
+.bgg-times-date-selector label {
     display: block;
     font-size: 0.8rem;
     color: #654321;
@@ -143,7 +143,7 @@ body {
     letter-spacing: 0.05em;
 }
 
-.vintage-date-selector select {
+.bgg-times-date-selector select {
     background: #f8f4e6;
     border: 1px solid #999;
     color: #2a2a2a;
@@ -154,7 +154,7 @@ body {
 }
 
 /* Main Content Layout */
-.vintage-content {
+.bgg-times-content {
     padding: 2rem;
     column-count: 3;
     column-gap: 2rem;
@@ -164,7 +164,7 @@ body {
 }
 
 /* Article Styles */
-.vintage-article {
+.bgg-times-article {
     break-inside: avoid;
     margin-bottom: 2rem;
     padding-bottom: 1.5rem;
@@ -172,7 +172,7 @@ body {
     page-break-inside: avoid;
 }
 
-.vintage-article:last-child {
+.bgg-times-article:last-child {
     border-bottom: none;
 }
 
@@ -337,7 +337,7 @@ body {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .vintage-content {
+    .bgg-times-content {
         column-count: 2;
         padding: 1.5rem;
     }
@@ -348,7 +348,7 @@ body {
 }
 
 @media (max-width: 768px) {
-    .vintage-content {
+    .bgg-times-content {
         column-count: 1;
         padding: 1rem;
     }
@@ -365,7 +365,7 @@ body {
         font-size: 2rem;
     }
     
-    .vintage-date-selector {
+    .bgg-times-date-selector {
         position: static;
         margin: 1rem;
         align-self: center;
@@ -383,8 +383,8 @@ body {
         background: white;
     }
     
-    .vintage-paper,
-    .vintage-paper::before {
+    .bgg-times-paper,
+    .bgg-times-paper::before {
         background: white;
     }
     
@@ -393,13 +393,13 @@ body {
         background: white;
     }
     
-    .vintage-date-selector {
+    .bgg-times-date-selector {
         display: none;
     }
 }
 
 /* Loading Animation */
-.vintage-loading {
+.bgg-times-loading {
     position: fixed;
     top: 0;
     left: 0;
@@ -420,22 +420,22 @@ body {
     text-align: center;
 }
 
-.vintage-loading.hide {
+.bgg-times-loading.hide {
     opacity: 0;
     pointer-events: none;
 }
 </style>
 
 <!-- Loading Screen -->
-<div class="vintage-loading" id="vintageLoading">
+<div class="bgg-times-loading" id="bggTimesLoading">
     <div class="loading-text">
         <div>Loading The BGG Times...</div>
         <div style="font-size: 1rem; margin-top: 1rem; font-family: 'Crimson Text', serif;">Est. 1885</div>
     </div>
 </div>
 
-<!-- Vintage Date Selector -->
-<div class="vintage-date-selector">
+<!-- BGG Times Date Selector -->
+<div class="bgg-times-date-selector">
     <label for="dateSelect">Edition Date</label>
     <select id="dateSelect" onchange="changeDate()">
         {% for date in available_dates %}
@@ -444,10 +444,10 @@ body {
     </select>
 </div>
 
-<div class="vintage-paper">
+<div class="bgg-times-paper">
     <div class="newspaper-container">
         <!-- Masthead -->
-        <header class="vintage-masthead">
+        <header class="bgg-times-masthead">
             <div class="masthead-decoration"></div>
             <h1 class="newspaper-title">The BGG Times</h1>
             <p class="newspaper-subtitle">Established 1885 • Board Game Intelligence Since the Victorian Era</p>
@@ -459,7 +459,7 @@ body {
         </header>
 
         <!-- Main Content -->
-        <main class="vintage-content">
+        <main class="bgg-times-content">
             {% if current_page_games and current_page_games|length > 0 %}
                 <!-- Headline Story -->
                 {% set headline_game = current_page_games[0] %}
@@ -498,7 +498,7 @@ body {
 
                 <!-- Regular Articles -->
                 {% for game in current_page_games[1:] %}
-                    <article class="vintage-article">
+                    <article class="bgg-times-article">
                         <div class="article-header">
                             <span class="article-rank">No. {{ game.rank }}</span>
                             {% if game.is_new %}
@@ -549,7 +549,7 @@ body {
                     {% endif %}
                 {% endfor %}
             {% else %}
-                <article class="vintage-article">
+                <article class="bgg-times-article">
                     <h3 class="article-title">No Intelligence Available</h3>
                     <p>Our correspondents report no game intelligence available for this date. Please check tomorrow's edition.</p>
                 </article>
@@ -562,7 +562,7 @@ body {
 // Loading animation
 window.addEventListener('load', function() {
     setTimeout(() => {
-        const loading = document.getElementById('vintageLoading');
+        const loading = document.getElementById('bggTimesLoading');
         loading.classList.add('hide');
         setTimeout(() => {
             loading.style.display = 'none';
@@ -575,19 +575,19 @@ function changeDate() {
     const selectedDate = document.getElementById('dateSelect').value;
     
     // Show loading screen
-    const loading = document.getElementById('vintageLoading');
+    const loading = document.getElementById('bggTimesLoading');
     loading.style.display = 'flex';
     loading.classList.remove('hide');
     
     setTimeout(() => {
-        window.location.href = '{{ url_for("vintage") }}?date=' + selectedDate;
+        window.location.href = '{{ url_for("bgg_times") }}?date=' + selectedDate;
     }, 500);
 }
 
-// Vintage page effects
+// BGG Times page effects
 document.addEventListener('DOMContentLoaded', function() {
     // Add subtle animations to articles
-    const articles = document.querySelectorAll('.vintage-article');
+    const articles = document.querySelectorAll('.bgg-times-article');
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {

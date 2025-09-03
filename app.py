@@ -2652,8 +2652,8 @@ def lablog():
                          total_games=total_games,
                          last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-@app.route('/vintage')
-def vintage():
+@app.route('/bgg_times')
+def bgg_times():
     """復古報紙風格的報表檢視 - 真正的舊報紙風格"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
@@ -2681,7 +2681,7 @@ def vintage():
     # 獲取所有可用日期
     available_dates = get_available_dates()
 
-    return render_template('vintage.html',
+    return render_template('bgg_times.html',
                          current_page_games=current_page_games,
                          filename=filename,
                          selected_date=selected_date,
