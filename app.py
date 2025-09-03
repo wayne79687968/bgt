@@ -2335,14 +2335,9 @@ def create_temp_jsonl_files():
         ratings_file = "data/bgg_RatingItem.jl"
         
         # 檢查檔案是否存在
-        if not os.path.exists(games_file):
-            logger.error(f"遊戲資料檔案不存在: {games_file}")
-            logger.info("請先執行 'python3 generate_rg_data.py' 來生成資料檔案")
-            return None, None
-            
-        if not os.path.exists(ratings_file):
-            logger.error(f"評分資料檔案不存在: {ratings_file}")
-            logger.info("請先執行 'python3 generate_rg_data.py' 來生成資料檔案")
+        if not os.path.exists(games_file) or not os.path.exists(ratings_file):
+            logger.warning("⚠️ JSONL 資料檔案不存在，可能在生產環境中")
+            logger.info("🔄 將使用簡單推薦方法")
             return None, None
         
         logger.info(f"📄 使用現有 JSONL 資料檔案: {games_file}, {ratings_file}")
@@ -2351,6 +2346,82 @@ def create_temp_jsonl_files():
     except Exception as e:
         logger.error(f"存取 JSONL 檔案失敗: {e}")
         return None, None
+
+def get_simple_recommendation_score(game_id, owned_ids=None):
+    """簡單推薦分數計算，不依賴機器學習庫"""
+    try:
+        logger.info(f"🎯 使用簡單方法計算遊戲 {game_id} 的推薦分數")
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 從 game_detail 表獲取遊戲資訊
+            cursor.execute("""
+                SELECT objectid, name, rating, rank, weight, year
+                FROM game_detail 
+                WHERE objectid = %s
+            """, (game_id,))
+            
+            game_info = cursor.fetchone()
+            if not game_info:
+                # 如果本地沒有資料，使用預設分數
+                logger.warning(f"遊戲 {game_id} 不在本地資料庫中，使用預設分數")
+                return 6.0
+            
+            objectid, name, rating, rank, weight, year = game_info
+            logger.info(f"📊 遊戲資訊: {name} (評分: {rating}, 排名: {rank})")
+            
+            # 基礎推薦分數計算
+            base_score = 5.0  # 起始分數
+            
+            # 1. BGG 評分權重 (40%)
+            if rating and rating > 0:
+                rating_score = min((rating - 5.5) * 1.5, 2.5)  # 5.5 為中位數，最多加2.5分
+                base_score += rating_score
+                
+            # 2. BGG 排名權重 (30%)
+            if rank and rank > 0:
+                if rank <= 100:
+                    rank_score = 2.0
+                elif rank <= 1000:
+                    rank_score = 1.5
+                elif rank <= 10000:
+                    rank_score = 1.0
+                else:
+                    rank_score = 0.5
+                base_score += rank_score
+            
+            # 3. 複雜度適配性 (20%)
+            if weight and weight > 0:
+                # 假設用戶偏好中等複雜度遊戲 (2.0-3.5)
+                ideal_complexity = 2.75
+                complexity_penalty = abs(weight - ideal_complexity)
+                complexity_score = max(0, 1.5 - complexity_penalty * 0.3)
+                base_score += complexity_score
+                
+            # 4. 年份新鮮度 (10%)
+            if year and year > 0:
+                current_year = 2024
+                age = current_year - year
+                if age <= 3:
+                    freshness_score = 1.0
+                elif age <= 10:
+                    freshness_score = 0.5
+                elif age <= 20:
+                    freshness_score = 0.2
+                else:
+                    freshness_score = 0.0
+                base_score += freshness_score
+            
+            # 確保分數在合理範圍內
+            final_score = max(1.0, min(10.0, base_score))
+            
+            logger.info(f"✅ 簡單推薦分數: {final_score:.2f}")
+            return final_score
+            
+    except Exception as e:
+        logger.error(f"簡單推薦分數計算失敗: {e}")
+        return 6.0  # 預設中等分數
 
 def get_similarity_based_score(recommender, user_ratings_data, game_id):
     """當遊戲不在推薦結果中時，使用相似度計算分數"""
@@ -2388,10 +2459,18 @@ def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm
     try:
         logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}")
         
+        # 檢查是否有必要的依賴
+        try:
+            from board_game_recommender.recommend import BGGRecommender
+            import turicreate as tc
+        except ImportError as e:
+            logger.warning(f"⚠️ RG 依賴缺失: {e}")
+            logger.info("🔄 降級到基礎推薦方法")
+            return get_simple_recommendation_score(game_id, owned_ids)
+        
         import tempfile
         import json
         import os
-        from board_game_recommender.recommend import BGGRecommender
         
         # 從資料庫創建臨時 JSONL 文件
         games_file, ratings_file = create_temp_jsonl_files()
@@ -2466,9 +2545,15 @@ def get_basic_game_recommendation_score(username, owned_ids, game_id):
     try:
         logger.info(f"🎯 使用基礎方法計算遊戲 {game_id} 的推薦分數")
         
+        # 檢查 turicreate 依賴
+        try:
+            import turicreate as tc
+        except ImportError:
+            logger.warning("⚠️ turicreate 不可用，降級到簡單推薦")
+            return get_simple_recommendation_score(game_id, owned_ids)
+        
         import tempfile
         import json
-        import turicreate as tc
         
         # 從資料庫創建臨時 JSONL 文件
         games_file, ratings_file = create_temp_jsonl_files()
