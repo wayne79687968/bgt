@@ -563,7 +563,7 @@ class CreatorTracker:
         return all_games
     
     def _ensure_creators_table_autoincrement(self, cursor):
-        \"\"\"確保 creators 表的 id 欄位有自動遞增功能\"\"\"
+        """確保 creators 表的 id 欄位有自動遞增功能"""
         try:
             # 檢查是否已經設定自動遞增
             cursor.execute(\"\"\"
