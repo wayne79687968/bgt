@@ -1,62 +1,37 @@
 #!/usr/bin/env python3
 """
-簡化的 BGG RAG Daily 應用啟動腳本
-專為 Zeabur 部署優化，移除複雜的初始化邏輯
+極簡化的 BGG RAG Daily 應用啟動腳本
+專為 Zeabur 部署優化，避免任何阻塞操作
 """
 
 import os
 import sys
 
-def ensure_basic_directories():
-    """只創建最基本必需的目錄"""
-    directories = ['data', 'frontend/public/outputs']
-    
-    for directory in directories:
-        try:
-            os.makedirs(directory, exist_ok=True)
-        except Exception:
-            pass  # 忽略目錄創建錯誤，運行時再處理
+# 設置關鍵環境變數（在任何導入之前）
+os.environ['SKIP_MODULE_DB_INIT'] = '1'
 
-def initialize_app():
-    """最小化的應用初始化，避免在啟動時阻塞"""
-    print("🚀 BGG RAG Daily 應用啟動中...")
+def create_app():
+    """創建 Flask 應用的工廠函數"""
     
-    # 創建基本目錄
-    ensure_basic_directories()
+    # 創建基本目錄（非阻塞）
+    try:
+        os.makedirs('data', exist_ok=True)
+        os.makedirs('frontend/public/outputs', exist_ok=True)
+    except:
+        pass  # 忽略錄創建錯誤
     
-    # 檢查 PostgreSQL 配置但不執行初始化（避免啟動阻塞）
-    database_url = os.getenv('DATABASE_URL')
-    if database_url:
-        print("🔍 檢測到 DATABASE_URL，使用 PostgreSQL")
-        print("💡 資料庫將在應用內部按需初始化")
-    else:
-        print("❌ 錯誤：未檢測到 DATABASE_URL，請設定 PostgreSQL 連線")
-    
-    # 設置環境變數告知 app.py 跳過模組級初始化
-    os.environ['SKIP_MODULE_DB_INIT'] = '1'
-    
-    # 直接導入應用
+    # 延遲導入，避免模組級初始化
     try:
         from app import app
-        print("✅ Flask 應用導入成功")
         return app
     except Exception as e:
-        print(f"❌ Flask 應用導入失敗: {e}")
-        # 不要退出，讓 gunicorn 重試
+        print(f"❌ Flask 應用導入失敗: {e}", file=sys.stderr)
         raise
 
 # 為 gunicorn 暴露應用物件
-print("🔧 正在初始化應用...")
-try:
-    app = initialize_app()
-    print("✅ 應用初始化完成")
-except Exception as e:
-    print(f"❌ 應用初始化失敗: {e}")
-    # 重新拋出異常讓 gunicorn 處理
-    raise
+app = create_app()
 
 if __name__ == '__main__':
     # 直接運行模式
     port = int(os.getenv('PORT', 5000))
-    print(f"🌐 應用將在端口 {port} 啟動")
     app.run(host='0.0.0.0', port=port, debug=False)

@@ -8,7 +8,7 @@ services:
       # 使用分層安裝策略，先裝核心依賴再裝ML依賴
       command: pip install --upgrade pip && pip install gunicorn==21.2.0 && pip install -r requirements.core.txt && pip install -r requirements.ml.txt
     start:
-      command: gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 --max-requests 1000 --preload start_simple:app
+      command: gunicorn --bind 0.0.0.0:$PORT --timeout 60 --workers 1 --access-logfile - --error-logfile - start_minimal:app
     env:
       PORT: 5000
       FLASK_ENV: production
