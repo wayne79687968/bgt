@@ -2329,88 +2329,27 @@ def api_rg_recommend_score():
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
 
 def create_temp_jsonl_files():
-    """從資料庫創建臨時 JSONL 文件供 RG BGGRecommender 使用"""
-    import tempfile
-    import json
-    
+    """使用現有的 JSONL 資料檔案供 RG BGGRecommender 使用"""
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
+        games_file = "data/bgg_GameItem.jl"
+        ratings_file = "data/bgg_RatingItem.jl"
+        
+        # 檢查檔案是否存在
+        if not os.path.exists(games_file):
+            logger.error(f"遊戲資料檔案不存在: {games_file}")
+            logger.info("請先執行 'python3 generate_rg_data.py' 來生成資料檔案")
+            return None, None
             
-            # 創建遊戲數據 JSONL 文件
-            games_fd, games_file = tempfile.mkstemp(suffix='.jl', text=True)
-            cursor.execute("""
-                SELECT 
-                    objectid as bgg_id,
-                    name,
-                    yearpublished as year,
-                    minplayers as min_players,
-                    maxplayers as max_players,
-                    minplaytime as min_time,
-                    maxplaytime as max_time,
-                    minage as min_age,
-                    rating as avg_rating,
-                    rank,
-                    weight as complexity,
-                    num_votes
-                FROM bgg_items
-                WHERE rating > 0 AND num_votes > 10
-                ORDER BY rank ASC NULLS LAST
-                LIMIT 10000
-            """)
-            
-            with os.fdopen(games_fd, 'w', encoding='utf-8') as f:
-                for row in cursor.fetchall():
-                    game_data = {
-                        'bgg_id': row[0],
-                        'name': row[1] or 'Unknown',
-                        'year': row[2] or 2000,
-                        'min_players': row[3] or 1,
-                        'max_players': row[4] or 4,
-                        'min_time': row[5] or 30,
-                        'max_time': row[6] or 120,
-                        'min_age': row[7] or 8,
-                        'avg_rating': float(row[8] or 0),
-                        'rank': int(row[9]) if row[9] else 99999,
-                        'complexity': float(row[10] or 2.0),
-                        'num_votes': int(row[11] or 0),
-                        'cooperative': False,
-                        'compilation': False
-                    }
-                    f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
-            
-            # 創建評分數據 JSONL 文件 (使用遊戲收藏作為隱式評分)
-            ratings_fd, ratings_file = tempfile.mkstemp(suffix='.jl', text=True)
-            cursor.execute("""
-                SELECT DISTINCT
-                    objectid as bgg_id,
-                    'synthetic_user_' || (objectid % 100) as bgg_user_name,
-                    CASE 
-                        WHEN rating >= 8 THEN 9.0
-                        WHEN rating >= 7 THEN 8.0  
-                        WHEN rating >= 6 THEN 7.0
-                        ELSE 6.0
-                    END as bgg_user_rating
-                FROM bgg_items
-                WHERE rating > 0 AND num_votes > 50
-                ORDER BY objectid
-                LIMIT 50000
-            """)
-            
-            with os.fdopen(ratings_fd, 'w', encoding='utf-8') as f:
-                for row in cursor.fetchall():
-                    rating_data = {
-                        'bgg_id': row[0],
-                        'bgg_user_name': row[1],
-                        'bgg_user_rating': float(row[2])
-                    }
-                    f.write(json.dumps(rating_data, ensure_ascii=False) + '\n')
-            
-            logger.info(f"📄 創建臨時 JSONL 文件: {games_file}, {ratings_file}")
-            return games_file, ratings_file
-            
+        if not os.path.exists(ratings_file):
+            logger.error(f"評分資料檔案不存在: {ratings_file}")
+            logger.info("請先執行 'python3 generate_rg_data.py' 來生成資料檔案")
+            return None, None
+        
+        logger.info(f"📄 使用現有 JSONL 資料檔案: {games_file}, {ratings_file}")
+        return games_file, ratings_file
+        
     except Exception as e:
-        logger.error(f"創建 JSONL 文件失敗: {e}")
+        logger.error(f"存取 JSONL 檔案失敗: {e}")
         return None, None
 
 def get_similarity_based_score(recommender, user_ratings_data, game_id):
@@ -2515,12 +2454,8 @@ def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm
             return float(score)
             
         finally:
-            # 清理臨時文件
-            try:
-                os.unlink(games_file)
-                os.unlink(ratings_file)
-            except:
-                pass
+            # 不需要清理檔案，因為使用的是持久化的資料檔案
+            pass
         
     except Exception as e:
         logger.error(f"RG 推薦分數計算失敗: {e}")
@@ -2600,13 +2535,8 @@ def get_basic_game_recommendation_score(username, owned_ids, game_id):
             return base_score
             
         finally:
-            # 清理臨時文件
-            try:
-                import os
-                os.unlink(games_file)
-                os.unlink(ratings_file)
-            except:
-                pass
+            # 不需要清理檔案，因為使用的是持久化的資料檔案
+            pass
             
     except Exception as e:
         logger.error(f"基礎推薦分數計算失敗: {e}")
