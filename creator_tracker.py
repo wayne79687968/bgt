@@ -562,11 +562,55 @@ class CreatorTracker:
             
         return all_games
     
+    def _ensure_creators_table_autoincrement(self, cursor):
+        \"\"\"確保 creators 表的 id 欄位有自動遞增功能\"\"\"
+        try:
+            # 檢查是否已經設定自動遞增
+            cursor.execute(\"\"\"
+                SELECT column_default 
+                FROM information_schema.columns 
+                WHERE table_name = 'creators' AND column_name = 'id'
+            \"\"\")
+            result = cursor.fetchone()
+            
+            # 如果沒有設定 nextval，表示需要修復
+            if not result or not (result[0] and 'nextval' in str(result[0])):
+                logger.info(\"檢測到 creators 表 id 欄位缺少自動遞增，正在修復...\")
+                
+                # 修復序列
+                cursor.execute(\"\"\"
+                    DO $$
+                    BEGIN
+                        -- 創建序列（如果不存在）
+                        CREATE SEQUENCE IF NOT EXISTS creators_id_seq;
+                        
+                        -- 設置序列的當前值為表中最大 id + 1
+                        PERFORM setval('creators_id_seq', COALESCE((SELECT MAX(id) FROM creators), 0) + 1, false);
+                        
+                        -- 修改欄位為使用序列
+                        ALTER TABLE creators ALTER COLUMN id SET DEFAULT nextval('creators_id_seq');
+                        
+                        -- 設置序列擁有者
+                        ALTER SEQUENCE creators_id_seq OWNED BY creators.id;
+                    END $$
+                \"\"\")
+                
+                logger.info(\"creators 表 id 欄位自動遞增修復完成\")
+            else:
+                logger.debug(\"creators 表 id 欄位自動遞增已正確設定\")
+                
+        except Exception as e:
+            logger.error(f\"修復 creators 表自動遞增失敗: {e}\")
+            # 不拋出異常，讓主流程繼續
+    
     def save_creator_to_db(self, creator_data: Dict) -> int:
         """將設計師/繪師資料儲存到資料庫"""
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
+                
+                # 檢查並修復 creators 表的 id 欄位自動遞增（如果需要）
+                self._ensure_creators_table_autoincrement(cursor)
                 
                 now = datetime.now().isoformat()
                 
@@ -680,6 +724,10 @@ class CreatorTracker:
             
             with get_db_connection() as conn:
                 cursor = conn.cursor()
+                
+                # 檢查並修復 creators 表的 id 欄位自動遞增（如果需要）
+                self._ensure_creators_table_autoincrement(cursor)
+                
                 creator_type = 'designer' if bgg_type == 'boardgamedesigner' else 'artist'
                 now = datetime.now().isoformat()
                 
