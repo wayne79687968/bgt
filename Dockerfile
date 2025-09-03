@@ -26,8 +26,8 @@ COPY . .
 # 創建必要目錄
 RUN mkdir -p data frontend/public/outputs
 
-# 暴露端口
-EXPOSE 5000
+# 暴露端口（動態）
+EXPOSE $PORT
 
-# 啟動命令
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "60", "--workers", "1", "--access-logfile", "-", "--error-logfile", "-", "start_debug:app"]
+# 啟動命令 - 使用環境變數 PORT
+CMD gunicorn --bind 0.0.0.0:$PORT --timeout 60 --workers 1 --access-logfile - --error-logfile - start_debug:app

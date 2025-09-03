@@ -69,6 +69,7 @@ def test_db_config():
         }
 
 print("✅ 調試版應用準備完成", flush=True)
+print(f"🌐 準備在端口 {os.environ.get('PORT', '5000')} 啟動", flush=True)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

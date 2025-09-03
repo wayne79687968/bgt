@@ -6,7 +6,6 @@ services:
     type: docker
     dockerfile: Dockerfile
     env:
-      PORT: 5000
       FLASK_ENV: production
       TZ: Asia/Taipei
       SECRET_KEY: your-secret-key-here
