@@ -3,12 +3,8 @@ services:
     type: postgresql
 
   app:
-    type: python
-    build:
-      # 使用最小化依賴，快速構建
-      command: pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.minimal.txt
-    start:
-      command: gunicorn --bind 0.0.0.0:$PORT --timeout 60 --workers 1 --access-logfile - --error-logfile - start_debug:app
+    type: docker
+    dockerfile: Dockerfile
     env:
       PORT: 5000
       FLASK_ENV: production
