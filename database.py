@@ -302,7 +302,7 @@ def tables_sql(autoincrement_type, text_type, timestamp_type):
         # 設計師/繪師資料表
         f"""
         CREATE TABLE IF NOT EXISTS creators (
-            id INTEGER PRIMARY KEY,
+            id {autoincrement_type},
             bgg_id INTEGER UNIQUE NOT NULL,
             name {text_type} NOT NULL,
             type {text_type} NOT NULL, -- 'designer' or 'artist'
@@ -421,6 +421,32 @@ def _migrate_existing_schema(cursor, config_type):
                 'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'updated_at'",
                 'migrate': "ALTER TABLE users ADD COLUMN updated_at TEXT",
                 'description': '添加 users.updated_at 欄位'
+            },
+            # 修復 creators 表 id 欄位自動遞增
+            {
+                'check': "SELECT pg_get_serial_sequence('public.creators', 'id')",
+                'migrate': """
+                    DO $$
+                    BEGIN
+                        -- 檢查是否已經是 SERIAL 類型
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns 
+                            WHERE table_name = 'creators' 
+                            AND column_name = 'id' 
+                            AND column_default LIKE 'nextval%'
+                        ) THEN
+                            -- 創建序列
+                            CREATE SEQUENCE IF NOT EXISTS creators_id_seq;
+                            -- 設置序列的當前值為表中最大 id + 1
+                            SELECT setval('creators_id_seq', COALESCE((SELECT MAX(id) FROM creators), 0) + 1);
+                            -- 修改欄位為使用序列
+                            ALTER TABLE creators ALTER COLUMN id SET DEFAULT nextval('creators_id_seq');
+                            -- 設置序列擁有者
+                            ALTER SEQUENCE creators_id_seq OWNED BY creators.id;
+                        END IF;
+                    END $$
+                """,
+                'description': '修復 creators 表 id 欄位自動遞增'
             }
         ]
         
