@@ -2,82 +2,287 @@
 
 {% block title %}RG 推薦 - BGG 熱門遊戲報表{% endblock %}
 
-{% block content %}
-<div class="container-fluid mt-3">
-    <h2>🧠 進階智能推薦</h2>
-    <p class="text-muted">BGG 使用者：<strong>{{ bgg_username or '未設定' }}</strong></p>
+{% block head %}
+<style>
+/* Google Search 風格的樣式 */
+.search-container {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
 
-    <!-- 算法選擇器 -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <label for="algorithmSelect" class="form-label">🎯 選擇推薦算法：</label>
-            <select class="form-select" id="algorithmSelect" onchange="changeAlgorithm()">
-                {% for algo in available_algorithms %}
-                <option value="{{ algo.value }}" {% if algo.value == current_algorithm %}selected{% endif %}>
-                    {{ algo.name }}
-                </option>
-                {% endfor %}
-            </select>
-            <small class="form-text text-muted" id="algorithmDescription">
-                {% for algo in available_algorithms %}
-                    {% if algo.value == current_algorithm %}{{ algo.description }}{% endif %}
-                {% endfor %}
-            </small>
+.search-logo {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    font-weight: 300;
+    color: #333;
+}
+
+.search-box {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 2rem;
+}
+
+.search-input {
+    width: 100%;
+    height: 50px;
+    border: 2px solid #ddd;
+    border-radius: 25px;
+    padding: 0 50px 0 20px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+}
+
+.search-input:focus {
+    border-color: #4285f4;
+    box-shadow: 0 4px 20px rgba(66,133,244,0.2), 0 0 0 3px rgba(66,133,244,0.1);
+    transform: translateY(-1px);
+}
+
+.search-input::placeholder {
+    color: #999;
+    transition: color 0.3s ease;
+}
+
+.search-input:focus::placeholder {
+    color: #bbb;
+}
+
+.search-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    border: none;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(66,133,244,0.3);
+}
+
+.search-btn:hover {
+    background: linear-gradient(135deg, #3367d6, #2d7d32);
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 4px 15px rgba(66,133,244,0.4);
+}
+
+.search-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.search-options {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.search-options button {
+    padding: 12px 24px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.search-options button:hover {
+    border-color: #4285f4;
+    color: #4285f4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(66,133,244,0.15);
+}
+
+.search-options button.active {
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: white;
+    border-color: #4285f4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(66,133,244,0.3);
+}
+
+/* 浮窗樣式 */
+.search-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: none;
+}
+
+.search-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 90vw;
+    width: 800px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+}
+
+.search-result-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    animation: slideInUp 0.4s ease;
+    animation-fill-mode: both;
+}
+
+.search-result-item:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.recommendation-score {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.score-high { background: linear-gradient(135deg, #28a745, #20c997); }
+.score-medium { background: linear-gradient(135deg, #ffc107, #fd7e14); }
+.score-low { background: linear-gradient(135deg, #dc3545, #e83e8c); }
+
+.grid-view {
+    display: none;
+}
+
+.grid-view.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.user-info {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #666;
+    font-size: 14px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 使用者資訊 -->
+    <div class="user-info">
+        BGG 使用者：<strong>{{ bgg_username or '未設定' }}</strong>
+    </div>
+    
+    <!-- Google Search 風格的主介面 -->
+    <div class="search-container" id="mainSearch">
+        <div class="search-logo">🧠 RG 智能推薦</div>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" id="gameSearchInput" placeholder="搜尋桌遊名稱，獲取個人化推薦分數..." onkeypress="if(event.key=='Enter') searchGames()">
+            <button class="search-btn" onclick="searchGames()">🔍</button>
         </div>
-        <div class="col-md-4">
-            <label class="form-label">&nbsp;</label>
-            <button type="button" class="btn btn-primary d-block" onclick="refreshRecommendations()">
-                🔄 重新推薦
-            </button>
+        
+        <div class="search-options">
+            <button id="exactSearchBtn" onclick="toggleExactSearch()">精確搜尋</button>
+            <button id="directRecommendBtn" onclick="showDirectRecommendations()" class="active">📋 直接推薦</button>
+            <button onclick="showAlgorithmSettings()">⚙️ 算法設定</button>
         </div>
     </div>
-
-    <!-- BGG 遊戲搜尋區域 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">🔍 搜尋遊戲並獲取推薦分數</h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
+    
+    <!-- 格狀推薦列表區域 (隱藏的) -->
+    <div class="grid-view" id="gridView">
+        <div class="container-fluid mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>📋 直接推薦列表</h3>
+                <button class="btn btn-outline-secondary" onclick="backToSearch()">← 返回搜尋</button>
+            </div>
+            
+            <!-- 算法選擇器 -->
+            <div class="row mb-4">
                 <div class="col-md-8">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" id="gameSearchInput" placeholder="輸入遊戲名稱..." onkeypress="if(event.key=='Enter') searchGames()">
-                        <button class="btn btn-outline-secondary" type="button" onclick="searchGames()">
-                            🔍 搜尋
-                        </button>
-                    </div>
+                    <select class="form-select" id="algorithmSelect" onchange="changeAlgorithm()">
+                        {% for algo in available_algorithms %}
+                        <option value="{{ algo.value }}" {% if algo.value == current_algorithm %}selected{% endif %}>
+                            {{ algo.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted" id="algorithmDescription">
+                        {% for algo in available_algorithms %}
+                            {% if algo.value == current_algorithm %}{{ algo.description }}{% endif %}
+                        {% endfor %}
+                    </small>
                 </div>
                 <div class="col-md-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="exactSearch" value="">
-                        <label class="form-check-label" for="exactSearch">
-                            精確搜尋
-                        </label>
-                    </div>
+                    <button type="button" class="btn btn-primary" onclick="refreshRecommendations()">
+                        🔄 重新推薦
+                    </button>
                 </div>
             </div>
-            
-            <!-- 搜尋結果區域 -->
-            <div id="searchResults" class="d-none">
-                <h6>搜尋結果：</h6>
-                <div id="searchResultsList" class="list-group mb-3">
-                    <!-- 動態填入搜尋結果 -->
-                </div>
-            </div>
-            
-            <!-- 推薦分數結果區域 -->
-            <div id="recommendationResult" class="d-none">
-                <div class="alert alert-success">
-                    <h6 class="alert-heading">📊 推薦分數結果</h6>
-                    <div id="recommendationContent">
-                        <!-- 動態填入推薦結果 -->
-                    </div>
-                </div>
+
+    <!-- 搜尋結果浮窗 -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-popup">
+            <button class="close-btn" onclick="closeSearchResults()">×</button>
+            <h4>🎲 遊戲搜尋結果</h4>
+            <div id="searchResultsList">
+                <!-- 搜尋結果將在這裡顯示 -->
             </div>
         </div>
     </div>
 
     <script>
+    let exactSearch = false;
+
     function changeAlgorithm() {
         const select = document.getElementById('algorithmSelect');
         const descriptions = {
@@ -98,15 +303,55 @@
         window.location.reload();
     }
 
+    function toggleExactSearch() {
+        exactSearch = !exactSearch;
+        const btn = document.getElementById('exactSearchBtn');
+        if (exactSearch) {
+            btn.classList.add('active');
+            btn.textContent = '✓ 精確搜尋';
+        } else {
+            btn.classList.remove('active');
+            btn.textContent = '精確搜尋';
+        }
+    }
+
+    function showDirectRecommendations() {
+        document.getElementById('mainSearch').style.display = 'none';
+        document.getElementById('gridView').classList.add('active');
+    }
+
+    function backToSearch() {
+        document.getElementById('mainSearch').style.display = 'flex';
+        document.getElementById('gridView').classList.remove('active');
+        document.getElementById('gridView').style.display = 'none';
+    }
+
+    function showAlgorithmSettings() {
+        alert('算法設定功能開發中...');
+    }
+
+    function closeSearchResults() {
+        const overlay = document.getElementById('searchOverlay');
+        overlay.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.style.animation = '';
+        }, 300);
+    }
+
     // BGG 遊戲搜尋功能
     async function searchGames() {
         const query = document.getElementById('gameSearchInput').value.trim();
-        const exact = document.getElementById('exactSearch').checked;
         
         if (!query) {
-            alert('請輸入搜尋關鍵字');
+            showNotification('請輸入搜尋關鍵字', 'warning');
             return;
         }
+        
+        // 顯示載入動畫
+        const searchBtn = document.querySelector('.search-btn');
+        const originalContent = searchBtn.innerHTML;
+        searchBtn.innerHTML = '⏳';
         
         try {
             const response = await fetch('/api/bgg/search', {
@@ -114,7 +359,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ query: query, exact: exact })
+                body: JSON.stringify({ query: query, exact: exactSearch })
             });
             
             const data = await response.json();
@@ -122,43 +367,71 @@
             if (data.success) {
                 displaySearchResults(data.results);
             } else {
-                alert('搜尋失敗: ' + data.message);
+                showNotification('搜尋失敗: ' + data.message, 'error');
             }
         } catch (error) {
             console.error('搜尋錯誤:', error);
-            alert('搜尋時發生錯誤');
+            showNotification('搜尋時發生錯誤', 'error');
+        } finally {
+            searchBtn.innerHTML = originalContent;
         }
     }
 
     function displaySearchResults(results) {
-        const searchResults = document.getElementById('searchResults');
         const searchResultsList = document.getElementById('searchResultsList');
         
         if (results.length === 0) {
-            searchResultsList.innerHTML = '<div class="alert alert-warning">沒有找到相關遊戲</div>';
+            searchResultsList.innerHTML = `
+                <div class="text-center py-4">
+                    <p class="text-muted">沒有找到相關遊戲</p>
+                    <small>試試調整搜尋關鍵字或取消精確搜尋</small>
+                </div>
+            `;
         } else {
             let html = '';
-            results.forEach(game => {
+            results.forEach((game, index) => {
                 html += `
-                    <div class="list-group-item list-group-item-action" onclick="getGameRecommendation('${game.id}', '${game.name}')">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">${game.name}</h6>
-                            <small class="text-muted">ID: ${game.id}</small>
+                    <div class="search-result-item" onclick="getGameRecommendation('${game.id}', '${game.name}')" style="animation-delay: ${index * 0.05}s">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">${game.name}</h6>
+                                <small class="text-muted">${game.year ? '發行年份: ' + game.year : 'BGG ID: ' + game.id}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-light text-dark">${game.id}</span>
+                            </div>
                         </div>
-                        <p class="mb-1">${game.year ? '發行年份: ' + game.year : ''}</p>
-                        <small class="text-muted">點擊獲取推薦分數</small>
+                        <div class="mt-2">
+                            <small class="text-primary">點擊獲取推薦分數 →</small>
+                        </div>
                     </div>
                 `;
             });
             searchResultsList.innerHTML = html;
         }
         
-        searchResults.classList.remove('d-none');
-        document.getElementById('recommendationResult').classList.add('d-none');
+        // 顯示搜尋結果浮窗
+        const overlay = document.getElementById('searchOverlay');
+        overlay.style.display = 'block';
+        overlay.style.animation = 'fadeIn 0.3s ease';
     }
 
     async function getGameRecommendation(gameId, gameName) {
         try {
+            // 顯示載入狀態
+            const loadingHtml = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">計算中...</span>
+                    </div>
+                    <p class="mt-2">正在計算推薦分數...</p>
+                </div>
+            `;
+            document.getElementById('searchResultsList').innerHTML = loadingHtml;
+
+            const algorithmSelect = document.getElementById('algorithmSelect');
+            const algorithm = algorithmSelect ? algorithmSelect.value : 'hybrid';
+            
             const response = await fetch('/api/rg/recommend-score', {
                 method: 'POST',
                 headers: {
@@ -167,7 +440,7 @@
                 body: JSON.stringify({ 
                     game_id: gameId,
                     game_name: gameName,
-                    algorithm: document.getElementById('algorithmSelect').value
+                    algorithm: algorithm
                 })
             });
             
@@ -176,36 +449,103 @@
             if (data.success) {
                 displayRecommendationResult(data.result);
             } else {
-                alert('獲取推薦分數失敗: ' + data.message);
+                showNotification('獲取推薦分數失敗: ' + data.message, 'error');
+                // 重新顯示搜尋結果
+                searchGames();
             }
         } catch (error) {
             console.error('推薦分數計算錯誤:', error);
-            alert('計算推薦分數時發生錯誤');
+            showNotification('計算推薦分數時發生錯誤', 'error');
         }
     }
 
     function displayRecommendationResult(result) {
-        const recommendationResult = document.getElementById('recommendationResult');
-        const recommendationContent = document.getElementById('recommendationContent');
-        
-        let html = `
-            <div class="row">
-                <div class="col-md-8">
-                    <h5>${result.name} ${result.year ? '(' + result.year + ')' : ''}</h5>
-                    <p><strong>推薦分數: ${result.score ? result.score.toFixed(2) : 'N/A'}</strong></p>
-                    ${result.details ? '<p><small class="text-muted">詳情: ' + result.details + '</small></p>' : ''}
+        let scoreClass = 'score-medium';
+        if (result.score >= 7) scoreClass = 'score-high';
+        else if (result.score < 5) scoreClass = 'score-low';
+
+        const html = `
+            <div class="text-center py-4" style="animation: slideInUp 0.4s ease">
+                <div class="mb-3">
+                    <h5>${result.name}</h5>
+                    ${result.year ? `<small class="text-muted">(${result.year})</small>` : ''}
                 </div>
-                <div class="col-md-4 text-end">
+                
+                <div class="mb-4">
+                    <span class="recommendation-score ${scoreClass}">
+                        ${result.score ? result.score.toFixed(2) : 'N/A'} 分
+                    </span>
+                </div>
+                
+                ${result.details ? `
+                    <div class="mb-3">
+                        <small class="text-muted">${result.details}</small>
+                    </div>
+                ` : ''}
+                
+                <div class="d-flex gap-2 justify-content-center">
                     <a href="https://boardgamegeek.com/boardgame/${result.game_id}" target="_blank" class="btn btn-outline-primary btn-sm">
                         在 BGG 查看
                     </a>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="searchGames()">
+                        ← 返回搜尋
+                    </button>
                 </div>
             </div>
         `;
         
-        recommendationContent.innerHTML = html;
-        recommendationResult.classList.remove('d-none');
+        document.getElementById('searchResultsList').innerHTML = html;
     }
+
+    function showNotification(message, type = 'info') {
+        // 創建通知元素
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'} notification`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            min-width: 300px;
+            animation: slideInRight 0.3s ease;
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // 3秒後自動移除
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+
+    // 添加 CSS 動畫
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100%); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slideOutRight {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(100%); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
     </script>
 
     {% if rg_results %}
