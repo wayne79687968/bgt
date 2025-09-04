@@ -101,6 +101,9 @@
                     <button class="btn btn-success" onclick="syncCollection()">🔁 同步收藏</button>
                 </div>
                 <div class="col-auto">
+                    <button class="btn btn-warning" onclick="updateCollection()">🔄 更新收藏</button>
+                </div>
+                <div class="col-auto">
                     <a class="btn btn-outline-secondary" href="{{ url_for('recommendations') }}">✨ 查看推薦</a>
                 </div>
             </div>
@@ -429,6 +432,35 @@ function syncCollection() {
     }).catch(err => {
         console.error(err);
         showAlert('danger', '同步失敗');
+    });
+}
+
+function updateCollection() {
+    if (!confirm('確定要重新同步收藏並重新訓練推薦模型嗎？這將會覆蓋現有的模型。')) {
+        return;
+    }
+    
+    const username = document.getElementById('bgg-username').value.trim();
+    if (!username) {
+        showAlert('warning', '請先設定 BGG 用戶名');
+        return;
+    }
+    
+    showAlert('info', '開始更新收藏和重新訓練模型，請稍候...');
+    
+    // 觸發重新同步和訓練
+    fetch('/api/rg-scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showAlert('success', '收藏更新已開始，這可能需要幾分鐘時間');
+        } else {
+            showAlert('danger', data.message || '更新失敗');
+        }
+    }).catch(err => {
+        console.error(err);
+        showAlert('danger', '更新時發生錯誤');
     });
 }
 let statusCheckInterval = null;

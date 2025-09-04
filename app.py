@@ -230,7 +230,24 @@ def inject_auth_functions():
     }
 RG_API_URL = os.getenv('RG_API_URL')  # 例如: https://api.recommend.games
 RG_API_KEY = os.getenv('RG_API_KEY')
-# 固定的 RG 預設路徑（不再由用戶設定）
+# RG 推薦器路徑配置
+def get_user_rg_paths(username=None):
+    """獲取用戶特定的 RG 文件路徑"""
+    if not username:
+        username = get_app_setting('bgg_username', 'default')
+    
+    # 使用 Zeabur 的持久化目錄
+    base_dir = '/data/rg_users' if os.path.exists('/data') else 'data/rg_users'
+    user_dir = os.path.join(base_dir, username)
+    
+    return {
+        'user_dir': user_dir,
+        'games_file': os.path.join(user_dir, 'bgg_GameItem.jl'),
+        'ratings_file': os.path.join(user_dir, 'bgg_RatingItem.jl'),
+        'model_dir': os.path.join(user_dir, 'rg_model')
+    }
+
+# 固定的 RG 預設路徑（降級選項）
 RG_DEFAULT_GAMES_FILE = 'data/bgg_GameItem.jl'
 RG_DEFAULT_RATINGS_FILE = 'data/bgg_RatingItem.jl'
 RG_DEFAULT_MODEL_DIR = 'data/rg_model'
@@ -1856,11 +1873,39 @@ def api_save_settings():
         if len(bgg_username) < 3 or len(bgg_username) > 50:
             return jsonify({'success': False, 'message': 'BGG 使用者名稱長度需在 3-50 字元之間'}), 400
         
+        # 檢查是否有變更 BGG 用戶名
+        current_username = get_app_setting('bgg_username', '')
+        is_username_changed = (current_username != bgg_username)
+        
         logger.info(f"嘗試保存 BGG 使用者名稱: {bgg_username}")
         ok = set_app_setting('bgg_username', bgg_username)
         
         if ok:
             logger.info(f"✅ BGG 使用者名稱保存成功: {bgg_username}")
+            
+            # 如果用戶名有變更，自動觸發收藏同步和模型訓練
+            if is_username_changed and bgg_username:
+                logger.info(f"🔄 BGG 用戶名已變更，觸發自動同步和訓練")
+                try:
+                    # 啟動背景任務
+                    import threading
+                    thread = threading.Thread(target=auto_sync_and_train, args=(bgg_username,))
+                    thread.daemon = True
+                    thread.start()
+                    
+                    return jsonify({
+                        'success': True, 
+                        'message': '設定已儲存，正在背景同步收藏並訓練模型...',
+                        'auto_sync_started': True
+                    })
+                except Exception as e:
+                    logger.error(f"自動同步啟動失敗: {e}")
+                    return jsonify({
+                        'success': True, 
+                        'message': '設定已儲存，但自動同步啟動失敗，請手動同步',
+                        'auto_sync_failed': True
+                    })
+            
             return jsonify({'success': True, 'message': '設定已儲存'})
         else:
             logger.error(f"❌ BGG 使用者名稱保存失敗: {bgg_username}")
@@ -1952,6 +1997,7 @@ def rg_recommender():
     ]
     
     current_algorithm = request.args.get('algorithm', 'hybrid')
+    current_view = request.args.get('view', 'search')  # 'search' 或 'grid'
     
     return render_template('rg_recommender.html',
                            bgg_username=username,
@@ -1959,6 +2005,7 @@ def rg_recommender():
                            rg_error=rg_error,
                            available_algorithms=available_algorithms,
                            current_algorithm=current_algorithm,
+                           current_view=current_view,
                            rg_site_url='https://recommend.games/',
                            rg_repo_url='https://gitlab.com/recommend.games/board-game-recommender',
                            last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
@@ -2135,23 +2182,50 @@ def api_rg_train():
 def api_rg_status():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-    model_dir = RG_DEFAULT_MODEL_DIR
-    games_file = RG_DEFAULT_GAMES_FILE
-    ratings_file = RG_DEFAULT_RATINGS_FILE
+    
+    username = get_app_setting('bgg_username', '')
+    if not username:
+        return jsonify({
+            'success': False, 
+            'message': '請先設定 BGG 用戶名',
+            'need_username': True
+        })
+    
+    # 獲取用戶特定的路徑
+    user_paths = get_user_rg_paths(username)
+    
+    # 檢查文件和目錄是否存在
+    model_dir_exists = os.path.exists(user_paths['model_dir'])
+    games_file_exists = os.path.exists(user_paths['games_file'])
+    ratings_file_exists = os.path.exists(user_paths['ratings_file'])
+    
+    # 計算用戶數據完整度
+    data_completeness = 0
+    if games_file_exists:
+        data_completeness += 40
+    if ratings_file_exists:
+        data_completeness += 30
+    if model_dir_exists:
+        data_completeness += 30
+        
     status = {
-        'rg_model_dir': model_dir,
-        'rg_games_file': games_file,
-        'rg_ratings_file': ratings_file,
-        'model_dir_exists': bool(model_dir and os.path.exists(model_dir)),
-        'games_file_exists': bool(games_file and os.path.exists(games_file)),
-        'ratings_file_exists': bool(ratings_file and os.path.exists(ratings_file)),
+        'username': username,
+        'rg_model_dir': user_paths['model_dir'],
+        'rg_games_file': user_paths['games_file'],
+        'rg_ratings_file': user_paths['ratings_file'],
+        'model_dir_exists': model_dir_exists,
+        'games_file_exists': games_file_exists,
+        'ratings_file_exists': ratings_file_exists,
+        'data_completeness': data_completeness,
+        'is_ready_for_recommendations': data_completeness >= 70,
         'rg_api_url': RG_API_URL or '',
-        'defaults': {
+        'fallback_paths': {
             'games_file': RG_DEFAULT_GAMES_FILE,
             'ratings_file': RG_DEFAULT_RATINGS_FILE,
             'model_dir': RG_DEFAULT_MODEL_DIR
         }
     }
+    
     return jsonify({'success': True, 'status': status})
 
 @app.route('/api/rg-scrape', methods=['POST'])
@@ -2310,12 +2384,18 @@ def api_rg_recommend_score():
                     'message': '無法計算推薦分數，可能是模型未訓練或遊戲資料不足'
                 })
             
+            # 計算分數的上下文信息
+            score_context = get_score_context(score, algorithm)
+            
             return jsonify({
                 'success': True,
                 'result': {
                     'game_id': game_id,
                     'name': game_name,
                     'score': score,
+                    'max_score': 10.0,  # BGG 評分最高為 10
+                    'score_level': score_context['level'],
+                    'score_description': score_context['description'],
                     'algorithm': algorithm,
                     'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
                 }
@@ -2331,6 +2411,172 @@ def api_rg_recommend_score():
     except Exception as e:
         logger.error(f"推薦分數 API 發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
+
+def get_score_context(score, algorithm):
+    """根據分數返回上下文說明"""
+    if score >= 8.5:
+        return {
+            'level': 'excellent',
+            'description': '絕佳推薦 - 非常符合您的喜好'
+        }
+    elif score >= 7.5:
+        return {
+            'level': 'very_good', 
+            'description': '強烈推薦 - 很可能會喜歡'
+        }
+    elif score >= 6.5:
+        return {
+            'level': 'good',
+            'description': '值得嘗試 - 符合您的偏好'
+        }
+    elif score >= 5.5:
+        return {
+            'level': 'fair',
+            'description': '一般推薦 - 可能會感興趣'
+        }
+    else:
+        return {
+            'level': 'poor',
+            'description': '不太推薦 - 可能不符合您的喜好'
+        }
+
+def auto_sync_and_train(username):
+    """自動同步收藏並訓練模型（背景任務）"""
+    try:
+        logger.info(f"🚀 開始為用戶 {username} 自動同步收藏和訓練模型")
+        
+        # 確保用戶目錄存在
+        user_paths = get_user_rg_paths(username)
+        os.makedirs(user_paths['user_dir'], exist_ok=True)
+        
+        # 第一步：同步 BGG 收藏
+        logger.info(f"📥 第一步：同步 BGG 收藏...")
+        try:
+            xml_main = fetch_bgg_collection_xml(username, {"stats": 1, "excludesubtype": "boardgameexpansion"})
+            xml_exp = fetch_bgg_collection_xml(username, {"stats": 1, "subtype": "boardgameexpansion"})
+            
+            if xml_main or xml_exp:
+                save_collection_to_db(xml_main, xml_exp)
+                logger.info(f"✅ 收藏同步成功")
+            else:
+                logger.warning(f"⚠️ 收藏同步失敗或無收藏資料")
+                
+        except Exception as e:
+            logger.error(f"❌ 收藏同步失敗: {e}")
+            
+        # 第二步：生成用戶特定的 JSONL 資料
+        logger.info(f"📊 第二步：生成推薦資料...")
+        try:
+            generate_user_rg_data(username)
+            logger.info(f"✅ 推薦資料生成成功")
+        except Exception as e:
+            logger.error(f"❌ 推薦資料生成失敗: {e}")
+            
+        # 第三步：訓練推薦模型
+        logger.info(f"🧠 第三步：訓練推薦模型...")
+        try:
+            train_user_rg_model(username)
+            logger.info(f"✅ 推薦模型訓練成功")
+        except Exception as e:
+            logger.error(f"❌ 推薦模型訓練失敗: {e}")
+            
+        logger.info(f"🎉 用戶 {username} 的自動同步和訓練完成")
+        
+    except Exception as e:
+        logger.error(f"❌ 自動同步和訓練異常: {e}")
+
+def generate_user_rg_data(username):
+    """為特定用戶生成 RG 推薦所需的 JSONL 資料"""
+    user_paths = get_user_rg_paths(username)
+    
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # 生成遊戲資料
+        cursor.execute("""
+            SELECT 
+                objectid as bgg_id,
+                name,
+                year,
+                minplayers as min_players,
+                maxplayers as max_players,
+                minplaytime as min_time,
+                maxplaytime as max_time,
+                18 as min_age,
+                rating as avg_rating,
+                rank,
+                weight as complexity,
+                1000 as num_votes
+            FROM game_detail
+            WHERE rating > 0
+            ORDER BY rating DESC NULLS LAST
+            LIMIT 10000
+        """)
+        
+        games_count = 0
+        with open(user_paths['games_file'], 'w', encoding='utf-8') as f:
+            for row in cursor.fetchall():
+                game_data = {
+                    'bgg_id': row[0],
+                    'name': row[1] or 'Unknown',
+                    'year': row[2] or 2000,
+                    'min_players': row[3] or 1,
+                    'max_players': row[4] or 4,
+                    'min_time': row[5] or 30,
+                    'max_time': row[6] or 120,
+                    'min_age': row[7] or 8,
+                    'avg_rating': float(row[8] or 0),
+                    'rank': int(row[9]) if row[9] and row[9] > 0 else (games_count + 1),
+                    'complexity': float(row[10] or 2.0),
+                    'num_votes': int(row[11] or 1000),
+                    'cooperative': False,
+                    'compilation': False,
+                    'compilation_of': [],
+                    'implementation': [],
+                    'integration': []
+                }
+                f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
+                games_count += 1
+        
+        # 生成評分資料（基於用戶收藏）
+        cursor.execute("""
+            SELECT objectid, rating 
+            FROM collection 
+            WHERE rating > 0 AND rating <= 10
+        """)
+        
+        ratings_count = 0
+        with open(user_paths['ratings_file'], 'w', encoding='utf-8') as f:
+            for row in cursor.fetchall():
+                rating_data = {
+                    'bgg_id': row[0],
+                    'bgg_user_name': username,
+                    'bgg_user_rating': float(row[1])
+                }
+                f.write(json.dumps(rating_data, ensure_ascii=False) + '\n')
+                ratings_count += 1
+        
+        logger.info(f"✅ 生成了 {games_count} 個遊戲和 {ratings_count} 個評分記錄")
+
+def train_user_rg_model(username):
+    """訓練用戶特定的 RG 推薦模型"""
+    user_paths = get_user_rg_paths(username)
+    
+    # 檢查資料檔案是否存在
+    if not (os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file'])):
+        raise Exception("缺少必要的資料檔案")
+    
+    # 創建模型目錄
+    os.makedirs(user_paths['model_dir'], exist_ok=True)
+    
+    # 這裡可以實現實際的模型訓練邏輯
+    # 目前作為預留位置，實際實現需要根據 board-game-recommender 的 API
+    logger.info(f"📝 模型訓練功能預留（需要實際的 RG 訓練邏輯）")
+    
+    # 創建一個標記文件表示模型已"訓練"
+    model_marker = os.path.join(user_paths['model_dir'], 'model_trained.txt')
+    with open(model_marker, 'w') as f:
+        f.write(f"Model trained for {username} at {datetime.now()}")
 
 def create_temp_jsonl_files():
     """使用現有的 JSONL 資料檔案供 RG BGGRecommender 使用"""

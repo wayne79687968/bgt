@@ -206,11 +206,16 @@
 }
 
 .user-info {
-    position: absolute;
-    top: 20px;
+    position: fixed;
+    top: 80px;
     right: 20px;
     color: #666;
     font-size: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 12px;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
 }
 </style>
 {% endblock %}
@@ -280,8 +285,26 @@
         </div>
     </div>
 
+    <!-- RG 設置提示模態框 -->
+    <div class="search-overlay" id="rgSetupModal" style="display: none;">
+        <div class="search-popup">
+            <button class="close-btn" onclick="closeRGSetupModal()">×</button>
+            <div id="rgSetupContent">
+                <!-- RG 設置內容將在這裡顯示 -->
+            </div>
+        </div>
+    </div>
+
     <script>
     let exactSearch = false;
+
+    // 頁面初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentView = '{{ current_view }}';
+        if (currentView === 'grid') {
+            showDirectRecommendations();
+        }
+    });
 
     function changeAlgorithm() {
         const select = document.getElementById('algorithmSelect');
@@ -293,9 +316,16 @@
 
         document.getElementById('algorithmDescription').textContent = descriptions[select.value];
 
+        // 檢查當前是否在直接推薦頁面
+        const gridView = document.getElementById('gridView');
+        const isInGridView = gridView.classList.contains('active');
+
         // 自動重新載入推薦
         const url = new URL(window.location);
         url.searchParams.set('algorithm', select.value);
+        if (isInGridView) {
+            url.searchParams.set('view', 'grid');
+        }
         window.location.href = url.toString();
     }
 
@@ -315,9 +345,23 @@
         }
     }
 
-    function showDirectRecommendations() {
+    async function showDirectRecommendations() {
+        // 先檢查 RG 系統狀態
+        const rgStatus = await checkRGStatus();
+        if (!rgStatus.success) {
+            if (rgStatus.need_username) {
+                showRGSetupModal('setup_username');
+                return;
+            }
+        } else if (!rgStatus.status.is_ready_for_recommendations) {
+            showRGSetupModal('need_data');
+            return;
+        }
+        
         document.getElementById('mainSearch').style.display = 'none';
-        document.getElementById('gridView').classList.add('active');
+        const gridView = document.getElementById('gridView');
+        gridView.style.display = 'block';
+        gridView.classList.add('active');
     }
 
     function backToSearch() {
@@ -339,12 +383,36 @@
         }, 300);
     }
 
+    // 檢查 RG 系統狀態
+    async function checkRGStatus() {
+        try {
+            const response = await fetch('/api/rg-status');
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('RG 狀態檢查失敗:', error);
+            return { success: false, message: '無法檢查 RG 系統狀態' };
+        }
+    }
+
     // BGG 遊戲搜尋功能
     async function searchGames() {
         const query = document.getElementById('gameSearchInput').value.trim();
         
         if (!query) {
             showNotification('請輸入搜尋關鍵字', 'warning');
+            return;
+        }
+        
+        // 先檢查 RG 系統狀態
+        const rgStatus = await checkRGStatus();
+        if (!rgStatus.success) {
+            if (rgStatus.need_username) {
+                showRGSetupModal('setup_username');
+                return;
+            }
+        } else if (!rgStatus.status.is_ready_for_recommendations) {
+            showRGSetupModal('need_data');
             return;
         }
         
@@ -460,9 +528,13 @@
     }
 
     function displayRecommendationResult(result) {
+        // 根據分數等級選擇樣式
         let scoreClass = 'score-medium';
-        if (result.score >= 7) scoreClass = 'score-high';
-        else if (result.score < 5) scoreClass = 'score-low';
+        if (result.score_level === 'excellent' || result.score_level === 'very_good') {
+            scoreClass = 'score-high';
+        } else if (result.score_level === 'poor') {
+            scoreClass = 'score-low';
+        }
 
         const html = `
             <div class="text-center py-4" style="animation: slideInUp 0.4s ease">
@@ -472,9 +544,18 @@
                 </div>
                 
                 <div class="mb-4">
-                    <span class="recommendation-score ${scoreClass}">
-                        ${result.score ? result.score.toFixed(2) : 'N/A'} 分
-                    </span>
+                    <div class="mb-2">
+                        <span class="recommendation-score ${scoreClass}">
+                            ${result.score ? result.score.toFixed(2) : 'N/A'} / ${result.max_score || 10} 分
+                        </span>
+                    </div>
+                    ${result.score_description ? `
+                        <div class="mb-2">
+                            <small class="fw-bold text-${scoreClass === 'score-high' ? 'success' : scoreClass === 'score-low' ? 'danger' : 'warning'}">
+                                ${result.score_description}
+                            </small>
+                        </div>
+                    ` : ''}
                 </div>
                 
                 ${result.details ? `
@@ -495,6 +576,106 @@
         `;
         
         document.getElementById('searchResultsList').innerHTML = html;
+    }
+
+    function showRGSetupModal(type) {
+        const modal = document.getElementById('rgSetupModal');
+        const content = document.getElementById('rgSetupContent');
+        
+        let html = '';
+        if (type === 'setup_username') {
+            html = `
+                <div class="text-center py-4">
+                    <h4>⚙️ 需要設定 BGG 用戶名</h4>
+                    <p class="mb-4">請先設定您的 BGG 用戶名才能使用推薦功能</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <a href="{{ url_for('settings') }}" class="btn btn-primary">
+                            前往設定
+                        </a>
+                        <button class="btn btn-outline-secondary" onclick="closeRGSetupModal()">
+                            稍後再說
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'need_data') {
+            html = `
+                <div class="text-center py-4">
+                    <h4>📊 需要初始化推薦數據</h4>
+                    <p class="mb-3">推薦系統需要您的 BGG 收藏和遊戲數據才能工作</p>
+                    <div class="mb-4">
+                        <small class="text-muted">這將會：</small>
+                        <ul class="text-start mt-2" style="display: inline-block;">
+                            <li>同步您的 BGG 收藏</li>
+                            <li>下載遊戲資料庫</li>
+                            <li>訓練個人化推薦模型</li>
+                        </ul>
+                    </div>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button class="btn btn-success" onclick="initializeRGData()">
+                            🚀 開始初始化
+                        </button>
+                        <a href="{{ url_for('settings') }}" class="btn btn-outline-primary">
+                            前往設定頁面
+                        </a>
+                        <button class="btn btn-outline-secondary" onclick="closeRGSetupModal()">
+                            稍後再說
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        content.innerHTML = html;
+        modal.style.display = 'block';
+        modal.style.animation = 'fadeIn 0.3s ease';
+    }
+
+    function closeRGSetupModal() {
+        const modal = document.getElementById('rgSetupModal');
+        modal.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.style.animation = '';
+        }, 300);
+    }
+
+    async function initializeRGData() {
+        // 顯示進度
+        const content = document.getElementById('rgSetupContent');
+        content.innerHTML = `
+            <div class="text-center py-4">
+                <h4>🔄 正在初始化...</h4>
+                <div class="spinner-border text-primary my-3" role="status">
+                    <span class="visually-hidden">處理中...</span>
+                </div>
+                <p>請稍候，這可能需要幾分鐘時間</p>
+            </div>
+        `;
+        
+        try {
+            // 觸發收藏同步和模型訓練
+            const response = await fetch('/api/rg-scrape', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('推薦系統初始化已開始，請稍後再試', 'success');
+                closeRGSetupModal();
+            } else {
+                showNotification('初始化失敗: ' + data.message, 'error');
+                closeRGSetupModal();
+            }
+        } catch (error) {
+            console.error('初始化錯誤:', error);
+            showNotification('初始化時發生錯誤', 'error');
+            closeRGSetupModal();
+        }
     }
 
     function showNotification(message, type = 'info') {
