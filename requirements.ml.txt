@@ -2,3 +2,7 @@
 scikit-learn==1.4.0
 numpy>=1.21.0
 pandas>=1.3.0
+
+# RG 推薦器依賴 - 使用 light 版本（不包含 turicreate）
+# 注意：turicreate 在生產環境中可能不可用，所以使用降級方案
+board-game-scraper>=2.22.0
