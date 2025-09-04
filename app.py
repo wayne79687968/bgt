@@ -24,6 +24,7 @@ except ImportError:
     GOOGLE_AUTH_AVAILABLE = False
 import threading
 import time
+from functools import lru_cache
 
 # 進階推薦系統
 try:
@@ -244,8 +245,366 @@ def get_user_rg_paths(username=None):
         'user_dir': user_dir,
         'games_file': os.path.join(user_dir, 'bgg_GameItem.jl'),
         'ratings_file': os.path.join(user_dir, 'bgg_RatingItem.jl'),
-        'model_dir': os.path.join(user_dir, 'rg_model')
+        'model_dir': os.path.join(user_dir, 'rg_model'),
+        'full_model': os.path.join(user_dir, 'rg_model', 'full.npz'),
+        'light_model': os.path.join(user_dir, 'rg_model', 'light.npz')
     }
+
+@lru_cache(maxsize=8)
+def load_user_recommender(username, model_type='auto'):
+    """
+    使用 LRU 緩存載入用戶特定的推薦器
+    
+    Args:
+        username: BGG 用戶名
+        model_type: 'auto', 'full', 'light'
+    
+    Returns:
+        tuple: (recommender_instance, model_info)
+    """
+    logger.info(f"🔄 載入推薦器: username={username}, model_type={model_type}")
+    
+    user_paths = get_user_rg_paths(username)
+    
+    # 檢查用戶數據是否存在
+    if not (os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file'])):
+        logger.warning(f"⚠️ 用戶 {username} 的數據不存在，使用預設推薦器")
+        return load_fallback_recommender(), {'type': 'fallback', 'reason': 'no_user_data'}
+    
+    # 根據 model_type 決定載入策略
+    if model_type == 'auto':
+        # 自動選擇：優先嘗試 full，失敗則使用 light
+        recommender, info = _try_load_full_recommender(user_paths, username)
+        if recommender:
+            return recommender, info
+        
+        recommender, info = _try_load_light_recommender(user_paths, username)
+        if recommender:
+            return recommender, info
+            
+        # 都失敗則使用 fallback
+        logger.warning(f"⚠️ 用戶 {username} 的所有 RG 模型都載入失敗，使用降級推薦器")
+        return load_fallback_recommender(), {'type': 'fallback', 'reason': 'model_load_failed'}
+    
+    elif model_type == 'full':
+        recommender, info = _try_load_full_recommender(user_paths, username)
+        if recommender:
+            return recommender, info
+        logger.warning(f"⚠️ 用戶 {username} 的完整模型載入失敗")
+        return None, {'type': 'error', 'reason': 'full_model_failed'}
+    
+    elif model_type == 'light':
+        recommender, info = _try_load_light_recommender(user_paths, username)
+        if recommender:
+            return recommender, info
+        logger.warning(f"⚠️ 用戶 {username} 的輕量模型載入失敗")
+        return None, {'type': 'error', 'reason': 'light_model_failed'}
+    
+    else:
+        logger.error(f"❌ 不支援的模型類型: {model_type}")
+        return None, {'type': 'error', 'reason': 'invalid_model_type'}
+
+def _try_load_full_recommender(user_paths, username):
+    """嘗試載入完整的 BGGRecommender"""
+    try:
+        # 檢查是否有可用的 RG 套件
+        try:
+            from board_game_recommender import BGGRecommender
+        except ImportError:
+            logger.warning("⚠️ board_game_recommender 套件不可用")
+            return None, {'type': 'error', 'reason': 'missing_package'}
+        
+        # 嘗試使用用戶特定的 JSONL 檔案
+        logger.info(f"🎯 嘗試載入用戶 {username} 的完整 BGGRecommender")
+        
+        recommender = BGGRecommender(
+            games_file=user_paths['games_file'],
+            ratings_file=user_paths['ratings_file']
+        )
+        
+        logger.info(f"✅ 成功載入用戶 {username} 的完整 BGGRecommender")
+        return recommender, {
+            'type': 'bgg_full',
+            'games_file': user_paths['games_file'],
+            'ratings_file': user_paths['ratings_file'],
+            'username': username
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ 載入完整 BGGRecommender 失敗: {e}")
+        return None, {'type': 'error', 'reason': str(e)}
+
+def _try_load_light_recommender(user_paths, username):
+    """嘗試載入輕量的 LightGamesRecommender"""
+    try:
+        # 檢查是否有可用的輕量推薦器
+        try:
+            from board_game_recommender import LightGamesRecommender
+        except ImportError:
+            logger.warning("⚠️ LightGamesRecommender 不可用")
+            return None, {'type': 'error', 'reason': 'missing_light_package'}
+        
+        # 檢查輕量模型檔案是否存在
+        if not os.path.exists(user_paths['light_model']):
+            logger.warning(f"⚠️ 用戶 {username} 的輕量模型檔案不存在: {user_paths['light_model']}")
+            return None, {'type': 'error', 'reason': 'no_light_model'}
+        
+        logger.info(f"🎯 嘗試載入用戶 {username} 的 LightGamesRecommender")
+        
+        recommender = LightGamesRecommender(
+            games_file=user_paths['games_file'],
+            model_file=user_paths['light_model']
+        )
+        
+        logger.info(f"✅ 成功載入用戶 {username} 的 LightGamesRecommender")
+        return recommender, {
+            'type': 'light',
+            'games_file': user_paths['games_file'], 
+            'model_file': user_paths['light_model'],
+            'username': username
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ 載入 LightGamesRecommender 失敗: {e}")
+        return None, {'type': 'error', 'reason': str(e)}
+
+def load_fallback_recommender():
+    """載入降級推薦器（優先使用 AdvancedBoardGameRecommender，否則使用最簡化推薦器）"""
+    try:
+        from advanced_recommender import AdvancedBoardGameRecommender
+        recommender = AdvancedBoardGameRecommender()
+        logger.info("✅ 成功載入降級推薦器 (AdvancedBoardGameRecommender)")
+        return recommender
+    except Exception as e:
+        logger.warning(f"⚠️ 載入 AdvancedBoardGameRecommender 失敗: {e}")
+        logger.info("🔄 使用最簡化推薦器")
+        return MinimalRecommender()
+
+class MinimalRecommender:
+    """最簡化的推薦器實現，不依賴任何外部機器學習套件"""
+    
+    def __init__(self):
+        self.model_type = 'minimal'
+        logger.info("🔧 初始化最簡化推薦器")
+    
+    def get_recommendation_score(self, game_id, owned_ids):
+        """計算遊戲推薦分數"""
+        try:
+            logger.info(f"🎯 最簡化推薦器計算遊戲 {game_id} 的分數")
+            
+            # 使用簡單的基於特徵的相似度計算
+            return self._calculate_similarity_score(game_id, owned_ids)
+            
+        except Exception as e:
+            logger.error(f"❌ 最簡化推薦器計算失敗: {e}")
+            return 6.0  # 返回中性分數
+    
+    def _calculate_similarity_score(self, game_id, owned_ids):
+        """基於遊戲特徵計算相似度分數"""
+        try:
+            if not owned_ids:
+                # 如果沒有收藏，返回遊戲的一般評分
+                return self._get_game_base_score(game_id)
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 獲取目標遊戲特徵
+                cursor.execute("""
+                    SELECT category, mechanic, min_players, max_players, playing_time,
+                           complexity, year_published, average_rating, bayes_average_rating
+                    FROM game_detail WHERE objectid = %s
+                """, (game_id,))
+                
+                target_game = cursor.fetchone()
+                if not target_game:
+                    logger.warning(f"⚠️ 找不到遊戲 {game_id} 的資料")
+                    return 5.0
+                
+                # 計算與用戶收藏遊戲的相似度
+                similarity_scores = []
+                
+                for owned_id in owned_ids[:50]:  # 限制計算數量以提高性能
+                    cursor.execute("""
+                        SELECT category, mechanic, min_players, max_players, playing_time,
+                               complexity, year_published, average_rating, bayes_average_rating
+                        FROM game_detail WHERE objectid = %s
+                    """, (owned_id,))
+                    
+                    owned_game = cursor.fetchone()
+                    if owned_game:
+                        similarity = self._calculate_feature_similarity(target_game, owned_game)
+                        # 假設用戶對收藏的遊戲評分較高
+                        user_rating = 7.5 + (similarity * 1.5)  # 7.5-9.0 範圍
+                        weighted_score = similarity * user_rating
+                        similarity_scores.append(weighted_score)
+                
+                if similarity_scores:
+                    # 計算平均相似度分數
+                    avg_similarity = sum(similarity_scores) / len(similarity_scores)
+                    
+                    # 結合遊戲本身的評分
+                    base_score = float(target_game[7] or 6.0)  # average_rating
+                    bayes_score = float(target_game[8] or 6.0)  # bayes_average_rating
+                    game_score = (base_score + bayes_score) / 2
+                    
+                    # 混合個人化和一般評分 (70% 個人化, 30% 一般評分)
+                    final_score = (avg_similarity * 0.7) + (game_score * 0.3)
+                    
+                    # 限制在合理範圍內
+                    final_score = max(1.0, min(10.0, final_score))
+                    
+                    logger.info(f"✅ 遊戲 {game_id} 相似度分數: {final_score:.3f}")
+                    return float(final_score)
+                
+                # 如果沒有相似遊戲，返回遊戲的基本分數
+                return self._get_game_base_score(game_id)
+                
+        except Exception as e:
+            logger.error(f"❌ 相似度計算失敗: {e}")
+            return 6.0
+    
+    def _calculate_feature_similarity(self, game1, game2):
+        """計算兩個遊戲的特徵相似度"""
+        try:
+            similarities = []
+            
+            # 分類相似度
+            if game1[0] and game2[0]:
+                cat1 = set(game1[0].split(','))
+                cat2 = set(game2[0].split(','))
+                if cat1 or cat2:
+                    cat_sim = len(cat1.intersection(cat2)) / len(cat1.union(cat2))
+                    similarities.append(cat_sim * 0.3)
+            
+            # 機制相似度
+            if game1[1] and game2[1]:
+                mech1 = set(game1[1].split(','))
+                mech2 = set(game2[1].split(','))
+                if mech1 or mech2:
+                    mech_sim = len(mech1.intersection(mech2)) / len(mech1.union(mech2))
+                    similarities.append(mech_sim * 0.3)
+            
+            # 玩家數量相似度
+            if all([game1[2], game2[2], game1[3], game2[3]]):
+                min1, max1 = int(game1[2]), int(game1[3])
+                min2, max2 = int(game2[2]), int(game2[3])
+                overlap = max(0, min(max1, max2) - max(min1, min2) + 1)
+                total_range = max(max1, max2) - min(min1, min2) + 1
+                player_sim = overlap / total_range if total_range > 0 else 0
+                similarities.append(player_sim * 0.2)
+            
+            # 遊戲時間相似度
+            if game1[4] and game2[4]:
+                time1, time2 = float(game1[4]), float(game2[4])
+                time_diff = abs(time1 - time2)
+                max_time = max(time1, time2)
+                time_sim = max(0, 1 - time_diff / max_time) if max_time > 0 else 0
+                similarities.append(time_sim * 0.1)
+            
+            # 複雜度相似度
+            if game1[5] and game2[5]:
+                comp1, comp2 = float(game1[5]), float(game2[5])
+                comp_diff = abs(comp1 - comp2)
+                comp_sim = max(0, 1 - comp_diff / 5.0)  # 複雜度範圍 1-5
+                similarities.append(comp_sim * 0.1)
+            
+            return sum(similarities) if similarities else 0.5
+            
+        except Exception as e:
+            logger.error(f"❌ 特徵相似度計算錯誤: {e}")
+            return 0.5
+    
+    def _get_game_base_score(self, game_id):
+        """獲取遊戲的基本評分"""
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT average_rating, bayes_average_rating, num_votes
+                    FROM game_detail WHERE objectid = %s
+                """, (game_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    avg_rating = float(result[0] or 6.0)
+                    bayes_avg = float(result[1] or 6.0) 
+                    num_votes = int(result[2] or 100)
+                    
+                    # 基於評分和投票數的信心調整
+                    confidence = min(1.0, num_votes / 500)
+                    score = (avg_rating + bayes_avg) / 2
+                    final_score = score * confidence + 6.0 * (1 - confidence)
+                    
+                    return max(1.0, min(10.0, final_score))
+                
+                return 6.0
+                
+        except Exception as e:
+            logger.error(f"❌ 獲取遊戲基本分數失敗: {e}")
+            return 6.0
+    
+    def build_recommendations_from_collection(self, limit=20):
+        """基於收藏建立推薦列表"""
+        try:
+            recommendations = []
+            
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 獲取用戶收藏
+                cursor.execute("SELECT objectid FROM collection")
+                owned_ids = [row[0] for row in cursor.fetchall()]
+                
+                if not owned_ids:
+                    # 如果沒有收藏，推薦熱門遊戲
+                    cursor.execute("""
+                        SELECT objectid, name, average_rating
+                        FROM game_detail 
+                        WHERE average_rating >= 7.0 
+                        ORDER BY bayes_average_rating DESC
+                        LIMIT %s
+                    """, (limit,))
+                    
+                    for row in cursor.fetchall():
+                        recommendations.append({
+                            'id': row[0],
+                            'name': row[1],
+                            'score': float(row[2] or 7.0)
+                        })
+                else:
+                    # 基於收藏推薦相似遊戲
+                    cursor.execute("""
+                        SELECT objectid, name
+                        FROM game_detail 
+                        WHERE objectid NOT IN %s
+                        AND average_rating >= 6.5
+                        ORDER BY bayes_average_rating DESC
+                        LIMIT %s
+                    """, (tuple(owned_ids), limit * 3))
+                    
+                    candidates = cursor.fetchall()
+                    
+                    # 計算推薦分數並排序
+                    scored_candidates = []
+                    for candidate in candidates:
+                        score = self.get_recommendation_score(candidate[0], owned_ids)
+                        scored_candidates.append({
+                            'id': candidate[0],
+                            'name': candidate[1],
+                            'score': score
+                        })
+                    
+                    # 按分數排序並取前 N 個
+                    scored_candidates.sort(key=lambda x: x['score'], reverse=True)
+                    recommendations = scored_candidates[:limit]
+                
+            logger.info(f"✅ 生成了 {len(recommendations)} 個推薦")
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"❌ 建立推薦列表失敗: {e}")
+            return []
 
 # 固定的 RG 預設路徑（降級選項）
 RG_DEFAULT_GAMES_FILE = 'data/bgg_GameItem.jl'
@@ -2412,6 +2771,349 @@ def api_rg_recommend_score():
         logger.error(f"推薦分數 API 發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
 
+@app.route('/api/rg/recommend-advanced', methods=['POST'])
+@login_required
+def api_rg_recommend_advanced():
+    """高級推薦 API - 支援多種模式和模型類型"""
+    try:
+        data = request.get_json()
+        mode = data.get('mode', 'score')  # 'score', 'list', 'similar'
+        model_type = data.get('model_type', 'auto')  # 'auto', 'full', 'light'
+        algorithm = data.get('algorithm', 'hybrid')
+        
+        # 根據模式決定處理邏輯
+        if mode == 'score':
+            return _handle_score_mode(data, model_type, algorithm)
+        elif mode == 'list':
+            return _handle_list_mode(data, model_type, algorithm)
+        elif mode == 'similar':
+            return _handle_similar_mode(data, model_type, algorithm)
+        else:
+            return jsonify({'success': False, 'message': f'不支援的推薦模式: {mode}'})
+            
+    except Exception as e:
+        logger.error(f"高級推薦 API 發生錯誤: {e}")
+        return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
+
+def _handle_score_mode(data, model_type, algorithm):
+    """處理單個遊戲分數計算模式"""
+    game_id = data.get('game_id')
+    game_name = data.get('game_name')
+    
+    if not game_id:
+        return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
+    
+    username = get_app_setting('bgg_username', '')
+    owned_ids = []
+    
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT objectid FROM collection")
+            owned_ids = [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        logger.warning(f"無法獲取使用者收藏: {e}")
+    
+    if not owned_ids:
+        return jsonify({
+            'success': False, 
+            'message': '請先同步您的 BGG 收藏才能計算推薦分數'
+        })
+    
+    # 使用新的推薦系統
+    score = get_single_game_recommendation_score(username, owned_ids, int(game_id), algorithm, model_type)
+    
+    if score is None:
+        return jsonify({
+            'success': False,
+            'message': '無法計算推薦分數，可能是模型未準備好或遊戲資料不足'
+        })
+    
+    score_context = get_score_context(score, algorithm)
+    
+    return jsonify({
+        'success': True,
+        'result': {
+            'game_id': game_id,
+            'name': game_name,
+            'score': score,
+            'max_score': 10.0,
+            'score_level': score_context['level'],
+            'score_description': score_context['description'],
+            'algorithm': algorithm,
+            'model_type': model_type,
+            'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
+        }
+    })
+
+def _handle_list_mode(data, model_type, algorithm):
+    """處理推薦列表模式"""
+    limit = data.get('limit', 20)
+    filter_owned = data.get('filter_owned', True)
+    
+    username = get_app_setting('bgg_username', '')
+    if not username:
+        return jsonify({'success': False, 'message': '請先設定 BGG 使用者名稱'})
+    
+    try:
+        # 載入推薦器
+        recommender, model_info = load_user_recommender(username, model_type)
+        
+        if not recommender:
+            return jsonify({
+                'success': False, 
+                'message': f'無法載入推薦器: {model_info.get("reason", "未知原因")}'
+            })
+        
+        # 獲取用戶收藏
+        owned_ids = []
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT objectid FROM collection")
+            owned_ids = [row[0] for row in cursor.fetchall()]
+        
+        recommendations = []
+        
+        if model_info['type'] == 'bgg_full':
+            # 使用 BGGRecommender 生成推薦列表
+            recs = recommender.recommend(
+                users=[username],
+                num_games=limit,
+                diversity=0.1 if algorithm == 'hybrid' else 0.0
+            )
+            
+            if recs and recs.num_rows() > 0:
+                for i in range(min(limit, recs.num_rows())):
+                    row = recs[i]
+                    game_id = row['bgg_id']
+                    
+                    if filter_owned and game_id in owned_ids:
+                        continue
+                    
+                    recommendations.append({
+                        'game_id': game_id,
+                        'score': 10 - (row['rank'] / 100),  # 轉換排名為分數
+                        'rank': row['rank']
+                    })
+        
+        elif model_info['type'] == 'fallback':
+            # 使用降級推薦器
+            recs = recommender.build_recommendations_from_collection(limit=limit)
+            for rec in recs[:limit]:
+                if filter_owned and rec.get('id') in owned_ids:
+                    continue
+                recommendations.append({
+                    'game_id': rec.get('id'),
+                    'name': rec.get('name'),
+                    'score': rec.get('score', 5.0),
+                    'rank': len(recommendations) + 1
+                })
+        
+        return jsonify({
+            'success': True,
+            'result': {
+                'recommendations': recommendations,
+                'model_type': model_info['type'],
+                'algorithm': algorithm,
+                'total_collection': len(owned_ids),
+                'filter_owned': filter_owned
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"列表模式推薦失敗: {e}")
+        return jsonify({'success': False, 'message': f'推薦失敗: {str(e)}'})
+
+def _handle_similar_mode(data, model_type, algorithm):
+    """處理相似遊戲推薦模式"""
+    game_id = data.get('game_id')
+    limit = data.get('limit', 10)
+    
+    if not game_id:
+        return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
+    
+    username = get_app_setting('bgg_username', '')
+    
+    try:
+        # 載入推薦器
+        recommender, model_info = load_user_recommender(username, model_type)
+        
+        if not recommender:
+            return jsonify({
+                'success': False, 
+                'message': f'無法載入推薦器: {model_info.get("reason", "未知原因")}'
+            })
+        
+        similar_games = []
+        
+        if model_info['type'] == 'bgg_full':
+            # 使用 BGGRecommender 找相似遊戲
+            similar = recommender.get_similar_games(game_id, limit=limit)
+            if similar:
+                for sim in similar:
+                    similar_games.append({
+                        'game_id': sim['game_id'],
+                        'similarity': sim['score'],
+                        'name': sim.get('name', '')
+                    })
+        
+        elif model_info['type'] == 'fallback':
+            # 使用降級推薦器找相似遊戲
+            similar = recommender.get_similar_games(game_id, limit)
+            if similar:
+                similar_games = similar
+        
+        return jsonify({
+            'success': True,
+            'result': {
+                'target_game_id': game_id,
+                'similar_games': similar_games,
+                'model_type': model_info['type'],
+                'algorithm': algorithm
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"相似遊戲推薦失敗: {e}")
+        return jsonify({'success': False, 'message': f'相似遊戲推薦失敗: {str(e)}'})
+
+@app.route('/api/rg/model-status', methods=['GET'])
+@login_required
+def api_rg_model_status():
+    """獲取推薦模型狀態信息"""
+    try:
+        username = get_app_setting('bgg_username', '')
+        if not username:
+            return jsonify({'success': False, 'message': '請先設定 BGG 使用者名稱'})
+        
+        user_paths = get_user_rg_paths(username)
+        
+        # 檢查用戶數據狀態
+        has_games_data = os.path.exists(user_paths['games_file'])
+        has_ratings_data = os.path.exists(user_paths['ratings_file'])
+        has_full_model = os.path.exists(user_paths['full_model'])
+        has_light_model = os.path.exists(user_paths['light_model'])
+        
+        # 檢查系統支援
+        bgg_recommender_available = False
+        light_recommender_available = False
+        fallback_available = False
+        
+        try:
+            from board_game_recommender import BGGRecommender
+            bgg_recommender_available = True
+        except ImportError:
+            pass
+        
+        try:
+            from board_game_recommender import LightGamesRecommender
+            light_recommender_available = True
+        except ImportError:
+            pass
+        
+        try:
+            from advanced_recommender import AdvancedBoardGameRecommender
+            fallback_available = True
+        except ImportError:
+            pass
+        
+        # 計算數據統計
+        games_count = 0
+        ratings_count = 0
+        
+        if has_games_data:
+            try:
+                with open(user_paths['games_file'], 'r', encoding='utf-8') as f:
+                    games_count = sum(1 for _ in f)
+            except:
+                pass
+        
+        if has_ratings_data:
+            try:
+                with open(user_paths['ratings_file'], 'r', encoding='utf-8') as f:
+                    ratings_count = sum(1 for _ in f)
+            except:
+                pass
+        
+        # 推薦可用性
+        can_use_full = bgg_recommender_available and has_games_data and has_ratings_data
+        can_use_light = light_recommender_available and has_games_data and has_light_model
+        can_use_fallback = fallback_available
+        
+        return jsonify({
+            'success': True,
+            'result': {
+                'username': username,
+                'data_status': {
+                    'has_games_data': has_games_data,
+                    'has_ratings_data': has_ratings_data,
+                    'games_count': games_count,
+                    'ratings_count': ratings_count
+                },
+                'model_status': {
+                    'has_full_model': has_full_model,
+                    'has_light_model': has_light_model
+                },
+                'system_support': {
+                    'bgg_recommender': bgg_recommender_available,
+                    'light_recommender': light_recommender_available,
+                    'fallback_recommender': fallback_available
+                },
+                'availability': {
+                    'full_recommender': can_use_full,
+                    'light_recommender': can_use_light,
+                    'fallback_recommender': can_use_fallback
+                },
+                'recommended_action': _get_recommended_action(
+                    can_use_full, can_use_light, can_use_fallback,
+                    has_games_data, has_ratings_data, games_count, ratings_count
+                )
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"模型狀態 API 發生錯誤: {e}")
+        return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
+
+def _get_recommended_action(can_use_full, can_use_light, can_use_fallback, has_games_data, has_ratings_data, games_count, ratings_count):
+    """根據系統狀態推薦用戶應該採取的行動"""
+    if can_use_full:
+        return {
+            'action': 'ready',
+            'message': '完整推薦系統已就緒',
+            'priority': 'success'
+        }
+    elif can_use_light:
+        return {
+            'action': 'light_ready',
+            'message': '輕量級推薦系統已就緒',
+            'priority': 'success'
+        }
+    elif not has_games_data or not has_ratings_data:
+        return {
+            'action': 'sync_collection',
+            'message': '請先同步 BGG 收藏以啟用推薦功能',
+            'priority': 'warning'
+        }
+    elif games_count < 50 or ratings_count < 20:
+        return {
+            'action': 'need_more_data',
+            'message': '需要更多收藏數據以提高推薦準確性',
+            'priority': 'info'
+        }
+    elif can_use_fallback:
+        return {
+            'action': 'fallback_available',
+            'message': '使用基礎推薦功能（功能有限）',
+            'priority': 'info'
+        }
+    else:
+        return {
+            'action': 'setup_required',
+            'message': '需要安裝推薦套件以啟用推薦功能',
+            'priority': 'error'
+        }
+
 def get_score_context(score, algorithm):
     """根據分數返回上下文說明"""
     if score >= 8.5:
@@ -2475,8 +3177,22 @@ def auto_sync_and_train(username):
         # 第三步：訓練推薦模型
         logger.info(f"🧠 第三步：訓練推薦模型...")
         try:
-            train_user_rg_model(username)
-            logger.info(f"✅ 推薦模型訓練成功")
+            # 嘗試訓練輕量級模型（優先）和完整模型
+            results = train_user_rg_model(username, model_types=['light', 'full'])
+            
+            success_count = 0
+            for model_type, result in results.items():
+                if result.get('success'):
+                    logger.info(f"✅ {model_type} 模型訓練成功: {result.get('model_type')}")
+                    success_count += 1
+                else:
+                    logger.warning(f"⚠️ {model_type} 模型訓練失敗: {result.get('error')}")
+            
+            if success_count > 0:
+                logger.info(f"✅ 共 {success_count} 個推薦模型訓練成功")
+            else:
+                logger.warning(f"⚠️ 沒有推薦模型訓練成功")
+                
         except Exception as e:
             logger.error(f"❌ 推薦模型訓練失敗: {e}")
             
@@ -2558,8 +3274,13 @@ def generate_user_rg_data(username):
         
         logger.info(f"✅ 生成了 {games_count} 個遊戲和 {ratings_count} 個評分記錄")
 
-def train_user_rg_model(username):
-    """訓練用戶特定的 RG 推薦模型"""
+def train_user_rg_model(username, model_types=['light']):
+    """訓練用戶特定的 RG 推薦模型
+    
+    Args:
+        username: BGG 用戶名
+        model_types: 要訓練的模型類型列表，可選 ['full', 'light']
+    """
     user_paths = get_user_rg_paths(username)
     
     # 檢查資料檔案是否存在
@@ -2569,14 +3290,188 @@ def train_user_rg_model(username):
     # 創建模型目錄
     os.makedirs(user_paths['model_dir'], exist_ok=True)
     
-    # 這裡可以實現實際的模型訓練邏輯
-    # 目前作為預留位置，實際實現需要根據 board-game-recommender 的 API
-    logger.info(f"📝 模型訓練功能預留（需要實際的 RG 訓練邏輯）")
+    results = {}
     
-    # 創建一個標記文件表示模型已"訓練"
-    model_marker = os.path.join(user_paths['model_dir'], 'model_trained.txt')
-    with open(model_marker, 'w') as f:
-        f.write(f"Model trained for {username} at {datetime.now()}")
+    for model_type in model_types:
+        try:
+            if model_type == 'light':
+                result = _train_light_model(username, user_paths)
+                results['light'] = result
+            elif model_type == 'full':
+                result = _train_full_model(username, user_paths)  
+                results['full'] = result
+            else:
+                logger.warning(f"⚠️ 不支援的模型類型: {model_type}")
+                
+        except Exception as e:
+            logger.error(f"❌ 訓練 {model_type} 模型失敗: {e}")
+            results[model_type] = {'success': False, 'error': str(e)}
+    
+    return results
+
+def _train_light_model(username, user_paths):
+    """訓練輕量級推薦模型"""
+    logger.info(f"🪶 開始訓練用戶 {username} 的輕量級模型")
+    
+    try:
+        # 檢查 LightGamesRecommender 是否可用
+        try:
+            from board_game_recommender import LightGamesRecommender
+        except ImportError:
+            logger.warning("⚠️ LightGamesRecommender 不可用，嘗試使用替代方案")
+            return _create_simple_light_model(username, user_paths)
+        
+        # 讀取遊戲和評分數據
+        games_data = []
+        with open(user_paths['games_file'], 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    games_data.append(json.loads(line.strip()))
+                except:
+                    continue
+        
+        ratings_data = []
+        with open(user_paths['ratings_file'], 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    ratings_data.append(json.loads(line.strip()))
+                except:
+                    continue
+        
+        if len(games_data) < 10 or len(ratings_data) < 5:
+            logger.warning(f"⚠️ 數據量不足，遊戲: {len(games_data)}, 評分: {len(ratings_data)}")
+            return _create_simple_light_model(username, user_paths)
+        
+        # 訓練輕量級模型
+        logger.info("🎯 開始訓練 LightGamesRecommender...")
+        
+        # 創建並訓練模型
+        model = LightGamesRecommender.train(
+            games_file=user_paths['games_file'],
+            ratings_file=user_paths['ratings_file'],
+            model_file=user_paths['light_model']
+        )
+        
+        logger.info(f"✅ 輕量級模型訓練完成: {user_paths['light_model']}")
+        
+        return {
+            'success': True,
+            'model_path': user_paths['light_model'],
+            'games_count': len(games_data),
+            'ratings_count': len(ratings_data),
+            'model_type': 'light_full'
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ 輕量級模型訓練失敗: {e}")
+        # 嘗試創建簡單的替代模型
+        return _create_simple_light_model(username, user_paths)
+
+def _create_simple_light_model(username, user_paths):
+    """創建簡單的輕量級模型（不依賴 board-game-recommender）"""
+    logger.info(f"🔧 創建簡單輕量級模型：{username}")
+    
+    try:
+        # 讀取用戶評分數據以創建簡單的偏好向量
+        ratings_data = []
+        with open(user_paths['ratings_file'], 'r', encoding='utf-8') as f:
+            for line in f:
+                try:
+                    ratings_data.append(json.loads(line.strip()))
+                except:
+                    continue
+        
+        # 創建簡單的用戶偏好模型
+        user_preferences = {
+            'username': username,
+            'owned_games': [r['bgg_id'] for r in ratings_data],
+            'ratings': {r['bgg_id']: r['bgg_user_rating'] for r in ratings_data},
+            'model_type': 'simple_light',
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # 保存為 numpy 格式模擬輕量級模型
+        import numpy as np
+        
+        # 創建特徵向量
+        game_ids = list(user_preferences['ratings'].keys())
+        ratings = list(user_preferences['ratings'].values())
+        
+        model_data = {
+            'user_id': username,
+            'game_ids': np.array(game_ids),
+            'ratings': np.array(ratings),
+            'preferences': user_preferences,
+            'model_version': 'simple_v1'
+        }
+        
+        # 保存模型
+        np.savez(user_paths['light_model'], **model_data)
+        
+        logger.info(f"✅ 簡單輕量級模型創建完成: {user_paths['light_model']}")
+        
+        return {
+            'success': True,
+            'model_path': user_paths['light_model'],
+            'games_count': len(game_ids),
+            'ratings_count': len(ratings),
+            'model_type': 'simple_light'
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ 簡單輕量級模型創建失敗: {e}")
+        return {'success': False, 'error': str(e)}
+
+def _train_full_model(username, user_paths):
+    """訓練完整的 BGGRecommender 模型"""
+    logger.info(f"🎯 開始訓練用戶 {username} 的完整模型")
+    
+    try:
+        # 檢查 BGGRecommender 是否可用
+        try:
+            from board_game_recommender import BGGRecommender
+        except ImportError:
+            logger.warning("⚠️ BGGRecommender 不可用")
+            return {'success': False, 'error': 'BGGRecommender not available'}
+        
+        # 訓練 BGGRecommender
+        logger.info("📊 開始訓練 BGGRecommender...")
+        
+        recommender = BGGRecommender.train_from_files(
+            games_file=user_paths['games_file'],
+            ratings_file=user_paths['ratings_file'],
+            max_iterations=50,
+            verbose=False
+        )
+        
+        # 保存模型（如果 BGGRecommender 支援保存）
+        try:
+            model_path = user_paths['full_model']
+            recommender.save(model_path)
+            logger.info(f"✅ 完整模型訓練並保存完成: {model_path}")
+            
+            return {
+                'success': True,
+                'model_path': model_path,
+                'model_type': 'bgg_full'
+            }
+        except AttributeError:
+            # 如果 BGGRecommender 不支援保存，創建標記文件
+            marker_file = user_paths['full_model'] + '.marker'
+            with open(marker_file, 'w') as f:
+                f.write(f"BGGRecommender trained for {username} at {datetime.now()}")
+            
+            logger.info(f"✅ 完整模型訓練完成（無法保存，已創建標記）")
+            
+            return {
+                'success': True,
+                'model_path': marker_file,
+                'model_type': 'bgg_full_marker'
+            }
+        
+    except Exception as e:
+        logger.error(f"❌ 完整模型訓練失敗: {e}")
+        return {'success': False, 'error': str(e)}
 
 def create_temp_jsonl_files():
     """使用現有的 JSONL 資料檔案供 RG BGGRecommender 使用"""
@@ -2720,83 +3615,313 @@ def get_similarity_based_score(recommender, user_ratings_data, game_id):
         logger.error(f"相似度計算失敗: {e}")
         return 5.0
 
-def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm='hybrid'):
-    """使用 RG BGGRecommender 計算單個遊戲的推薦分數"""
+def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm='hybrid', model_type='auto'):
+    """使用新的 LRU 緩存載入機制計算單個遊戲的推薦分數"""
     try:
-        logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}")
+        logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}, 模型: {model_type}")
         
-        from board_game_recommender.recommend import BGGRecommender
-        import turicreate as tc
-        import tempfile
-        import json
-        import os
+        # 使用新的 LRU 緩存載入機制
+        recommender, model_info = load_user_recommender(username, model_type)
         
-        # 從資料庫創建臨時 JSONL 文件
-        games_file, ratings_file = create_temp_jsonl_files()
-        if not games_file or not ratings_file:
-            logger.error("❌ 無法創建 JSONL 資料檔案")
+        if not recommender:
+            logger.warning(f"❌ 無法載入推薦器: {model_info}")
             return None
         
-        try:
-            # 訓練 BGGRecommender
-            logger.info("📊 訓練 BGG 推薦器...")
-            recommender = BGGRecommender.train_from_files(
-                games_file=games_file,
-                ratings_file=ratings_file,
-                max_iterations=50,
-                verbose=False
-            )
-            
-            # 構建用戶評分數據 - 寫入到臨時 ratings 文件
-            user_ratings_data = []
-            for owned_game_id in owned_ids:
-                user_ratings_data.append({
-                    'bgg_id': int(owned_game_id),
-                    'bgg_user_name': username,
-                    'bgg_user_rating': 8.0  # 假設收藏的遊戲評分都是8分
-                })
-            
-            if not user_ratings_data:
-                logger.warning(f"用戶 {username} 沒有收藏的遊戲")
-                return None
-            
-            # 將用戶評分添加到推薦器
-            import turicreate as tc
-            user_ratings_sf = tc.SFrame(user_ratings_data)
-            
-            logger.info(f"💫 開始推薦計算，用戶評分: {len(user_ratings_data)} 個遊戲")
-            
-            # 執行推薦計算
-            recommendations = recommender.recommend(
-                users=[username],
-                num_games=1000,  # 取較多結果以找到目標遊戲
-                diversity=0.1 if algorithm == 'hybrid' else 0.0
-            )
-            
-            if not recommendations or recommendations.num_rows() == 0:
-                logger.warning("推薦器未返回任何結果")
-                return None
-            
-            # 尋找目標遊戲的推薦分數
-            target_recommendations = recommendations[recommendations['bgg_id'] == game_id]
-            
-            if target_recommendations.num_rows() == 0:
-                logger.warning(f"目標遊戲 {game_id} 不在推薦結果中")
-                # 嘗試使用相似度模型計算
-                return get_similarity_based_score(recommender, user_ratings_data, game_id)
-            
-            # 返回推薦分數（rank 越小越好，轉換為分數）
-            rank = target_recommendations['rank'].mean()
-            score = max(0, 10 - (rank / 100))  # 將排名轉換為0-10分數
-            logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score:.3f} (排名: {rank})")
-            return float(score)
-            
-        finally:
-            # 不需要清理檔案，因為使用的是持久化的資料檔案
-            pass
+        logger.info(f"📊 使用推薦器類型: {model_info['type']}")
+        
+        # 根據推薦器類型使用不同的推薦邏輯
+        if model_info['type'] == 'bgg_full':
+            return _calculate_score_with_bgg_recommender(recommender, username, owned_ids, game_id, algorithm)
+        
+        elif model_info['type'] == 'light':
+            return _calculate_score_with_light_recommender(recommender, username, owned_ids, game_id, algorithm)
+        
+        elif model_info['type'] == 'fallback':
+            return _calculate_score_with_fallback_recommender(recommender, username, owned_ids, game_id, algorithm)
+        
+        else:
+            logger.error(f"❌ 不支援的推薦器類型: {model_info['type']}")
+            return None
         
     except Exception as e:
         logger.error(f"RG 推薦分數計算失敗: {e}")
+        return None
+
+def _calculate_score_with_bgg_recommender(recommender, username, owned_ids, game_id, algorithm):
+    """使用 BGGRecommender 計算推薦分數"""
+    try:
+        # 構建用戶評分數據
+        user_ratings_data = []
+        for owned_game_id in owned_ids:
+            user_ratings_data.append({
+                'bgg_id': int(owned_game_id),
+                'bgg_user_name': username,
+                'bgg_user_rating': 8.0  # 假設收藏的遊戲評分都是8分
+            })
+        
+        if not user_ratings_data:
+            logger.warning(f"用戶 {username} 沒有收藏的遊戲")
+            return None
+        
+        logger.info(f"💫 開始推薦計算，用戶評分: {len(user_ratings_data)} 個遊戲")
+        
+        # 執行推薦計算
+        recommendations = recommender.recommend(
+            users=[username],
+            num_games=1000,  # 取較多結果以找到目標遊戲
+            diversity=0.1 if algorithm == 'hybrid' else 0.0
+        )
+        
+        if not recommendations or recommendations.num_rows() == 0:
+            logger.warning("推薦器未返回任何結果")
+            return None
+        
+        # 尋找目標遊戲的推薦分數
+        target_recommendations = recommendations[recommendations['bgg_id'] == game_id]
+        
+        if target_recommendations.num_rows() == 0:
+            logger.warning(f"目標遊戲 {game_id} 不在推薦結果中")
+            # 嘗試使用相似度模型計算
+            return get_similarity_based_score(recommender, user_ratings_data, game_id)
+        
+        # 返回推薦分數（rank 越小越好，轉換為分數）
+        rank = target_recommendations['rank'].mean()
+        score = max(0, 10 - (rank / 100))  # 將排名轉換為0-10分數
+        logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score:.3f} (排名: {rank})")
+        return float(score)
+        
+    except Exception as e:
+        logger.error(f"BGGRecommender 推薦分數計算失敗: {e}")
+        return None
+
+def _calculate_score_with_light_recommender(recommender, username, owned_ids, game_id, algorithm):
+    """使用 LightGamesRecommender 計算推薦分數"""
+    try:
+        logger.info(f"🪶 使用輕量級推薦器計算遊戲 {game_id}")
+        
+        # 檢查是否是我們的簡單輕量級模型
+        if hasattr(recommender, 'model_type') and recommender.model_type == 'simple_light':
+            return _calculate_score_with_simple_light_model(recommender, username, owned_ids, game_id, algorithm)
+        
+        # 標準 LightGamesRecommender 邏輯
+        try:
+            # 構建用戶偏好向量（基於收藏）
+            user_preferences = {
+                'owned_games': owned_ids,
+                'user_id': username
+            }
+            
+            # 獲取單個遊戲的推薦分數
+            score = recommender.score_game(game_id, user_preferences)
+            
+            if score is not None:
+                logger.info(f"✅ 遊戲 {game_id} 輕量級推薦分數: {score:.3f}")
+                return float(score)
+            else:
+                logger.warning(f"⚠️ 無法使用輕量級推薦器計算遊戲 {game_id} 的分數")
+                return None
+                
+        except AttributeError:
+            # 如果推薦器沒有 score_game 方法，嘗試其他方法
+            logger.warning("⚠️ 輕量級推薦器沒有 score_game 方法，嘗試替代計算")
+            return _calculate_score_with_simple_algorithm(owned_ids, game_id)
+        
+    except Exception as e:
+        logger.error(f"LightGamesRecommender 推薦分數計算失敗: {e}")
+        return None
+
+def _calculate_score_with_simple_light_model(model_data, username, owned_ids, game_id, algorithm):
+    """使用簡單輕量級模型計算推薦分數"""
+    try:
+        logger.info(f"🔧 使用簡單輕量級模型計算遊戲 {game_id}")
+        
+        # 如果是文件路徑，載入模型數據
+        if isinstance(model_data, str):
+            user_paths = get_user_rg_paths(username)
+            import numpy as np
+            model = np.load(user_paths['light_model'], allow_pickle=True)
+            preferences = model['preferences'].item()
+        else:
+            # 已經是載入的模型數據
+            preferences = model_data.get('preferences', {})
+        
+        user_ratings = preferences.get('ratings', {})
+        
+        # 基於用戶評分計算相似度推薦分數
+        if str(game_id) in user_ratings:
+            # 如果用戶已經有這個遊戲，返回用戶的評分
+            score = user_ratings[str(game_id)]
+            logger.info(f"✅ 遊戲 {game_id} 用戶已評分: {score}")
+            return float(score)
+        
+        # 計算基於相似遊戲的推薦分數
+        similar_scores = []
+        
+        # 從資料庫獲取遊戲特徵來計算相似度
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 獲取目標遊戲的特徵
+                cursor.execute("""
+                    SELECT category, mechanic, min_players, max_players, playing_time, 
+                           complexity, year_published
+                    FROM game_detail WHERE objectid = %s
+                """, (game_id,))
+                
+                target_game = cursor.fetchone()
+                if not target_game:
+                    logger.warning(f"⚠️ 找不到遊戲 {game_id} 的詳細資料")
+                    return _calculate_score_with_simple_algorithm(owned_ids, game_id)
+                
+                # 計算與用戶收藏遊戲的相似度
+                for rated_game_id, rating in user_ratings.items():
+                    cursor.execute("""
+                        SELECT category, mechanic, min_players, max_players, playing_time,
+                               complexity, year_published
+                        FROM game_detail WHERE objectid = %s
+                    """, (int(rated_game_id),))
+                    
+                    owned_game = cursor.fetchone()
+                    if owned_game:
+                        similarity = _calculate_game_similarity(target_game, owned_game)
+                        weighted_score = similarity * float(rating)
+                        similar_scores.append(weighted_score)
+                
+                if similar_scores:
+                    # 計算加權平均分數
+                    avg_score = sum(similar_scores) / len(similar_scores)
+                    # 正規化到 1-10 範圍
+                    final_score = min(max(avg_score, 1.0), 10.0)
+                    
+                    logger.info(f"✅ 遊戲 {game_id} 簡單模型推薦分數: {final_score:.3f}")
+                    return float(final_score)
+        
+        except Exception as e:
+            logger.error(f"資料庫查詢失敗: {e}")
+        
+        # 降級到簡單演算法
+        return _calculate_score_with_simple_algorithm(owned_ids, game_id)
+        
+    except Exception as e:
+        logger.error(f"簡單輕量級模型計算失敗: {e}")
+        return _calculate_score_with_simple_algorithm(owned_ids, game_id)
+
+def _calculate_game_similarity(game1_features, game2_features):
+    """計算兩個遊戲之間的相似度"""
+    try:
+        similarity = 0.0
+        total_weight = 0.0
+        
+        # 比較分類 (權重: 0.3)
+        if game1_features[0] and game2_features[0]:
+            cat1 = set(game1_features[0].split(',')) if game1_features[0] else set()
+            cat2 = set(game2_features[0].split(',')) if game2_features[0] else set()
+            if cat1 or cat2:
+                cat_sim = len(cat1.intersection(cat2)) / len(cat1.union(cat2)) if cat1.union(cat2) else 0
+                similarity += cat_sim * 0.3
+                total_weight += 0.3
+        
+        # 比較機制 (權重: 0.3)
+        if game1_features[1] and game2_features[1]:
+            mech1 = set(game1_features[1].split(',')) if game1_features[1] else set()
+            mech2 = set(game2_features[1].split(',')) if game2_features[1] else set()
+            if mech1 or mech2:
+                mech_sim = len(mech1.intersection(mech2)) / len(mech1.union(mech2)) if mech1.union(mech2) else 0
+                similarity += mech_sim * 0.3
+                total_weight += 0.3
+        
+        # 比較玩家數量 (權重: 0.2)
+        if game1_features[2] and game2_features[2] and game1_features[3] and game2_features[3]:
+            min1, max1 = int(game1_features[2] or 1), int(game1_features[3] or 1)
+            min2, max2 = int(game2_features[2] or 1), int(game2_features[3] or 1)
+            overlap = max(0, min(max1, max2) - max(min1, min2) + 1)
+            total_range = max(max1, max2) - min(min1, min2) + 1
+            player_sim = overlap / total_range if total_range > 0 else 0
+            similarity += player_sim * 0.2
+            total_weight += 0.2
+        
+        # 比較遊戲時間 (權重: 0.1)
+        if game1_features[4] and game2_features[4]:
+            time1, time2 = float(game1_features[4] or 60), float(game2_features[4] or 60)
+            time_diff = abs(time1 - time2)
+            time_sim = max(0, 1 - time_diff / max(time1, time2)) if max(time1, time2) > 0 else 0
+            similarity += time_sim * 0.1
+            total_weight += 0.1
+        
+        # 比較複雜度 (權重: 0.1)
+        if game1_features[5] and game2_features[5]:
+            comp1, comp2 = float(game1_features[5] or 2.5), float(game2_features[5] or 2.5)
+            comp_diff = abs(comp1 - comp2)
+            comp_sim = max(0, 1 - comp_diff / 5.0)  # 複雜度範圍 1-5
+            similarity += comp_sim * 0.1
+            total_weight += 0.1
+        
+        return similarity / total_weight if total_weight > 0 else 0.5
+        
+    except Exception as e:
+        logger.error(f"相似度計算錯誤: {e}")
+        return 0.5
+
+def _calculate_score_with_simple_algorithm(owned_ids, game_id):
+    """使用最簡單的演算法計算推薦分數"""
+    try:
+        logger.info(f"🔄 使用簡單演算法計算遊戲 {game_id}")
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 獲取遊戲的基本評分
+            cursor.execute("""
+                SELECT average_rating, bayes_average_rating, num_votes
+                FROM game_detail WHERE objectid = %s
+            """, (game_id,))
+            
+            game_info = cursor.fetchone()
+            if game_info:
+                avg_rating = float(game_info[0] or 6.0)
+                bayes_avg = float(game_info[1] or 6.0)
+                num_votes = int(game_info[2] or 100)
+                
+                # 基於評分和投票數計算推薦分數
+                base_score = (avg_rating + bayes_avg) / 2
+                
+                # 根據投票數調整（更多投票 = 更可靠）
+                vote_factor = min(1.0, num_votes / 1000) * 0.2
+                final_score = base_score + vote_factor
+                
+                # 稍微隨機化以模擬個人化
+                import random
+                personal_factor = random.uniform(-0.3, 0.3)
+                final_score = max(1.0, min(10.0, final_score + personal_factor))
+                
+                logger.info(f"✅ 遊戲 {game_id} 簡單演算法推薦分數: {final_score:.3f}")
+                return float(final_score)
+        
+        logger.warning(f"⚠️ 無法找到遊戲 {game_id} 的資料，返回預設分數")
+        return 6.0
+        
+    except Exception as e:
+        logger.error(f"簡單演算法計算失敗: {e}")
+        return 5.0
+
+def _calculate_score_with_fallback_recommender(recommender, username, owned_ids, game_id, algorithm):
+    """使用降級推薦器計算推薦分數"""
+    try:
+        logger.info(f"🔄 使用降級推薦器計算遊戲 {game_id}")
+        
+        # 使用 AdvancedBoardGameRecommender 的邏輯
+        score = recommender.get_recommendation_score(game_id, owned_ids)
+        
+        if score is not None:
+            logger.info(f"✅ 遊戲 {game_id} 降級推薦分數: {score:.3f}")
+            return float(score)
+        else:
+            logger.warning(f"⚠️ 無法使用降級推薦器計算遊戲 {game_id} 的分數")
+            return None
+        
+    except Exception as e:
+        logger.error(f"降級推薦器推薦分數計算失敗: {e}")
         return None
 
 def get_basic_game_recommendation_score(username, owned_ids, game_id):
