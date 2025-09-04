@@ -314,25 +314,51 @@ def _try_load_full_recommender(user_paths, username):
             logger.warning("⚠️ board_game_recommender 套件不可用")
             return None, {'type': 'error', 'reason': 'missing_package'}
         
-        # 嘗試使用用戶特定的 JSONL 檔案
-        logger.info(f"🎯 嘗試載入用戶 {username} 的完整 BGGRecommender")
+        # 尋找可用的 JSONL 檔案（優先用戶特定，降級到預設）
+        games_file, ratings_file = _find_best_jsonl_files(user_paths, username)
+        
+        if not games_file or not ratings_file:
+            logger.warning(f"⚠️ 找不到可用的 JSONL 資料檔案")
+            return None, {'type': 'error', 'reason': 'no_data_files'}
+        
+        logger.info(f"🎯 嘗試載入用戶 {username} 的完整 BGGRecommender，使用檔案: {games_file}")
         
         recommender = BGGRecommender(
-            games_file=user_paths['games_file'],
-            ratings_file=user_paths['ratings_file']
+            games_file=games_file,
+            ratings_file=ratings_file
         )
         
         logger.info(f"✅ 成功載入用戶 {username} 的完整 BGGRecommender")
         return recommender, {
             'type': 'bgg_full',
-            'games_file': user_paths['games_file'],
-            'ratings_file': user_paths['ratings_file'],
+            'games_file': games_file,
+            'ratings_file': ratings_file,
             'username': username
         }
         
     except Exception as e:
         logger.error(f"❌ 載入完整 BGGRecommender 失敗: {e}")
         return None, {'type': 'error', 'reason': str(e)}
+
+def _find_best_jsonl_files(user_paths, username):
+    """尋找最佳可用的 JSONL 檔案（優先用戶特定，降級到預設）"""
+    try:
+        # 優先使用用戶特定檔案
+        if os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file']):
+            logger.info(f"📋 使用用戶特定的 JSONL 檔案: {user_paths['games_file']}")
+            return user_paths['games_file'], user_paths['ratings_file']
+        
+        # 降級到預設檔案
+        if os.path.exists(RG_DEFAULT_GAMES_FILE) and os.path.exists(RG_DEFAULT_RATINGS_FILE):
+            logger.info(f"📋 使用預設 JSONL 檔案: {RG_DEFAULT_GAMES_FILE}")
+            return RG_DEFAULT_GAMES_FILE, RG_DEFAULT_RATINGS_FILE
+        
+        logger.warning("⚠️ 找不到任何可用的 JSONL 檔案")
+        return None, None
+        
+    except Exception as e:
+        logger.error(f"❌ 尋找 JSONL 檔案時發生錯誤: {e}")
+        return None, None
 
 def _try_load_light_recommender(user_paths, username):
     """嘗試載入輕量的 LightGamesRecommender"""
@@ -349,17 +375,23 @@ def _try_load_light_recommender(user_paths, username):
             logger.warning(f"⚠️ 用戶 {username} 的輕量模型檔案不存在: {user_paths['light_model']}")
             return None, {'type': 'error', 'reason': 'no_light_model'}
         
+        # 尋找可用的遊戲檔案
+        games_file, _ = _find_best_jsonl_files(user_paths, username)
+        if not games_file:
+            logger.warning(f"⚠️ 找不到遊戲資料檔案")
+            return None, {'type': 'error', 'reason': 'no_games_file'}
+        
         logger.info(f"🎯 嘗試載入用戶 {username} 的 LightGamesRecommender")
         
         recommender = LightGamesRecommender(
-            games_file=user_paths['games_file'],
+            games_file=games_file,
             model_file=user_paths['light_model']
         )
         
         logger.info(f"✅ 成功載入用戶 {username} 的 LightGamesRecommender")
         return recommender, {
             'type': 'light',
-            'games_file': user_paths['games_file'], 
+            'games_file': games_file, 
             'model_file': user_paths['light_model'],
             'username': username
         }
@@ -3169,8 +3201,8 @@ def auto_sync_and_train(username):
         # 第二步：生成用戶特定的 JSONL 資料
         logger.info(f"📊 第二步：生成推薦資料...")
         try:
-            generate_user_rg_data(username)
-            logger.info(f"✅ 推薦資料生成成功")
+            result = generate_user_rg_data(username, use_global_files=True)
+            logger.info(f"✅ 推薦資料生成成功: {result['games_count']} 遊戲, {result['ratings_count']} 評分")
         except Exception as e:
             logger.error(f"❌ 推薦資料生成失敗: {e}")
             
@@ -3201,12 +3233,31 @@ def auto_sync_and_train(username):
     except Exception as e:
         logger.error(f"❌ 自動同步和訓練異常: {e}")
 
-def generate_user_rg_data(username):
-    """為特定用戶生成 RG 推薦所需的 JSONL 資料"""
+def generate_user_rg_data(username, use_global_files=True):
+    """為特定用戶生成 RG 推薦所需的 JSONL 資料
+    
+    Args:
+        username: BGG 用戶名
+        use_global_files: 是否生成/更新全域檔案（預設路徑），同時複製到用戶目錄
+    """
     user_paths = get_user_rg_paths(username)
     
     with get_db_connection() as conn:
         cursor = conn.cursor()
+        
+        # 決定主要生成路徑
+        if use_global_files:
+            # 生成到預設路徑（供 scraper 和其他功能使用）
+            primary_games_file = RG_DEFAULT_GAMES_FILE
+            primary_ratings_file = RG_DEFAULT_RATINGS_FILE
+            # 確保預設目錄存在
+            os.makedirs('data', exist_ok=True)
+        else:
+            # 生成到用戶特定路徑
+            primary_games_file = user_paths['games_file']
+            primary_ratings_file = user_paths['ratings_file']
+            # 確保用戶目錄存在
+            os.makedirs(os.path.dirname(user_paths['games_file']), exist_ok=True)
         
         # 生成遊戲資料
         cursor.execute("""
@@ -3230,7 +3281,7 @@ def generate_user_rg_data(username):
         """)
         
         games_count = 0
-        with open(user_paths['games_file'], 'w', encoding='utf-8') as f:
+        with open(primary_games_file, 'w', encoding='utf-8') as f:
             for row in cursor.fetchall():
                 game_data = {
                     'bgg_id': row[0],
@@ -3262,7 +3313,7 @@ def generate_user_rg_data(username):
         """)
         
         ratings_count = 0
-        with open(user_paths['ratings_file'], 'w', encoding='utf-8') as f:
+        with open(primary_ratings_file, 'w', encoding='utf-8') as f:
             for row in cursor.fetchall():
                 rating_data = {
                     'bgg_id': row[0],
@@ -3272,7 +3323,30 @@ def generate_user_rg_data(username):
                 f.write(json.dumps(rating_data, ensure_ascii=False) + '\n')
                 ratings_count += 1
         
-        logger.info(f"✅ 生成了 {games_count} 個遊戲和 {ratings_count} 個評分記錄")
+        logger.info(f"✅ 生成了 {games_count} 個遊戲和 {ratings_count} 個評分記錄到 {primary_games_file}")
+        
+        # 如果生成到了預設路徑，同時複製到用戶特定路徑
+        if use_global_files and primary_games_file != user_paths['games_file']:
+            try:
+                import shutil
+                # 確保用戶目錄存在
+                os.makedirs(os.path.dirname(user_paths['games_file']), exist_ok=True)
+                
+                # 複製檔案
+                shutil.copy2(primary_games_file, user_paths['games_file'])
+                shutil.copy2(primary_ratings_file, user_paths['ratings_file'])
+                logger.info(f"📋 已複製檔案到用戶目錄: {user_paths['games_file']}")
+            except Exception as e:
+                logger.warning(f"⚠️ 複製到用戶目錄失敗: {e}")
+                
+        return {
+            'games_file': primary_games_file,
+            'ratings_file': primary_ratings_file,
+            'user_games_file': user_paths['games_file'],
+            'user_ratings_file': user_paths['ratings_file'],
+            'games_count': games_count,
+            'ratings_count': ratings_count
+        }
 
 def train_user_rg_model(username, model_types=['light']):
     """訓練用戶特定的 RG 推薦模型
@@ -3476,16 +3550,26 @@ def _train_full_model(username, user_paths):
 def create_temp_jsonl_files():
     """使用現有的 JSONL 資料檔案供 RG BGGRecommender 使用"""
     try:
-        games_file = "data/bgg_GameItem.jl"
-        ratings_file = "data/bgg_RatingItem.jl"
+        # 優先使用預設路徑的檔案（scraper 生成的）
+        games_file = RG_DEFAULT_GAMES_FILE
+        ratings_file = RG_DEFAULT_RATINGS_FILE
         
         # 檢查檔案是否存在
         if not os.path.exists(games_file) or not os.path.exists(ratings_file):
-            logger.warning("⚠️ JSONL 資料檔案不存在，可能在生產環境中")
+            logger.warning("⚠️ 預設 JSONL 資料檔案不存在")
+            
+            # 嘗試使用當前用戶的檔案
+            username = get_app_setting('bgg_username', '')
+            if username:
+                user_paths = get_user_rg_paths(username)
+                if os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file']):
+                    logger.info(f"🔄 使用用戶特定的 JSONL 檔案")
+                    return user_paths['games_file'], user_paths['ratings_file']
+            
             logger.info("🔄 將使用簡單推薦方法")
             return None, None
         
-        logger.info(f"📄 使用現有 JSONL 資料檔案: {games_file}, {ratings_file}")
+        logger.info(f"📄 使用預設 JSONL 資料檔案: {games_file}, {ratings_file}")
         return games_file, ratings_file
         
     except Exception as e:
