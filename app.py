@@ -2301,6 +2301,10 @@ def api_rg_recommend_score():
                 score = get_basic_game_recommendation_score(username, owned_ids, int(game_id))
             
             if score is None:
+                # 最後降級到生產環境推薦器
+                score = get_production_recommendation_score(username, owned_ids, int(game_id))
+            
+            if score is None:
                 return jsonify({
                     'success': False,
                     'message': '無法計算推薦分數，可能是模型未訓練或遊戲資料不足'
@@ -2346,6 +2350,97 @@ def create_temp_jsonl_files():
     except Exception as e:
         logger.error(f"存取 JSONL 檔案失敗: {e}")
         return None, None
+
+
+def get_production_recommendation_score(username, owned_ids, game_id):
+    """生產環境推薦分數計算 - 不依賴 turicreate"""
+    try:
+        logger.info(f"🏭 使用生產環境推薦器計算遊戲 {game_id} 的推薦分數")
+        
+        from advanced_recommender import AdvancedBoardGameRecommender
+        
+        # 使用本地的進階推薦器（不依賴 turicreate）
+        recommender = AdvancedBoardGameRecommender()
+        
+        if not recommender.load_data():
+            logger.warning("無法載入推薦器資料")
+            return None
+        
+        if not recommender.train_all_models():
+            logger.warning("無法訓練推薦器模型")
+            return None
+        
+        # 取得混合推薦
+        recommendations = recommender.recommend_hybrid(owned_ids, num_recs=100)
+        
+        # 查找目標遊戲的分數
+        for rec in recommendations:
+            if rec.get('objectid') == game_id:
+                score = rec.get('rec_score', 0)
+                logger.info(f"✅ 生產環境推薦分數: {score:.4f}")
+                return float(score)
+        
+        # 如果沒找到，計算基於內容的相似度分數
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 獲取目標遊戲資訊
+                cursor.execute("""
+                    SELECT categories, mechanics, rating, weight, minplayers, maxplayers
+                    FROM game_detail WHERE objectid = %s
+                """, (game_id,))
+                target_game = cursor.fetchone()
+                
+                if not target_game:
+                    return None
+                
+                # 獲取用戶收藏遊戲的平均特徵
+                placeholders = ','.join(['%s'] * len(owned_ids))
+                cursor.execute(f"""
+                    SELECT AVG(rating), AVG(weight), AVG(minplayers), AVG(maxplayers)
+                    FROM game_detail WHERE objectid IN ({placeholders})
+                """, owned_ids)
+                user_prefs = cursor.fetchone()
+                
+                if user_prefs:
+                    target_rating, target_weight = target_game[2] or 0, target_game[3] or 0
+                    user_avg_rating, user_avg_weight = user_prefs[0] or 0, user_prefs[1] or 0
+                    
+                    # 簡單的相似度計算
+                    rating_similarity = 1 - abs(target_rating - user_avg_rating) / 10
+                    weight_similarity = 1 - abs(target_weight - user_avg_weight) / 5
+                    
+                    # 綜合分數 (0-5 範圍)
+                    similarity_score = (rating_similarity + weight_similarity) / 2
+                    final_score = max(0, min(5, similarity_score * 5))
+                    
+                    logger.info(f"📊 基於內容相似度分數: {final_score:.4f}")
+                    return final_score
+                
+        except Exception as e:
+            logger.error(f"內容相似度計算失敗: {e}")
+        
+        # 最後的降級方案：返回目標遊戲的 BGG 評分
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT rating FROM game_detail WHERE objectid = %s", (game_id,))
+                result = cursor.fetchone()
+                if result and result[0]:
+                    bgr_rating = result[0]
+                    # 將 BGG 評分 (0-10) 轉換為推薦分數 (0-5)
+                    fallback_score = min(5, max(0, bgr_rating / 2))
+                    logger.info(f"🎯 降級方案 - BGG 評分推薦分數: {fallback_score:.4f}")
+                    return fallback_score
+        except Exception as e:
+            logger.error(f"BGG 評分降級計算失敗: {e}")
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"生產環境推薦分數計算失敗: {e}")
+        return None
 
 
 def get_similarity_based_score(recommender, user_ratings_data, game_id):
@@ -3837,6 +3932,21 @@ try:
         print("📋 模塊載入: 資料庫初始化線程已啟動")
     elif os.getenv('SKIP_MODULE_DB_INIT'):
         print("📋 模塊載入: 跳過資料庫初始化（由啟動腳本管理）")
+        
+        # 在 Zeabur 生產環境中，延遲檢查 RG 推薦資料
+        def delayed_rg_init():
+            import time
+            time.sleep(45)  # 等待 45 秒讓應用完全啟動
+            try:
+                from init_production_data import main as init_rg_data
+                print("🔍 [RG] 檢查推薦系統資料...")
+                init_rg_data()
+            except Exception as e:
+                print(f"⚠️ [RG] 推薦資料初始化警告: {e}")
+        
+        rg_thread = threading.Thread(target=delayed_rg_init, daemon=True)
+        rg_thread.start()
+        print("📋 模塊載入: RG 資料檢查線程已啟動")
 except Exception as e:
     print(f"⚠️ 模塊級初始化警告: {e}")
 
