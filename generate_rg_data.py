@@ -31,7 +31,10 @@ def generate_games_jsonl():
             games_file = "data/bgg_GameItem.jl"
             count = 0
             
-            if real_data_count > 0:
+            # 在生產環境中，我們需要至少 100 個遊戲才能有效推薦
+            min_games_for_production = 100
+            
+            if real_data_count >= min_games_for_production:
                 logger.info(f"📊 發現 {real_data_count} 個真實遊戲資料")
                 # 使用真實資料
                 cursor.execute("""
