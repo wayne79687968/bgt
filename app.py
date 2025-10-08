@@ -26,13 +26,14 @@ import threading
 import time
 from functools import lru_cache
 
-# 進階推薦系統
+# BGG 推薦系統 (board-game-recommender)
 try:
-    from advanced_recommender import AdvancedBoardGameRecommender
-    ADVANCED_RECOMMENDER_AVAILABLE = True
+    from simple_recommender import SimpleBGGRecommender, calculate_recommendation_score
+    BGG_RECOMMENDER_AVAILABLE = True
+    logging.info("✅ 簡化 BGG 推薦系統載入成功")
 except ImportError as e:
-    logging.warning(f"進階推薦系統無法載入: {e}")
-    ADVANCED_RECOMMENDER_AVAILABLE = False
+    logging.warning(f"BGG 推薦系統無法載入: {e}")
+    BGG_RECOMMENDER_AVAILABLE = False
 
 # 全域任務狀態追蹤
 task_status = {
@@ -2728,20 +2729,19 @@ def api_bgg_search():
 @app.route('/api/rg/recommend-score', methods=['POST'])
 @login_required
 def api_rg_recommend_score():
-    """計算特定遊戲的 RG 推薦分數"""
+    """計算特定遊戲的推薦分數 - 簡化版本"""
     try:
+        from simple_recommender import calculate_recommendation_score
+
         data = request.get_json()
         game_id = data.get('game_id')
-        game_name = data.get('game_name')
-        algorithm = data.get('algorithm', 'hybrid')
-        
+        game_name = data.get('game_name', 'Unknown Game')
+
         if not game_id:
             return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
-        
+
         # 獲取使用者收藏
-        username = get_app_setting('bgg_username', '')
         owned_ids = []
-        
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
@@ -2749,265 +2749,40 @@ def api_rg_recommend_score():
                 owned_ids = [row[0] for row in cursor.fetchall()]
         except Exception as e:
             logger.warning(f"無法獲取使用者收藏: {e}")
-        
+
         if not owned_ids:
             return jsonify({
-                'success': False, 
+                'success': False,
                 'message': '請先同步您的 BGG 收藏才能計算推薦分數'
             })
-        
-        # 使用 RG 推薦引擎計算分數
-        try:
-            # 首先嘗試使用進階推薦器
-            score = get_single_game_recommendation_score(username, owned_ids, int(game_id), algorithm)
-            
-            if score is None:
-                # 如果進階推薦器不可用，嘗試基礎推薦器
-                score = get_basic_game_recommendation_score(username, owned_ids, int(game_id))
-            
-            if score is None:
-                # 最後降級到生產環境推薦器
-                score = get_production_recommendation_score(username, owned_ids, int(game_id))
-            
-            if score is None:
-                return jsonify({
-                    'success': False,
-                    'message': '無法計算推薦分數，可能是模型未訓練或遊戲資料不足'
-                })
-            
-            # 計算分數的上下文信息
-            score_context = get_score_context(score, algorithm)
-            
-            return jsonify({
-                'success': True,
-                'result': {
-                    'game_id': game_id,
-                    'name': game_name,
-                    'score': score,
-                    'max_score': 10.0,  # BGG 評分最高為 10
-                    'score_level': score_context['level'],
-                    'score_description': score_context['description'],
-                    'algorithm': algorithm,
-                    'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
-                }
-            })
-            
-        except Exception as e:
-            logger.error(f"推薦分數計算失敗: {e}")
+
+        # 使用簡化推薦器計算分數
+        result = calculate_recommendation_score(int(game_id), owned_ids)
+
+        if result is None:
             return jsonify({
                 'success': False,
-                'message': f'推薦分數計算失敗: {str(e)}'
+                'message': '無法計算推薦分數，可能是遊戲資料不足'
             })
-        
+
+        return jsonify({
+            'success': True,
+            'result': {
+                'game_id': game_id,
+                'name': game_name,
+                'score': result['score'],
+                'max_score': result['max_score'],
+                'score_level': result['level'],
+                'score_description': result['description'],
+                'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
+            }
+        })
+
     except Exception as e:
         logger.error(f"推薦分數 API 發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
 
-@app.route('/api/rg/recommend-advanced', methods=['POST'])
-@login_required
-def api_rg_recommend_advanced():
-    """高級推薦 API - 支援多種模式和模型類型"""
-    try:
-        data = request.get_json()
-        mode = data.get('mode', 'score')  # 'score', 'list', 'similar'
-        model_type = data.get('model_type', 'auto')  # 'auto', 'full', 'light'
-        algorithm = data.get('algorithm', 'hybrid')
-        
-        # 根據模式決定處理邏輯
-        if mode == 'score':
-            return _handle_score_mode(data, model_type, algorithm)
-        elif mode == 'list':
-            return _handle_list_mode(data, model_type, algorithm)
-        elif mode == 'similar':
-            return _handle_similar_mode(data, model_type, algorithm)
-        else:
-            return jsonify({'success': False, 'message': f'不支援的推薦模式: {mode}'})
-            
-    except Exception as e:
-        logger.error(f"高級推薦 API 發生錯誤: {e}")
-        return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
-
-def _handle_score_mode(data, model_type, algorithm):
-    """處理單個遊戲分數計算模式"""
-    game_id = data.get('game_id')
-    game_name = data.get('game_name')
-    
-    if not game_id:
-        return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
-    
-    username = get_app_setting('bgg_username', '')
-    owned_ids = []
-    
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT objectid FROM collection")
-            owned_ids = [row[0] for row in cursor.fetchall()]
-    except Exception as e:
-        logger.warning(f"無法獲取使用者收藏: {e}")
-    
-    if not owned_ids:
-        return jsonify({
-            'success': False, 
-            'message': '請先同步您的 BGG 收藏才能計算推薦分數'
-        })
-    
-    # 使用新的推薦系統
-    score = get_single_game_recommendation_score(username, owned_ids, int(game_id), algorithm, model_type)
-    
-    if score is None:
-        return jsonify({
-            'success': False,
-            'message': '無法計算推薦分數，可能是模型未準備好或遊戲資料不足'
-        })
-    
-    score_context = get_score_context(score, algorithm)
-    
-    return jsonify({
-        'success': True,
-        'result': {
-            'game_id': game_id,
-            'name': game_name,
-            'score': score,
-            'max_score': 10.0,
-            'score_level': score_context['level'],
-            'score_description': score_context['description'],
-            'algorithm': algorithm,
-            'model_type': model_type,
-            'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
-        }
-    })
-
-def _handle_list_mode(data, model_type, algorithm):
-    """處理推薦列表模式"""
-    limit = data.get('limit', 20)
-    filter_owned = data.get('filter_owned', True)
-    
-    username = get_app_setting('bgg_username', '')
-    if not username:
-        return jsonify({'success': False, 'message': '請先設定 BGG 使用者名稱'})
-    
-    try:
-        # 載入推薦器
-        recommender, model_info = load_user_recommender(username, model_type)
-        
-        if not recommender:
-            return jsonify({
-                'success': False, 
-                'message': f'無法載入推薦器: {model_info.get("reason", "未知原因")}'
-            })
-        
-        # 獲取用戶收藏
-        owned_ids = []
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT objectid FROM collection")
-            owned_ids = [row[0] for row in cursor.fetchall()]
-        
-        recommendations = []
-        
-        if model_info['type'] == 'bgg_full':
-            # 使用 BGGRecommender 生成推薦列表
-            recs = recommender.recommend(
-                users=[username],
-                num_games=limit,
-                diversity=0.1 if algorithm == 'hybrid' else 0.0
-            )
-            
-            if recs and recs.num_rows() > 0:
-                for i in range(min(limit, recs.num_rows())):
-                    row = recs[i]
-                    game_id = row['bgg_id']
-                    
-                    if filter_owned and game_id in owned_ids:
-                        continue
-                    
-                    recommendations.append({
-                        'game_id': game_id,
-                        'score': 10 - (row['rank'] / 100),  # 轉換排名為分數
-                        'rank': row['rank']
-                    })
-        
-        elif model_info['type'] == 'fallback':
-            # 使用降級推薦器
-            recs = recommender.build_recommendations_from_collection(limit=limit)
-            for rec in recs[:limit]:
-                if filter_owned and rec.get('id') in owned_ids:
-                    continue
-                recommendations.append({
-                    'game_id': rec.get('id'),
-                    'name': rec.get('name'),
-                    'score': rec.get('score', 5.0),
-                    'rank': len(recommendations) + 1
-                })
-        
-        return jsonify({
-            'success': True,
-            'result': {
-                'recommendations': recommendations,
-                'model_type': model_info['type'],
-                'algorithm': algorithm,
-                'total_collection': len(owned_ids),
-                'filter_owned': filter_owned
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"列表模式推薦失敗: {e}")
-        return jsonify({'success': False, 'message': f'推薦失敗: {str(e)}'})
-
-def _handle_similar_mode(data, model_type, algorithm):
-    """處理相似遊戲推薦模式"""
-    game_id = data.get('game_id')
-    limit = data.get('limit', 10)
-    
-    if not game_id:
-        return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
-    
-    username = get_app_setting('bgg_username', '')
-    
-    try:
-        # 載入推薦器
-        recommender, model_info = load_user_recommender(username, model_type)
-        
-        if not recommender:
-            return jsonify({
-                'success': False, 
-                'message': f'無法載入推薦器: {model_info.get("reason", "未知原因")}'
-            })
-        
-        similar_games = []
-        
-        if model_info['type'] == 'bgg_full':
-            # 使用 BGGRecommender 找相似遊戲
-            similar = recommender.get_similar_games(game_id, limit=limit)
-            if similar:
-                for sim in similar:
-                    similar_games.append({
-                        'game_id': sim['game_id'],
-                        'similarity': sim['score'],
-                        'name': sim.get('name', '')
-                    })
-        
-        elif model_info['type'] == 'fallback':
-            # 使用降級推薦器找相似遊戲
-            similar = recommender.get_similar_games(game_id, limit)
-            if similar:
-                similar_games = similar
-        
-        return jsonify({
-            'success': True,
-            'result': {
-                'target_game_id': game_id,
-                'similar_games': similar_games,
-                'model_type': model_info['type'],
-                'algorithm': algorithm
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"相似遊戲推薦失敗: {e}")
-        return jsonify({'success': False, 'message': f'相似遊戲推薦失敗: {str(e)}'})
+# 複雜的高級推薦 API 已移除，請使用 /api/rg/recommend-score
 
 @app.route('/api/rg/model-status', methods=['GET'])
 @login_required

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}RG 推薦 - BGG 熱門遊戲報表{% endblock %}
+{% block title %}BGG 推薦 - 簡化版{% endblock %}
 
 {% block head %}
 <style>
-/* Google Search 風格的樣式 */
+/* 簡潔的 Google Search 風格 */
 .search-container {
     min-height: 60vh;
     display: flex;
@@ -36,24 +36,13 @@
     padding: 0 50px 0 20px;
     font-size: 16px;
     outline: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    background: linear-gradient(145deg, #ffffff, #f8f9fa);
 }
 
 .search-input:focus {
     border-color: #4285f4;
-    box-shadow: 0 4px 20px rgba(66,133,244,0.2), 0 0 0 3px rgba(66,133,244,0.1);
-    transform: translateY(-1px);
-}
-
-.search-input::placeholder {
-    color: #999;
-    transition: color 0.3s ease;
-}
-
-.search-input:focus::placeholder {
-    color: #bbb;
+    box-shadow: 0 4px 20px rgba(66,133,244,0.2);
 }
 
 .search-btn {
@@ -61,7 +50,7 @@
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    background: linear-gradient(135deg, #4285f4, #34a853);
+    background: #4285f4;
     border: none;
     border-radius: 50%;
     width: 35px;
@@ -69,57 +58,15 @@
     color: white;
     font-size: 16px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(66,133,244,0.3);
+    transition: all 0.3s ease;
 }
 
 .search-btn:hover {
-    background: linear-gradient(135deg, #3367d6, #2d7d32);
+    background: #3367d6;
     transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 4px 15px rgba(66,133,244,0.4);
 }
 
-.search-btn:active {
-    transform: translateY(-50%) scale(0.95);
-}
-
-.search-options {
-    display: flex;
-    gap: 15px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 2rem;
-}
-
-.search-options button {
-    padding: 12px 24px;
-    border: 1px solid #ddd;
-    border-radius: 25px;
-    background: linear-gradient(145deg, #ffffff, #f8f9fa);
-    color: #333;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.search-options button:hover {
-    border-color: #4285f4;
-    color: #4285f4;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(66,133,244,0.15);
-}
-
-.search-options button.active {
-    background: linear-gradient(135deg, #4285f4, #34a853);
-    color: white;
-    border-color: #4285f4;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(66,133,244,0.3);
-}
-
-/* 浮窗樣式 */
+/* 搜尋結果浮窗 */
 .search-overlay {
     position: fixed;
     top: 0;
@@ -153,8 +100,6 @@
     transition: all 0.3s ease;
     border-radius: 8px;
     margin-bottom: 10px;
-    animation: slideInUp 0.4s ease;
-    animation-fill-mode: both;
 }
 
 .search-result-item:hover {
@@ -172,23 +117,9 @@
     font-size: 14px;
 }
 
-.score-high { background: linear-gradient(135deg, #28a745, #20c997); }
-.score-medium { background: linear-gradient(135deg, #ffc107, #fd7e14); }
-.score-low { background: linear-gradient(135deg, #dc3545, #e83e8c); }
-
-.grid-view {
-    display: none;
-}
-
-.grid-view.active {
-    display: block;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+.score-high { background: #28a745; }
+.score-medium { background: #ffc107; }
+.score-low { background: #dc3545; }
 
 .close-btn {
     position: absolute;
@@ -199,10 +130,6 @@
     font-size: 24px;
     cursor: pointer;
     color: #666;
-}
-
-.close-btn:hover {
-    color: #333;
 }
 
 .user-info {
@@ -217,6 +144,12 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     z-index: 1000;
 }
+
+.alert-info {
+    margin: 2rem auto;
+    max-width: 600px;
+    text-align: left;
+}
 </style>
 {% endblock %}
 
@@ -226,53 +159,26 @@
     <div class="user-info">
         BGG 使用者：<strong>{{ bgg_username or '未設定' }}</strong>
     </div>
-    
+
     <!-- Google Search 風格的主介面 -->
-    <div class="search-container" id="mainSearch">
-        <div class="search-logo">🧠 RG 智能推薦</div>
-        
+    <div class="search-container">
+        <div class="search-logo">🎲 BGG 遊戲推薦</div>
+
         <div class="search-box">
-            <input type="text" class="search-input" id="gameSearchInput" placeholder="搜尋桌遊名稱，獲取個人化推薦分數..." onkeypress="if(event.key=='Enter') searchGames()">
+            <input type="text" class="search-input" id="gameSearchInput"
+                   placeholder="搜尋桌遊名稱，獲取推薦分數..."
+                   onkeypress="if(event.key=='Enter') searchGames()">
             <button class="search-btn" onclick="searchGames()">🔍</button>
         </div>
-        
-        <div class="search-options">
-            <button id="exactSearchBtn" onclick="toggleExactSearch()">精確搜尋</button>
-            <button id="directRecommendBtn" onclick="showDirectRecommendations()" class="active">📋 直接推薦</button>
-            <button onclick="showAlgorithmSettings()">⚙️ 算法設定</button>
+
+        {% if not bgg_username %}
+        <div class="alert alert-warning">
+            <h5>⚠️ 需要設定 BGG 用戶名</h5>
+            <p>請先設定您的 BGG 用戶名並同步收藏才能使用推薦功能</p>
+            <a href="{{ url_for('settings') }}" class="btn btn-primary">前往設定</a>
         </div>
+        {% endif %}
     </div>
-    
-    <!-- 格狀推薦列表區域 (隱藏的) -->
-    <div class="grid-view" id="gridView">
-        <div class="container-fluid mt-3">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3>📋 直接推薦列表</h3>
-                <button class="btn btn-outline-secondary" onclick="backToSearch()">← 返回搜尋</button>
-            </div>
-            
-            <!-- 算法選擇器 -->
-            <div class="row mb-4">
-                <div class="col-md-8">
-                    <select class="form-select" id="algorithmSelect" onchange="changeAlgorithm()">
-                        {% for algo in available_algorithms %}
-                        <option value="{{ algo.value }}" {% if algo.value == current_algorithm %}selected{% endif %}>
-                            {{ algo.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <small class="form-text text-muted" id="algorithmDescription">
-                        {% for algo in available_algorithms %}
-                            {% if algo.value == current_algorithm %}{{ algo.description }}{% endif %}
-                        {% endfor %}
-                    </small>
-                </div>
-                <div class="col-md-4">
-                    <button type="button" class="btn btn-primary" onclick="refreshRecommendations()">
-                        🔄 重新推薦
-                    </button>
-                </div>
-            </div>
 
     <!-- 搜尋結果浮窗 -->
     <div class="search-overlay" id="searchOverlay">
@@ -285,153 +191,31 @@
         </div>
     </div>
 
-    <!-- RG 設置提示模態框 -->
-    <div class="search-overlay" id="rgSetupModal" style="display: none;">
-        <div class="search-popup">
-            <button class="close-btn" onclick="closeRGSetupModal()">×</button>
-            <div id="rgSetupContent">
-                <!-- RG 設置內容將在這裡顯示 -->
-            </div>
-        </div>
-    </div>
-
     <script>
-    let exactSearch = false;
-
-    // 頁面初始化
-    document.addEventListener('DOMContentLoaded', function() {
-        const currentView = '{{ current_view }}';
-        if (currentView === 'grid') {
-            showDirectRecommendations();
-        }
-    });
-
-    function changeAlgorithm() {
-        const select = document.getElementById('algorithmSelect');
-        const descriptions = {
-            {% for algo in available_algorithms %}
-            '{{ algo.value }}': '{{ algo.description }}',
-            {% endfor %}
-        };
-
-        document.getElementById('algorithmDescription').textContent = descriptions[select.value];
-
-        // 檢查當前是否在直接推薦頁面
-        const gridView = document.getElementById('gridView');
-        const isInGridView = gridView.classList.contains('active');
-
-        // 自動重新載入推薦
-        const url = new URL(window.location);
-        url.searchParams.set('algorithm', select.value);
-        if (isInGridView) {
-            url.searchParams.set('view', 'grid');
-        }
-        window.location.href = url.toString();
-    }
-
-    function refreshRecommendations() {
-        window.location.reload();
-    }
-
-    function toggleExactSearch() {
-        exactSearch = !exactSearch;
-        const btn = document.getElementById('exactSearchBtn');
-        if (exactSearch) {
-            btn.classList.add('active');
-            btn.textContent = '✓ 精確搜尋';
-        } else {
-            btn.classList.remove('active');
-            btn.textContent = '精確搜尋';
-        }
-    }
-
-    async function showDirectRecommendations() {
-        // 先檢查 RG 系統狀態
-        const rgStatus = await checkRGStatus();
-        if (!rgStatus.success) {
-            if (rgStatus.need_username) {
-                showRGSetupModal('setup_username');
-                return;
-            }
-        } else if (!rgStatus.status.is_ready_for_recommendations) {
-            showRGSetupModal('need_data');
-            return;
-        }
-        
-        document.getElementById('mainSearch').style.display = 'none';
-        const gridView = document.getElementById('gridView');
-        gridView.style.display = 'block';
-        gridView.classList.add('active');
-    }
-
-    function backToSearch() {
-        document.getElementById('mainSearch').style.display = 'flex';
-        document.getElementById('gridView').classList.remove('active');
-        document.getElementById('gridView').style.display = 'none';
-    }
-
-    function showAlgorithmSettings() {
-        alert('算法設定功能開發中...');
-    }
-
-    function closeSearchResults() {
-        const overlay = document.getElementById('searchOverlay');
-        overlay.style.animation = 'fadeOut 0.3s ease';
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            overlay.style.animation = '';
-        }, 300);
-    }
-
-    // 檢查 RG 系統狀態
-    async function checkRGStatus() {
-        try {
-            const response = await fetch('/api/rg-status');
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('RG 狀態檢查失敗:', error);
-            return { success: false, message: '無法檢查 RG 系統狀態' };
-        }
-    }
-
-    // BGG 遊戲搜尋功能
     async function searchGames() {
         const query = document.getElementById('gameSearchInput').value.trim();
-        
+
         if (!query) {
             showNotification('請輸入搜尋關鍵字', 'warning');
             return;
         }
-        
-        // 先檢查 RG 系統狀態
-        const rgStatus = await checkRGStatus();
-        if (!rgStatus.success) {
-            if (rgStatus.need_username) {
-                showRGSetupModal('setup_username');
-                return;
-            }
-        } else if (!rgStatus.status.is_ready_for_recommendations) {
-            showRGSetupModal('need_data');
-            return;
-        }
-        
+
         // 顯示載入動畫
         const searchBtn = document.querySelector('.search-btn');
         const originalContent = searchBtn.innerHTML;
         searchBtn.innerHTML = '⏳';
-        
+
         try {
             const response = await fetch('/api/bgg/search', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ query: query, exact: exactSearch })
+                body: JSON.stringify({ query: query, exact: false })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 displaySearchResults(data.results);
             } else {
@@ -447,12 +231,12 @@
 
     function displaySearchResults(results) {
         const searchResultsList = document.getElementById('searchResultsList');
-        
+
         if (results.length === 0) {
             searchResultsList.innerHTML = `
                 <div class="text-center py-4">
                     <p class="text-muted">沒有找到相關遊戲</p>
-                    <small>試試調整搜尋關鍵字或取消精確搜尋</small>
+                    <small>試試調整搜尋關鍵字</small>
                 </div>
             `;
         } else {
@@ -477,11 +261,10 @@
             });
             searchResultsList.innerHTML = html;
         }
-        
+
         // 顯示搜尋結果浮窗
         const overlay = document.getElementById('searchOverlay');
         overlay.style.display = 'block';
-        overlay.style.animation = 'fadeIn 0.3s ease';
     }
 
     async function getGameRecommendation(gameId, gameName) {
@@ -497,29 +280,24 @@
             `;
             document.getElementById('searchResultsList').innerHTML = loadingHtml;
 
-            const algorithmSelect = document.getElementById('algorithmSelect');
-            const algorithm = algorithmSelect ? algorithmSelect.value : 'hybrid';
-            
             const response = await fetch('/api/rg/recommend-score', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     game_id: gameId,
-                    game_name: gameName,
-                    algorithm: algorithm
+                    game_name: gameName
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 displayRecommendationResult(data.result);
             } else {
                 showNotification('獲取推薦分數失敗: ' + data.message, 'error');
-                // 重新顯示搜尋結果
-                searchGames();
+                searchGames(); // 重新顯示搜尋結果
             }
         } catch (error) {
             console.error('推薦分數計算錯誤:', error);
@@ -537,12 +315,12 @@
         }
 
         const html = `
-            <div class="text-center py-4" style="animation: slideInUp 0.4s ease">
+            <div class="text-center py-4">
                 <div class="mb-3">
                     <h5>${result.name}</h5>
                     ${result.year ? `<small class="text-muted">(${result.year})</small>` : ''}
                 </div>
-                
+
                 <div class="mb-4">
                     <div class="mb-2">
                         <span class="recommendation-score ${scoreClass}">
@@ -557,13 +335,13 @@
                         </div>
                     ` : ''}
                 </div>
-                
+
                 ${result.details ? `
                     <div class="mb-3">
                         <small class="text-muted">${result.details}</small>
                     </div>
                 ` : ''}
-                
+
                 <div class="d-flex gap-2 justify-content-center">
                     <a href="https://boardgamegeek.com/boardgame/${result.game_id}" target="_blank" class="btn btn-outline-primary btn-sm">
                         在 BGG 查看
@@ -574,231 +352,39 @@
                 </div>
             </div>
         `;
-        
+
         document.getElementById('searchResultsList').innerHTML = html;
     }
 
-    function showRGSetupModal(type) {
-        const modal = document.getElementById('rgSetupModal');
-        const content = document.getElementById('rgSetupContent');
-        
-        let html = '';
-        if (type === 'setup_username') {
-            html = `
-                <div class="text-center py-4">
-                    <h4>⚙️ 需要設定 BGG 用戶名</h4>
-                    <p class="mb-4">請先設定您的 BGG 用戶名才能使用推薦功能</p>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <a href="{{ url_for('settings') }}" class="btn btn-primary">
-                            前往設定
-                        </a>
-                        <button class="btn btn-outline-secondary" onclick="closeRGSetupModal()">
-                            稍後再說
-                        </button>
-                    </div>
-                </div>
-            `;
-        } else if (type === 'need_data') {
-            html = `
-                <div class="text-center py-4">
-                    <h4>📊 需要初始化推薦數據</h4>
-                    <p class="mb-3">推薦系統需要您的 BGG 收藏和遊戲數據才能工作</p>
-                    <div class="mb-4">
-                        <small class="text-muted">這將會：</small>
-                        <ul class="text-start mt-2" style="display: inline-block;">
-                            <li>同步您的 BGG 收藏</li>
-                            <li>下載遊戲資料庫</li>
-                            <li>訓練個人化推薦模型</li>
-                        </ul>
-                    </div>
-                    <div class="d-flex gap-2 justify-content-center">
-                        <button class="btn btn-success" onclick="initializeRGData()">
-                            🚀 開始初始化
-                        </button>
-                        <a href="{{ url_for('settings') }}" class="btn btn-outline-primary">
-                            前往設定頁面
-                        </a>
-                        <button class="btn btn-outline-secondary" onclick="closeRGSetupModal()">
-                            稍後再說
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-        
-        content.innerHTML = html;
-        modal.style.display = 'block';
-        modal.style.animation = 'fadeIn 0.3s ease';
-    }
-
-    function closeRGSetupModal() {
-        const modal = document.getElementById('rgSetupModal');
-        modal.style.animation = 'fadeOut 0.3s ease';
-        setTimeout(() => {
-            modal.style.display = 'none';
-            modal.style.animation = '';
-        }, 300);
-    }
-
-    async function initializeRGData() {
-        // 顯示進度
-        const content = document.getElementById('rgSetupContent');
-        content.innerHTML = `
-            <div class="text-center py-4">
-                <h4>🔄 正在初始化...</h4>
-                <div class="spinner-border text-primary my-3" role="status">
-                    <span class="visually-hidden">處理中...</span>
-                </div>
-                <p>請稍候，這可能需要幾分鐘時間</p>
-            </div>
-        `;
-        
-        try {
-            // 觸發收藏同步和模型訓練
-            const response = await fetch('/api/rg-scrape', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showNotification('推薦系統初始化已開始，請稍後再試', 'success');
-                closeRGSetupModal();
-            } else {
-                showNotification('初始化失敗: ' + data.message, 'error');
-                closeRGSetupModal();
-            }
-        } catch (error) {
-            console.error('初始化錯誤:', error);
-            showNotification('初始化時發生錯誤', 'error');
-            closeRGSetupModal();
-        }
+    function closeSearchResults() {
+        document.getElementById('searchOverlay').style.display = 'none';
     }
 
     function showNotification(message, type = 'info') {
         // 創建通知元素
         const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'} notification`;
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`;
         notification.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 10000;
             min-width: 300px;
-            animation: slideInRight 0.3s ease;
         `;
         notification.textContent = message;
-        
+
         document.body.appendChild(notification);
-        
+
         // 3秒後自動移除
         setTimeout(() => {
-            notification.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => {
-                document.body.removeChild(notification);
-            }, 300);
+            document.body.removeChild(notification);
         }, 3000);
     }
-
-    // 添加 CSS 動畫
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slideInRight {
-            from { opacity: 0; transform: translateX(100%); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes slideOutRight {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(100%); }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
     </script>
 
-    {% if rg_results %}
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            {% for g in rg_results %}
-            <div class="col">
-                <div class="card h-100">
-                    {% if g.image %}
-                    <img src="{{ g.image }}" class="card-img-top" alt="{{ g.name }}">
-                    {% endif %}
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://boardgamegeek.com/boardgame/{{ g.game_id }}" target="_blank" rel="noopener noreferrer">{{ g.name }}</a>
-                            {% if g.year %}<small class="text-muted">({{ g.year }})</small>{% endif %}
-                        </h5>
-                        <div class="mb-2">
-                            {% if g.rating %}
-                            <span class="badge bg-success">評分 {{ g.rating }}</span>
-                            {% endif %}
-                            {% if g.rank and g.rank > 0 %}
-                            <span class="badge bg-info">#{{ g.rank }}</span>
-                            {% endif %}
-                            {% if g.weight %}
-                            <span class="badge bg-warning">複雜度 {{ g.weight }}</span>
-                            {% endif %}
-                        </div>
-                        {% if g.min_players and g.max_players %}
-                        <p class="card-text"><small class="text-muted">{{ g.min_players }}-{{ g.max_players }} 人</small></p>
-                        {% endif %}
-                        {% if g.rec_score %}
-                        <p class="card-text">
-                            <strong>推薦分數：{{ '%.2f'|format(g.rec_score) }}</strong>
-                            {% if g.source %}
-                            <br><small class="text-muted">來源：{{ g.source }}</small>
-                            {% endif %}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-info">
-            {% if rg_error %}
-                {% if "資料庫檔案不存在" in rg_error or "資料表" in rg_error or "沒有遊戲資料" in rg_error %}
-                    <h5>📊 資料庫尚未初始化</h5>
-                    <p>{{ rg_error }}</p>
-                    <p>請先執行以下步驟來收集 BGG 資料：</p>
-                    <ol>
-                        <li>點擊下方「前往設定」</li>
-                        <li>點擊「手動報表生成」開始收集熱門遊戲資料</li>
-                        <li>等待資料收集完成後再返回此頁面訓練模型</li>
-                    </ol>
-                {% else %}
-                    無法取得推薦：{{ rg_error }}
-                {% endif %}
-            {% elif not rg_error and not rg_results and bgg_username %}
-                尚無推薦結果。
-            {% else %}
-                尚未設定外部服務，您可前往外部網站使用推薦或設定環境變數 <code>RG_API_URL</code>（與可選的 <code>RG_API_KEY</code>）。
-            {% endif %}
-        </div>
-        <a class="btn btn-primary" href="{{ rg_site_url }}" target="_blank" rel="noopener noreferrer">前往 Recommend.Games</a>
-        <a class="btn btn-outline-secondary" href="{{ rg_repo_url }}" target="_blank" rel="noopener noreferrer">查看原始碼</a>
-    {% endif %}
-
-    <div class="mt-3">
+    <div class="mt-3 text-center">
         <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ 前往設定</a>
         <a href="{{ url_for('recommendations') }}" class="btn btn-outline-secondary">✨ 內建推薦</a>
     </div>
 </div>
 {% endblock %}
-
-
