@@ -28,11 +28,11 @@ from functools import lru_cache
 
 # BGG 推薦系統 (board-game-recommender)
 try:
-    from simple_recommender import SimpleBGGRecommender, calculate_recommendation_score
+    from board_game_recommender import BGGRecommender
     BGG_RECOMMENDER_AVAILABLE = True
-    logging.info("✅ 簡化 BGG 推薦系統載入成功")
+    logging.info("✅ BGGRecommender 載入成功")
 except ImportError as e:
-    logging.warning(f"BGG 推薦系統無法載入: {e}")
+    logging.warning(f"BGGRecommender 無法載入: {e}")
     BGG_RECOMMENDER_AVAILABLE = False
 
 # 全域任務狀態追蹤
@@ -2729,9 +2729,13 @@ def api_bgg_search():
 @app.route('/api/rg/recommend-score', methods=['POST'])
 @login_required
 def api_rg_recommend_score():
-    """計算特定遊戲的推薦分數 - 簡化版本"""
+    """計算特定遊戲的推薦分數 - 使用 BGGRecommender"""
     try:
-        from simple_recommender import calculate_recommendation_score
+        if not BGG_RECOMMENDER_AVAILABLE:
+            return jsonify({
+                'success': False,
+                'message': 'BGGRecommender 未安裝或不可用'
+            })
 
         data = request.get_json()
         game_id = data.get('game_id')
@@ -2741,6 +2745,7 @@ def api_rg_recommend_score():
             return jsonify({'success': False, 'message': '遊戲 ID 不能為空'})
 
         # 獲取使用者收藏
+        username = get_app_setting('bgg_username', '')
         owned_ids = []
         try:
             with get_db_connection() as conn:
@@ -2756,27 +2761,69 @@ def api_rg_recommend_score():
                 'message': '請先同步您的 BGG 收藏才能計算推薦分數'
             })
 
-        # 使用簡化推薦器計算分數
-        result = calculate_recommendation_score(int(game_id), owned_ids)
+        # 使用 BGGRecommender 計算分數
+        try:
+            recommender = BGGRecommender()
 
-        if result is None:
+            # 創建用戶評分數據
+            import turicreate as tc
+            user_ratings = []
+
+            # 為擁有的遊戲設定假設評分
+            for game in owned_ids:
+                user_ratings.append((username, game, 8.0))  # 假設喜歡擁有的遊戲
+
+            # 構建訓練數據
+            ratings_sf = tc.SFrame(user_ratings, column_names=['user_id', 'game_id', 'rating'])
+
+            # 創建推薦模型
+            model = tc.recommender.create(ratings_sf, user_id='user_id', item_id='game_id', target='rating')
+
+            # 獲取推薦
+            recommendations = model.recommend([username], k=1000)
+
+            # 尋找目標遊戲的分數
+            target_rec = recommendations[recommendations['game_id'] == int(game_id)]
+
+            if len(target_rec) > 0:
+                score = float(target_rec['score'][0]) * 10  # 轉換為 0-10 分數
+
+                # 計算分數等級
+                if score >= 8.5:
+                    level, description = 'excellent', '極力推薦！這款遊戲非常符合您的喜好'
+                elif score >= 7.0:
+                    level, description = 'very_good', '強烈推薦！您很可能會喜歡這款遊戲'
+                elif score >= 5.5:
+                    level, description = 'good', '推薦嘗試，這款遊戲可能合您的口味'
+                elif score >= 4.0:
+                    level, description = 'fair', '可以考慮，但可能不是您的首選'
+                else:
+                    level, description = 'poor', '不太推薦，可能不符合您的遊戲偏好'
+
+                return jsonify({
+                    'success': True,
+                    'result': {
+                        'game_id': game_id,
+                        'name': game_name,
+                        'score': score,
+                        'max_score': 10.0,
+                        'score_level': level,
+                        'score_description': description,
+                        'details': f'基於您的 {len(owned_ids)} 個收藏遊戲使用 BGGRecommender 計算'
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'BGGRecommender 沒有為此遊戲生成推薦分數'
+                })
+
+        except Exception as model_error:
+            logger.error(f"BGGRecommender 模型錯誤: {model_error}")
             return jsonify({
                 'success': False,
-                'message': '無法計算推薦分數，可能是遊戲資料不足'
+                'message': f'BGGRecommender 計算失敗: {str(model_error)}'
             })
-
-        return jsonify({
-            'success': True,
-            'result': {
-                'game_id': game_id,
-                'name': game_name,
-                'score': result['score'],
-                'max_score': result['max_score'],
-                'score_level': result['level'],
-                'score_description': result['description'],
-                'details': f'基於您的 {len(owned_ids)} 個收藏遊戲計算'
-            }
-        })
 
     except Exception as e:
         logger.error(f"推薦分數 API 發生錯誤: {e}")
