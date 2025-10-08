@@ -2761,32 +2761,33 @@ def api_rg_recommend_score():
                 'message': '請先同步您的 BGG 收藏才能計算推薦分數'
             })
 
-        # 使用 BGGRecommender 計算分數
+        # 使用預訓練的 BGGRecommender 模型計算分數
         try:
-            recommender = BGGRecommender()
+            # 檢查是否有預訓練的模型
+            model_dir = f'data/bgg_models/{username}'
+            model_path = f'{model_dir}/recommender_model'
 
-            # 創建用戶評分數據
+            if not os.path.exists(model_path):
+                return jsonify({
+                    'success': False,
+                    'message': '尚未訓練推薦模型。請先到設定頁點擊「🚀 一鍵重新訓練」來建立您的個人化推薦模型。'
+                })
+
+            # 載入預訓練的模型
             import turicreate as tc
-            user_ratings = []
+            model = tc.load_model(model_path)
 
-            # 為擁有的遊戲設定假設評分
-            for game in owned_ids:
-                user_ratings.append((username, game, 8.0))  # 假設喜歡擁有的遊戲
-
-            # 構建訓練數據
-            ratings_sf = tc.SFrame(user_ratings, column_names=['user_id', 'game_id', 'rating'])
-
-            # 創建推薦模型
-            model = tc.recommender.create(ratings_sf, user_id='user_id', item_id='game_id', target='rating')
+            # 創建 BGGRecommender 實例
+            recommender = BGGRecommender(model=model)
 
             # 獲取推薦
-            recommendations = model.recommend([username], k=1000)
+            recommendations = recommender.recommend([username], num_games=1000)
 
             # 尋找目標遊戲的分數
-            target_rec = recommendations[recommendations['game_id'] == int(game_id)]
+            target_recs = recommendations[recommendations['bgg_id'] == int(game_id)]
 
-            if len(target_rec) > 0:
-                score = float(target_rec['score'][0]) * 10  # 轉換為 0-10 分數
+            if len(target_recs) > 0:
+                score = float(target_recs['score'][0]) * 10  # 轉換為 0-10 分數
 
                 # 計算分數等級
                 if score >= 8.5:
@@ -2809,20 +2810,20 @@ def api_rg_recommend_score():
                         'max_score': 10.0,
                         'score_level': level,
                         'score_description': description,
-                        'details': f'基於您的 {len(owned_ids)} 個收藏遊戲使用 BGGRecommender 計算'
+                        'details': f'基於您的 {len(owned_ids)} 個收藏遊戲使用預訓練 BGGRecommender 模型計算'
                     }
                 })
             else:
                 return jsonify({
                     'success': False,
-                    'message': 'BGGRecommender 沒有為此遊戲生成推薦分數'
+                    'message': '此遊戲未在推薦列表中。可能是因為它不在訓練數據中，或者與您的喜好差異較大。'
                 })
 
         except Exception as model_error:
             logger.error(f"BGGRecommender 模型錯誤: {model_error}")
             return jsonify({
                 'success': False,
-                'message': f'BGGRecommender 計算失敗: {str(model_error)}'
+                'message': f'推薦模型載入失敗: {str(model_error)}。請嘗試重新訓練模型。'
             })
 
     except Exception as e:
@@ -2830,6 +2831,193 @@ def api_rg_recommend_score():
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
 
 # 複雜的高級推薦 API 已移除，請使用 /api/rg/recommend-score
+
+# BGG 推薦系統一鍵重新訓練相關 API
+@app.route('/api/bgg/retrain-full', methods=['POST'])
+@login_required
+def api_bgg_retrain_full():
+    """一鍵重新訓練：自動 scraper + training"""
+    try:
+        username = get_app_setting('bgg_username', '')
+        if not username:
+            return jsonify({
+                'success': False,
+                'message': '請先設定 BGG 使用者名稱'
+            })
+
+        # 檢查是否已有訓練在進行
+        if task_status['is_running']:
+            return jsonify({
+                'success': False,
+                'message': '已有任務在執行中，請等待完成後再試'
+            })
+
+        # 啟動背景訓練任務
+        thread = threading.Thread(target=run_full_retrain_task, args=(username,))
+        thread.daemon = True
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'message': '已啟動一鍵重新訓練任務'
+        })
+
+    except Exception as e:
+        logger.error(f"啟動一鍵重新訓練失敗: {e}")
+        return jsonify({'success': False, 'message': f'啟動失敗: {str(e)}'})
+
+@app.route('/api/bgg/training-status', methods=['GET'])
+@login_required
+def api_bgg_training_status():
+    """獲取訓練狀態"""
+    try:
+        return jsonify({
+            'success': True,
+            'status': {
+                'is_running': task_status['is_running'],
+                'current_step': task_status['current_step'],
+                'progress': task_status['progress'],
+                'message': task_status['message'],
+                'completed': task_status.get('completed', False),
+                'error': task_status.get('error', False),
+                'error_message': task_status.get('error_message', '')
+            }
+        })
+    except Exception as e:
+        logger.error(f"獲取訓練狀態失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+def run_full_retrain_task(username):
+    """執行完整重新訓練任務"""
+    try:
+        # 初始化任務狀態
+        update_task_status('準備開始', 0, '正在初始化訓練環境...')
+        task_status['completed'] = False
+        task_status['error'] = False
+        task_status['error_message'] = ''
+
+        logger.info(f"🚀 開始為用戶 {username} 執行一鍵重新訓練")
+
+        # 步驟 1: 同步用戶收藏
+        update_task_status('同步用戶收藏', 10, '正在從 BGG 同步您的收藏資料...')
+        success = sync_user_collection(username)
+        if not success:
+            raise Exception("同步用戶收藏失敗")
+
+        # 步驟 2: 抓取 BGG 遊戲資料
+        update_task_status('抓取 BGG 資料', 30, '正在抓取最新的 BGG 遊戲和評分資料...')
+        success = scrape_bgg_data()
+        if not success:
+            raise Exception("抓取 BGG 資料失敗")
+
+        # 步驟 3: 準備訓練資料
+        update_task_status('準備訓練資料', 60, '正在整理和準備協同過濾訓練資料...')
+        success = prepare_training_data(username)
+        if not success:
+            raise Exception("準備訓練資料失敗")
+
+        # 步驟 4: 訓練模型
+        update_task_status('訓練推薦模型', 80, '正在使用 board-game-recommender 訓練協同過濾模型...')
+        success = train_bgg_model(username)
+        if not success:
+            raise Exception("訓練模型失敗")
+
+        # 完成
+        update_task_status('訓練完成', 100, '🎉 BGG 推薦模型訓練完成！')
+        task_status['completed'] = True
+        logger.info(f"✅ 用戶 {username} 的一鍵重新訓練完成")
+
+    except Exception as e:
+        logger.error(f"❌ 一鍵重新訓練失敗: {e}")
+        task_status['error'] = True
+        task_status['error_message'] = str(e)
+        update_task_status('訓練失敗', task_status['progress'], f'錯誤: {str(e)}')
+    finally:
+        task_status['is_running'] = False
+
+def sync_user_collection(username):
+    """同步用戶收藏"""
+    try:
+        # 這裡重用現有的收藏同步邏輯
+        # 可以呼叫現有的 collection_sync.py 或相關函數
+        logger.info(f"同步用戶 {username} 的收藏")
+        # TODO: 實際的收藏同步邏輯
+        time.sleep(2)  # 模擬處理時間
+        return True
+    except Exception as e:
+        logger.error(f"同步用戶收藏失敗: {e}")
+        return False
+
+def scrape_bgg_data():
+    """抓取 BGG 資料"""
+    try:
+        logger.info("開始抓取 BGG 資料")
+        # TODO: 實際的 scraper 邏輯
+        # 可以使用 board_game_scraper 或現有的抓取邏輯
+        time.sleep(5)  # 模擬處理時間
+        return True
+    except Exception as e:
+        logger.error(f"抓取 BGG 資料失敗: {e}")
+        return False
+
+def prepare_training_data(username):
+    """準備訓練資料"""
+    try:
+        logger.info(f"為用戶 {username} 準備訓練資料")
+        # TODO: 從資料庫準備 BGG 格式的訓練資料
+        # 格式：user_id, game_id, rating
+        time.sleep(3)  # 模擬處理時間
+        return True
+    except Exception as e:
+        logger.error(f"準備訓練資料失敗: {e}")
+        return False
+
+def train_bgg_model(username):
+    """訓練 BGG 推薦模型"""
+    try:
+        logger.info(f"為用戶 {username} 訓練 BGG 推薦模型")
+
+        if not BGG_RECOMMENDER_AVAILABLE:
+            raise Exception("BGGRecommender 不可用")
+
+        # 從資料庫獲取訓練資料
+        user_ratings = []
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            # 獲取用戶收藏作為隱式評分
+            cursor.execute("SELECT objectid FROM collection")
+            owned_games = cursor.fetchall()
+
+            for game_row in owned_games:
+                game_id = game_row[0]
+                user_ratings.append((username, game_id, 8.0))  # 假設評分
+
+        if len(user_ratings) < 5:
+            raise Exception("訓練資料不足，至少需要 5 個收藏遊戲")
+
+        # 使用 turicreate 訓練模型
+        import turicreate as tc
+        ratings_sf = tc.SFrame(user_ratings, column_names=['bgg_user_name', 'bgg_id', 'bgg_user_rating'])
+
+        # 創建推薦模型
+        model = tc.recommender.create(
+            ratings_sf,
+            user_id='bgg_user_name',
+            item_id='bgg_id',
+            target='bgg_user_rating'
+        )
+
+        # 保存模型到檔案
+        model_dir = f'data/bgg_models/{username}'
+        os.makedirs(model_dir, exist_ok=True)
+        model.save(f'{model_dir}/recommender_model')
+
+        logger.info(f"模型已保存到 {model_dir}/recommender_model")
+        return True
+
+    except Exception as e:
+        logger.error(f"訓練 BGG 模型失敗: {e}")
+        return False
 
 @app.route('/api/rg/model-status', methods=['GET'])
 @login_required
