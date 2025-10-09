@@ -2,6 +2,7 @@
 import os
 import sys
 from datetime import datetime, date
+from typing import Optional
 
 # 確保 board-game-recommender 在 Python path 中
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -672,7 +673,7 @@ def update_rg_task_status(progress=None, message=None, stdout_line=None, stderr_
         rg_task_status['stderr_tail'] = (rg_task_status.get('stderr_tail', []) + [stderr_line])[-50:]
     rg_task_status['last_update'] = datetime.now()
 
-def run_rg_scrape_async(games_file: str, ratings_file: str, custom_cmd: str | None = None):
+def run_rg_scrape_async(games_file: str, ratings_file: str, custom_cmd: Optional[str] = None):
     try:
         rg_task_status['is_running'] = True
         rg_task_status['start_time'] = datetime.now()
