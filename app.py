@@ -2,7 +2,7 @@
 import os
 import sys
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 
 # 確保 board-game-recommender 在 Python path 中
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1364,7 +1364,7 @@ def fetch_game_details_from_bgg(game_ids):
         logger.error(f"BGG API 查詢發生錯誤: {e}")
         return {}
 
-def call_recommend_games_api(bgg_username: str, owned_ids: list[int], limit: int = 30):
+def call_recommend_games_api(bgg_username: str, owned_ids: List[int], limit: int = 30):
     """可選：呼叫 Recommend.Games 的外部 API（若有設定環境變數）。
     注意：此為預留，實際端點與參數需依官方文件調整。
     """

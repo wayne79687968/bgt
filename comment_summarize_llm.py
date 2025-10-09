@@ -321,7 +321,7 @@ def analyze_with_gpt(objectid, low, mid, high):
         config = get_database_config()
         
         try:
-        if lang == 'en':
+            if lang == 'en':
             # 只 summary 用 LLM，評論翻譯直接用原文
             # 先組出正評/中立/負評
             data = {"positive": [], "neutral": [], "negative": [], "summary": ""}
