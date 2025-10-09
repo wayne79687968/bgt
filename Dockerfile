@@ -13,15 +13,12 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# 複製依賴文件
-COPY requirements.txt .
+# 複製應用代碼 (需要 board-game-recommender 目錄)
+COPY . .
 
 # 安裝 Python 依賴
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
-
-# 複製應用代碼
-COPY . .
 
 # 創建必要目錄
 RUN mkdir -p data frontend/public/outputs
