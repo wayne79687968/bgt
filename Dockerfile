@@ -14,13 +14,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # 複製依賴文件
-COPY requirements.core.txt .
-COPY requirements.ml.txt .
+COPY requirements.txt .
 
-# 安裝 Python 依賴 - 分層安裝以優化緩存
+# 安裝 Python 依賴
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.core.txt && \
-    pip install --no-cache-dir -r requirements.ml.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # 複製應用代碼
 COPY . .
