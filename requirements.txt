@@ -20,4 +20,5 @@ google-auth-httplib2==0.2.0
 
 # RG 推薦器依賴
 turicreate>=6.0
--e ./board-game-recommender
+pytility
+./board-game-recommender

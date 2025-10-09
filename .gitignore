@@ -72,7 +72,6 @@ Portfolio Site Texture.jpg
 *.gif
 
 # External packages/submodules
-board-game-recommender/
 data/cache/
 
 # Docker
