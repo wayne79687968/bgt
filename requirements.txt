@@ -19,6 +19,4 @@ google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 
 # RG 推薦器依賴
-turicreate>=6.0
-pytility
-./board-game-recommender
+-e ./board-game-recommender
