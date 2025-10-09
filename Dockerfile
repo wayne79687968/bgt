@@ -11,6 +11,8 @@ ENV PYTHONUNBUFFERED=1
 # 安裝系統依賴
 RUN apt-get update && apt-get install -y \
     gcc \
+    postgresql-client \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 複製應用代碼 (需要 board-game-recommender 目錄)

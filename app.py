@@ -882,7 +882,7 @@ def fetch_bgg_collection_xml(username, params, max_retries=10, initial_delay=2):
     raise TimeoutError("BGG API 多次重試仍為 202，請稍後再試")
 
 def parse_bgg_collection(xml_text):
-    """解析 BGG Collection XML -> list[dict]"""
+    """解析 BGG Collection XML -> List[dict]"""
     soup = BeautifulSoup(xml_text, "xml")
     items = []
     for item in soup.find_all("item"):

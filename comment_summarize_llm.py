@@ -322,118 +322,119 @@ def analyze_with_gpt(objectid, low, mid, high):
         
         try:
             if lang == 'en':
-            # 只 summary 用 LLM，評論翻譯直接用原文
-            # 先組出正評/中立/負評
-            data = {"positive": [], "neutral": [], "negative": [], "summary": ""}
-            for sentiment, group in [("positive", high), ("neutral", mid), ("negative", low)]:
-                for rating, original in group:
-                    data[sentiment].append({"rating": rating, "original": original, "translated": original})
-            # summary 用 LLM
-            res = client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_MSG[lang]},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
-            )
-            output = res.choices[0].message.content
-            parsed = parse_gpt_output(output)
-            data["summary"] = parsed.get("summary", "")
-        else:
-            res = client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": SYSTEM_MSG[lang]},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
-            )
-            output = res.choices[0].message.content
-            data = parse_gpt_output(output)
-        if data["summary"] == "解析錯誤：無法解析 GPT 回應":
-            print(f"❌ GPT 回應格式錯誤：{objectid}")
-            return
-        # 直接儲存評論到資料庫（主表只存原文）
-        for sentiment, comments in [
-            ("positive", data["positive"]),
-            ("neutral", data["neutral"]),
-            ("negative", data["negative"])
-        ]:
-            for comment in comments:
-                # 檢查必要的鍵是否存在
-                if not isinstance(comment, dict):
-                    print(f"⚠️ 評論格式錯誤，跳過：{comment}")
-                    continue
+                # 只 summary 用 LLM，評論翻譯直接用原文
+                # 先組出正評/中立/負評
+                data = {"positive": [], "neutral": [], "negative": [], "summary": ""}
+                for sentiment, group in [("positive", high), ("neutral", mid), ("negative", low)]:
+                    for rating, original in group:
+                        data[sentiment].append({"rating": rating, "original": original, "translated": original})
+                # summary 用 LLM
+                res = client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_MSG[lang]},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7
+                )
+                output = res.choices[0].message.content
+                parsed = parse_gpt_output(output)
+                data["summary"] = parsed.get("summary", "")
+            else:
+                res = client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_MSG[lang]},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7
+                )
+                output = res.choices[0].message.content
+                data = parse_gpt_output(output)
 
-                original = comment.get("original", "")
-                rating = comment.get("rating", None)
-                translated = comment.get("translated", "")
+            if data["summary"] == "解析錯誤：無法解析 GPT 回應":
+                print(f"❌ GPT 回應格式錯誤：{objectid}")
+                return
+            # 直接儲存評論到資料庫（主表只存原文）
+            for sentiment, comments in [
+                ("positive", data["positive"]),
+                ("neutral", data["neutral"]),
+                ("negative", data["negative"])
+            ]:
+                for comment in comments:
+                    # 檢查必要的鍵是否存在
+                    if not isinstance(comment, dict):
+                        print(f"⚠️ 評論格式錯誤，跳過：{comment}")
+                        continue
 
-                if not original:
-                    print(f"⚠️ 評論缺少 original 內容，跳過：{comment}")
-                    continue
+                    original = comment.get("original", "")
+                    rating = comment.get("rating", None)
+                    translated = comment.get("translated", "")
 
-                # 檢查是否已經存在相同的評論
-                if config['type'] == 'postgresql':
-                    cursor.execute("""
-                        SELECT id FROM game_comments
-                        WHERE objectid = %s AND comment = %s AND sentiment = %s AND rating = %s
-                    """, (objectid, original, sentiment, rating))
-                else:
-                    cursor.execute("""
-                        SELECT id FROM game_comments
-                        WHERE objectid = ? AND comment = ? AND sentiment = ? AND rating = ?
-                    """, (objectid, original, sentiment, rating))
-                existing = cursor.fetchone()
+                    if not original:
+                        print(f"⚠️ 評論缺少 original 內容，跳過：{comment}")
+                        continue
 
-                if existing:
-                    comment_id = existing[0]
-                    print(f"⚠️ 評論已存在，跳過插入：{objectid} - {sentiment}")
-                else:
+                    # 檢查是否已經存在相同的評論
                     if config['type'] == 'postgresql':
                         cursor.execute("""
-                            INSERT INTO game_comments
-                            (objectid, comment, rating, sentiment, source, created_at)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            RETURNING id
-                        """, (
-                            objectid,
-                            original,
-                            rating,
-                            sentiment,
-                            "bgg-rating",
-                            datetime.utcnow().isoformat()
-                        ))
-                        comment_id = cursor.fetchone()[0]
+                            SELECT id FROM game_comments
+                            WHERE objectid = %s AND comment = %s AND sentiment = %s AND rating = %s
+                        """, (objectid, original, sentiment, rating))
                     else:
                         cursor.execute("""
-                            INSERT INTO game_comments
-                            (objectid, comment, rating, sentiment, source, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?)
-                        """, (
-                            objectid,
-                            original,
-                            rating,
-                            sentiment,
-                            "bgg-rating",
-                            datetime.utcnow().isoformat()
-                        ))
-                        comment_id = cursor.lastrowid
+                            SELECT id FROM game_comments
+                            WHERE objectid = ? AND comment = ? AND sentiment = ? AND rating = ?
+                        """, (objectid, original, sentiment, rating))
+                    existing = cursor.fetchone()
 
-                # 寫入/更新 i18n
-                if config['type'] == 'postgresql':
-                    cursor.execute("""
-                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=EXCLUDED.translated, updated_at=EXCLUDED.updated_at
-                    """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
-                else:
-                    cursor.execute("""
-                        INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
-                        VALUES (?, ?, ?, ?)
-                        ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
-                    """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+                    if existing:
+                        comment_id = existing[0]
+                        print(f"⚠️ 評論已存在，跳過插入：{objectid} - {sentiment}")
+                    else:
+                        if config['type'] == 'postgresql':
+                            cursor.execute("""
+                                INSERT INTO game_comments
+                                (objectid, comment, rating, sentiment, source, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                                RETURNING id
+                            """, (
+                                objectid,
+                                original,
+                                rating,
+                                sentiment,
+                                "bgg-rating",
+                                datetime.utcnow().isoformat()
+                            ))
+                            comment_id = cursor.fetchone()[0]
+                        else:
+                            cursor.execute("""
+                                INSERT INTO game_comments
+                                (objectid, comment, rating, sentiment, source, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?)
+                            """, (
+                                objectid,
+                                original,
+                                rating,
+                                sentiment,
+                                "bgg-rating",
+                                datetime.utcnow().isoformat()
+                            ))
+                            comment_id = cursor.lastrowid
+
+                    # 寫入/更新 i18n
+                    if config['type'] == 'postgresql':
+                        cursor.execute("""
+                            INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                            VALUES (%s, %s, %s, %s)
+                            ON CONFLICT(comment_id, lang) DO UPDATE SET translated=EXCLUDED.translated, updated_at=EXCLUDED.updated_at
+                        """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO game_comments_i18n (comment_id, lang, translated, updated_at)
+                            VALUES (?, ?, ?, ?)
+                            ON CONFLICT(comment_id, lang) DO UPDATE SET translated=excluded.translated, updated_at=excluded.updated_at
+                        """, (comment_id, lang, translated, datetime.utcnow().isoformat()))
             # 儲存總結
             if data["summary"]:
                 if config['type'] == 'postgresql':
