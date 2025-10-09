@@ -1,5 +1,5 @@
-# 使用官方 Python 3.8 精簡鏡像 (turicreate 相容性)
-FROM python:3.8-slim
+# 使用官方 Python 3.7 精簡鏡像 (turicreate 相容性)
+FROM python:3.7-slim
 
 # 設置工作目錄
 WORKDIR /app

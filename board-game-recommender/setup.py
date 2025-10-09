@@ -44,7 +44,7 @@ URL_MAILING = None
 URL_TWITTER = "https://twitter.com/recommend_games"
 EMAIL = "markus@recommend.games"
 AUTHOR = "Markus Shepherd"
-REQUIRES_PYTHON = ">=3.7.0"
+REQUIRES_PYTHON = ">=3.7.0,<3.8.0"
 VERSION = None  # will be read from __version__.py
 
 # What packages are required for this module to be executed?
