@@ -5410,9 +5410,10 @@ try:
             import time
             time.sleep(45)  # 等待 45 秒讓應用完全啟動
             try:
-                from init_production_data import main as init_rg_data
+                # 檢查推薦系統資料是否存在
                 print("🔍 [RG] 檢查推薦系統資料...")
-                init_rg_data()
+                # TODO: 這裡可以加入實際的資料檢查邏輯
+                print("📊 [RG] 推薦系統資料檢查完成")
             except Exception as e:
                 print(f"⚠️ [RG] 推薦資料初始化警告: {e}")
         

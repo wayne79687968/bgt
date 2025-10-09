@@ -78,12 +78,16 @@ def get_db_connection():
                 print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
                 print(f"📡 連接目標: {config['host']}:{config['port']}")
                 
+                # 增加更多連接參數以提高穩定性
                 conn = psycopg2.connect(
                     config['url'],
-                    connect_timeout=60,  # 增加連接超時到 60 秒
-                    keepalives_idle=600,
-                    keepalives_interval=30,
-                    keepalives_count=3
+                    connect_timeout=30,  # 連接超時
+                    application_name='bgg_rag_app',  # 應用標識
+                    keepalives_idle=600,     # TCP keepalive idle time
+                    keepalives_interval=30,  # TCP keepalive interval
+                    keepalives_count=3,      # TCP keepalive count
+                    tcp_user_timeout=30000,  # TCP user timeout (30秒)
+                    options='-c default_transaction_isolation=read_committed'
                 )
                 
                 # 處理 collation version 警告
