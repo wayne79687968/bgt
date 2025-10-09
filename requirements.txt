@@ -19,4 +19,4 @@ google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 
 # RG 推薦器依賴
--e ./board-game-recommender
+./board-game-recommender

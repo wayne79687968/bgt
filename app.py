@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 import os
+import sys
 from datetime import datetime, date
+
+# 確保 board-game-recommender 在 Python path 中
+current_dir = os.path.dirname(os.path.abspath(__file__))
+board_game_recommender_path = os.path.join(current_dir, 'board-game-recommender')
+if board_game_recommender_path not in sys.path:
+    sys.path.insert(0, board_game_recommender_path)
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from dotenv import load_dotenv
 import subprocess
-import sys
 import logging
 import glob
 import re
