@@ -3022,72 +3022,33 @@ def train_bgg_model(username):
         if not BGG_RECOMMENDER_AVAILABLE:
             raise Exception("BGGRecommender 不可用")
 
-        # 從資料庫獲取訓練資料
-        user_ratings = []
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            # 獲取用戶收藏作為隱式評分
-            cursor.execute("SELECT objectid FROM collection")
-            owned_games = cursor.fetchall()
-            
-            print(f"🔍 從 collection 表獲取到 {len(owned_games)} 個收藏遊戲")
-            print(f"🔍 前 3 個遊戲資料: {owned_games[:3] if len(owned_games) >= 3 else owned_games}")
-
-            for game_row in owned_games:
-                game_id = game_row[0]
-                user_ratings.append((username, game_id, 8.0))  # 假設評分
-            
-            # 如果 collection 表是空的，使用 hot_games 表的資料作為備用
-            if len(user_ratings) < 5:
-                print("⚠️ collection 表資料不足，嘗試使用 hot_games 表資料")
-                cursor.execute("SELECT DISTINCT objectid FROM hot_games ORDER BY rank LIMIT 20")
-                hot_games = cursor.fetchall()
-                print(f"🔍 從 hot_games 表獲取到 {len(hot_games)} 個熱門遊戲")
-                
-                for game_row in hot_games:
-                    game_id = game_row[0]
-                    user_ratings.append((username, game_id, 8.0))  # 假設評分
-
-        print(f"🔍 準備的訓練資料數量: {len(user_ratings)}")
-        print(f"🔍 前 3 個訓練資料: {user_ratings[:3] if len(user_ratings) >= 3 else user_ratings}")
-
-        if len(user_ratings) < 5:
-            raise Exception("訓練資料不足，至少需要 5 個收藏遊戲")
-
-        # 使用 turicreate 訓練模型
-        import turicreate as tc
-        # 創建 SFrame 並指定列名
-        ratings_sf = tc.SFrame(user_ratings)
+        # 使用 board-game-recommender 的正確方式
+        from board_game_recommender.recommend import BGGRecommender
         
-        # 檢查實際的列名並重命名
-        actual_columns = ratings_sf.column_names()
-        print(f"🔍 SFrame 實際列名: {actual_columns}")
+        # 檢查必要的檔案是否存在
+        games_file = 'data/bgg_GameItem.jl'
+        ratings_file = 'data/bgg_RatingItem.jl'
         
-        if len(actual_columns) >= 3:
-            rename_dict = {
-                actual_columns[0]: 'bgg_user_name',
-                actual_columns[1]: 'bgg_id', 
-                actual_columns[2]: 'bgg_user_rating'
-            }
-            ratings_sf = ratings_sf.rename(rename_dict)
-            print(f"✅ 列名重命名完成: {ratings_sf.column_names()}")
-        else:
-            raise Exception(f"SFrame 列數不足，期望 3 列，實際 {len(actual_columns)} 列")
-
-        # 創建推薦模型
-        model = tc.recommender.create(
-            ratings_sf,
-            user_id='bgg_user_name',
-            item_id='bgg_id',
-            target='bgg_user_rating'
+        if not os.path.exists(games_file):
+            raise Exception(f"遊戲資料檔案不存在: {games_file}")
+        if not os.path.exists(ratings_file):
+            raise Exception(f"評分資料檔案不存在: {ratings_file}")
+        
+        print(f"🔍 使用遊戲資料檔案: {games_file}")
+        print(f"🔍 使用評分資料檔案: {ratings_file}")
+        
+        # 使用 BGGRecommender 訓練模型
+        recommender = BGGRecommender.train(
+            games_file=games_file,
+            ratings_file=ratings_file,
+            max_iterations=100
         )
-
+        
         # 保存模型到檔案
         model_dir = f'data/bgg_models/{username}'
         os.makedirs(model_dir, exist_ok=True)
-        model.save(f'{model_dir}/recommender_model')
-
-        logger.info(f"模型已保存到 {model_dir}/recommender_model")
+        recommender.save(model_dir)
+        logger.info(f"模型已保存到 {model_dir}")
         return True
 
     except Exception as e:
