@@ -93,7 +93,7 @@ def get_db_connection():
                     keepalives_idle=600,     # TCP keepalive idle time
                     keepalives_interval=30,  # TCP keepalive interval
                     keepalives_count=3,      # TCP keepalive count
-                    options='-c default_transaction_isolation=read\\ committed'
+                    options='-c default_transaction_isolation=read\\ committed -c log_min_messages=error'
                 )
                 
                 # 處理 collation version 警告
@@ -102,7 +102,15 @@ def get_db_connection():
                     cursor.execute("SELECT version()")
                     print("🔍 PostgreSQL 版本檢查完成")
                     
-                    # 自動修復 collation version mismatch 警告
+                    # 設置會話級別參數來抑制 collation version 警告
+                    try:
+                        cursor.execute("SET log_min_messages = 'error'")
+                        cursor.execute("SET client_min_messages = 'error'")
+                        print("✅ 已設置會話級別參數抑制警告")
+                    except Exception as log_error:
+                        print(f"⚠️ 設置會話參數失敗（可忽略）: {log_error}")
+                    
+                    # 嘗試修復 collation version mismatch 警告
                     try:
                         # 檢查是否有權限執行 ALTER DATABASE 命令
                         cursor.execute("SELECT has_database_privilege(current_user, 'zeabur', 'CREATE')")
