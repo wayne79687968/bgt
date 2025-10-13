@@ -3014,9 +3014,22 @@ def scrape_bgg_data():
     """抓取 BGG 資料"""
     try:
         logger.info("開始抓取 BGG 資料")
-        # TODO: 實際的 scraper 邏輯
-        # 可以使用 board_game_scraper 或現有的抓取邏輯
-        time.sleep(5)  # 模擬處理時間
+        
+        # 使用現有的抓取邏輯
+        from bgg_data_extractor import BGGDataExtractor
+        extractor = BGGDataExtractor()
+        
+        # 抓取遊戲資料
+        games_file = extractor.extract_games_data('data/bgg_GameItem.jl')
+        if not games_file:
+            raise Exception("抓取遊戲資料失敗")
+        
+        # 抓取評分資料
+        ratings_file = extractor.extract_ratings_data('data/bgg_RatingItem.jl')
+        if not ratings_file:
+            raise Exception("抓取評分資料失敗")
+        
+        logger.info(f"成功抓取 BGG 資料: {games_file}, {ratings_file}")
         return True
     except Exception as e:
         logger.error(f"抓取 BGG 資料失敗: {e}")
@@ -3026,9 +3039,13 @@ def prepare_training_data(username):
     """準備訓練資料"""
     try:
         logger.info(f"為用戶 {username} 準備訓練資料")
-        # TODO: 從資料庫準備 BGG 格式的訓練資料
-        # 格式：user_id, game_id, rating
-        time.sleep(3)  # 模擬處理時間
+        
+        # 使用現有的 create_temp_jsonl_files 函數生成個人化的 .jl 檔案
+        games_file, ratings_file = create_temp_jsonl_files()
+        if not games_file or not ratings_file:
+            raise Exception("無法生成訓練資料檔案")
+        
+        logger.info(f"成功準備訓練資料: {games_file}, {ratings_file}")
         return True
     except Exception as e:
         logger.error(f"準備訓練資料失敗: {e}")
@@ -3058,7 +3075,7 @@ def train_bgg_model(username):
         print(f"🔍 使用評分資料檔案: {ratings_file}")
         
         # 使用 BGGRecommender 訓練模型
-        recommender = BGGRecommender.train(
+        recommender = BGGRecommender.train_from_files(
             games_file=games_file,
             ratings_file=ratings_file,
             max_iterations=100
