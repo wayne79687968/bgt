@@ -2970,17 +2970,37 @@ def sync_user_collection(username):
                 # 確定收藏狀態
                 status = 'owned' if item.get('own') else ('wishlist' if item.get('wishlist') else 'want')
                 
-                execute_query(cursor, """
-                    INSERT INTO collection (objectid, name, status, rating, wish_priority, last_sync)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    item.get('game_id'),  # 使用 game_id 而不是 objectid
-                    item.get('game_name'),  # 使用 game_name 而不是 name
-                    status,  # 轉換狀態
-                    item.get('user_rating'),  # 使用 user_rating
-                    item.get('bgg_rank'),  # 使用 bgg_rank 作為 wish_priority
-                    datetime.now().isoformat()
-                ), config['type'])
+                # 使用 UPSERT 語法避免重複 key 錯誤
+                if config['type'] == 'postgresql':
+                    execute_query(cursor, """
+                        INSERT INTO collection (objectid, name, status, rating, wish_priority, last_sync)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (objectid) DO UPDATE SET
+                            name = EXCLUDED.name,
+                            status = EXCLUDED.status,
+                            rating = EXCLUDED.rating,
+                            wish_priority = EXCLUDED.wish_priority,
+                            last_sync = EXCLUDED.last_sync
+                    """, (
+                        item.get('game_id'),
+                        item.get('game_name'),
+                        status,
+                        item.get('user_rating'),
+                        item.get('bgg_rank'),
+                        datetime.now().isoformat()
+                    ), config['type'])
+                else:
+                    execute_query(cursor, """
+                        INSERT OR REPLACE INTO collection (objectid, name, status, rating, wish_priority, last_sync)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        item.get('game_id'),
+                        item.get('game_name'),
+                        status,
+                        item.get('user_rating'),
+                        item.get('bgg_rank'),
+                        datetime.now().isoformat()
+                    ), config['type'])
             
             conn.commit()
             logger.info(f"成功同步 {len(collection_data)} 個收藏遊戲")
