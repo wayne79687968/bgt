@@ -36,16 +36,23 @@ def get_database_config():
     print(f"✅ 配置 PostgreSQL: {parsed.hostname}:{parsed.port}/{parsed.path[1:]}")
     return config
 
-def execute_query(cursor, query, params=()):
+def execute_query(cursor, query, params=(), db_type='postgresql'):
     """
-    執行 PostgreSQL 查詢
+    執行資料庫查詢，自動處理不同資料庫的占位符語法
 
     Args:
         cursor: 數據庫游標
-        query: SQL 查詢語句（使用 %s 作為占位符）
+        query: SQL 查詢語句（使用 ? 作為占位符，會自動轉換）
         params: 查詢參數
+        db_type: 資料庫類型 ('postgresql' 或 'sqlite')
     """
-    return cursor.execute(query, params)
+    if db_type == 'postgresql':
+        # 將 SQLite 的 ? 占位符轉換為 PostgreSQL 的 %s
+        converted_query = query.replace('?', '%s')
+        return cursor.execute(converted_query, params)
+    else:
+        # SQLite 使用原始查詢
+        return cursor.execute(query, params)
 
 @contextmanager
 def get_db_connection():
@@ -95,6 +102,15 @@ def get_db_connection():
                     cursor = conn.cursor()
                     cursor.execute("SELECT version()")
                     print("🔍 PostgreSQL 版本檢查完成")
+                    
+                    # 自動修復 collation version mismatch 警告
+                    try:
+                        cursor.execute("ALTER DATABASE zeabur REFRESH COLLATION VERSION")
+                        print("✅ PostgreSQL collation version 已更新")
+                    except Exception as collation_error:
+                        # 如果更新失敗，記錄但不中斷連接
+                        print(f"⚠️ Collation version 更新失敗（可忽略）: {collation_error}")
+                        pass
                 except Exception:
                     pass  # 忽略版本檢查錯誤
                 print("✅ PostgreSQL 連接建立成功")

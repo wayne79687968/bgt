@@ -5226,11 +5226,12 @@ def register_user():
         # 檢查是否有有效的驗證碼（確保用戶已通過驗證）
         with get_db_connection() as conn:
             cursor = conn.cursor()
+            config = get_database_config()
             execute_query(cursor, """
                 SELECT id FROM verification_codes 
                 WHERE email = ? AND type = 'register' AND used = 1
                 AND expires_at > ?
-            """, (email, datetime.now().isoformat()))
+            """, (email, datetime.now().isoformat()), config['type'])
             
             if not cursor.fetchone():
                 return jsonify({'success': False, 'message': '請先完成 Email 驗證'})
@@ -5250,9 +5251,10 @@ def register_user():
             # 清理已使用的驗證碼
             with get_db_connection() as conn:
                 cursor = conn.cursor()
+                config = get_database_config()
                 execute_query(cursor, 
                     "DELETE FROM verification_codes WHERE email = ? AND type = 'register'", 
-                    (email,))
+                    (email,), config['type'])
                 conn.commit()
             
             return jsonify({
@@ -5358,16 +5360,17 @@ def reset_password():
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-                from database import execute_query
+                from database import execute_query, get_database_config
                 
                 password_hash = email_auth.hash_password(new_password)
                 updated_at = datetime.now().isoformat()
+                config = get_database_config()
                 
                 execute_query(cursor, """
                     UPDATE users 
                     SET password_hash = ?, updated_at = ?
                     WHERE email = ?
-                """, (password_hash, updated_at, email))
+                """, (password_hash, updated_at, email), config['type'])
                 
                 conn.commit()
                 

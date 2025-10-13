@@ -44,7 +44,8 @@ class GoogleAuth:
                 now = datetime.now().isoformat()
                 
                 # 檢查用戶是否存在
-                execute_query(cursor, "SELECT id, has_full_access FROM users WHERE email = ?", (email,))
+                config = get_database_config()
+                execute_query(cursor, "SELECT id, has_full_access FROM users WHERE email = ?", (email,), config['type'])
                 user = cursor.fetchone()
                 
                 # 判斷是否為管理員
@@ -56,17 +57,17 @@ class GoogleAuth:
                         UPDATE users 
                         SET google_id = ?, name = ?, picture = ?, has_full_access = ?, updated_at = ?
                         WHERE email = ?
-                    """, (google_id, name, picture, has_full_access, now, email))
+                    """, (google_id, name, picture, has_full_access, now, email), config['type'])
                     user_id = user[0]
                 else:
                     # 創建新用戶
                     execute_query(cursor, """
                         INSERT INTO users (email, google_id, name, picture, has_full_access, created_at, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (email, google_id, name, picture, has_full_access, now, now))
+                    """, (email, google_id, name, picture, has_full_access, now, now), config['type'])
                     
                     # 獲取新創建的用戶 ID
-                    execute_query(cursor, "SELECT id FROM users WHERE email = ?", (email,))
+                    execute_query(cursor, "SELECT id FROM users WHERE email = ?", (email,), config['type'])
                     user_id = cursor.fetchone()[0]
                 
                 conn.commit()
