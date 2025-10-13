@@ -3006,7 +3006,21 @@ def train_bgg_model(username):
         import turicreate as tc
         # 創建 SFrame 並指定列名
         ratings_sf = tc.SFrame(user_ratings)
-        ratings_sf = ratings_sf.rename({'X1': 'bgg_user_name', 'X2': 'bgg_id', 'X3': 'bgg_user_rating'})
+        
+        # 檢查實際的列名並重命名
+        actual_columns = ratings_sf.column_names()
+        print(f"🔍 SFrame 實際列名: {actual_columns}")
+        
+        if len(actual_columns) >= 3:
+            rename_dict = {
+                actual_columns[0]: 'bgg_user_name',
+                actual_columns[1]: 'bgg_id', 
+                actual_columns[2]: 'bgg_user_rating'
+            }
+            ratings_sf = ratings_sf.rename(rename_dict)
+            print(f"✅ 列名重命名完成: {ratings_sf.column_names()}")
+        else:
+            raise Exception(f"SFrame 列數不足，期望 3 列，實際 {len(actual_columns)} 列")
 
         # 創建推薦模型
         model = tc.recommender.create(
