@@ -3004,7 +3004,9 @@ def train_bgg_model(username):
 
         # 使用 turicreate 訓練模型
         import turicreate as tc
-        ratings_sf = tc.SFrame(user_ratings, column_names=['bgg_user_name', 'bgg_id', 'bgg_user_rating'])
+        # 創建 SFrame 並指定列名
+        ratings_sf = tc.SFrame(user_ratings)
+        ratings_sf = ratings_sf.rename({'X1': 'bgg_user_name', 'X2': 'bgg_id', 'X3': 'bgg_user_rating'})
 
         # 創建推薦模型
         model = tc.recommender.create(
