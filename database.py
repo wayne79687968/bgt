@@ -104,8 +104,15 @@ def get_db_connection():
                     
                     # 自動修復 collation version mismatch 警告
                     try:
-                        cursor.execute("ALTER DATABASE zeabur REFRESH COLLATION VERSION")
-                        print("✅ PostgreSQL collation version 已更新")
+                        # 檢查是否有權限執行 ALTER DATABASE 命令
+                        cursor.execute("SELECT has_database_privilege(current_user, 'zeabur', 'CREATE')")
+                        has_privilege = cursor.fetchone()[0]
+                        
+                        if has_privilege:
+                            cursor.execute("ALTER DATABASE zeabur REFRESH COLLATION VERSION")
+                            print("✅ PostgreSQL collation version 已更新")
+                        else:
+                            print("⚠️ 無權限更新 collation version，但連接正常")
                     except Exception as collation_error:
                         # 如果更新失敗，記錄但不中斷連接
                         print(f"⚠️ Collation version 更新失敗（可忽略）: {collation_error}")
