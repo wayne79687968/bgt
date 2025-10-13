@@ -2945,11 +2945,46 @@ def run_full_retrain_task(username):
 def sync_user_collection(username):
     """同步用戶收藏"""
     try:
-        # 這裡重用現有的收藏同步邏輯
-        # 可以呼叫現有的 collection_sync.py 或相關函數
         logger.info(f"同步用戶 {username} 的收藏")
-        # TODO: 實際的收藏同步邏輯
-        time.sleep(2)  # 模擬處理時間
+        
+        # 使用 BGG scraper 抓取用戶收藏
+        from bgg_scraper_extractor import BGGScraperExtractor
+        extractor = BGGScraperExtractor()
+        
+        # 抓取用戶收藏資料
+        collection_data = extractor.fetch_user_collection(username)
+        if not collection_data:
+            logger.warning(f"無法獲取用戶 {username} 的收藏資料")
+            return False
+        
+        # 將資料保存到資料庫
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            config = get_database_config()
+            
+            # 清空現有的收藏資料
+            execute_query(cursor, "DELETE FROM collection", (), config['type'])
+            
+            # 插入新的收藏資料
+            for item in collection_data:
+                # 確定收藏狀態
+                status = 'owned' if item.get('own') else ('wishlist' if item.get('wishlist') else 'want')
+                
+                execute_query(cursor, """
+                    INSERT INTO collection (objectid, name, status, rating, wish_priority, last_sync)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    item.get('game_id'),  # 使用 game_id 而不是 objectid
+                    item.get('game_name'),  # 使用 game_name 而不是 name
+                    status,  # 轉換狀態
+                    item.get('user_rating'),  # 使用 user_rating
+                    item.get('bgg_rank'),  # 使用 bgg_rank 作為 wish_priority
+                    datetime.now().isoformat()
+                ), config['type'])
+            
+            conn.commit()
+            logger.info(f"成功同步 {len(collection_data)} 個收藏遊戲")
+        
         return True
     except Exception as e:
         logger.error(f"同步用戶收藏失敗: {e}")
