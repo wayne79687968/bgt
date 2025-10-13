@@ -93,7 +93,6 @@ def get_db_connection():
                     keepalives_idle=600,     # TCP keepalive idle time
                     keepalives_interval=30,  # TCP keepalive interval
                     keepalives_count=3,      # TCP keepalive count
-                    tcp_user_timeout=30000,  # TCP user timeout (30秒)
                     options='-c default_transaction_isolation=read_committed'
                 )
                 
