@@ -93,7 +93,7 @@ def get_db_connection():
                     keepalives_idle=600,     # TCP keepalive idle time
                     keepalives_interval=30,  # TCP keepalive interval
                     keepalives_count=3,      # TCP keepalive count
-                    options='-c default_transaction_isolation="read committed"'
+                    options='-c default_transaction_isolation=read\\ committed'
                 )
                 
                 # 處理 collation version 警告
