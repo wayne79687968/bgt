@@ -2994,10 +2994,27 @@ def train_bgg_model(username):
             # 獲取用戶收藏作為隱式評分
             cursor.execute("SELECT objectid FROM collection")
             owned_games = cursor.fetchall()
+            
+            print(f"🔍 從 collection 表獲取到 {len(owned_games)} 個收藏遊戲")
+            print(f"🔍 前 3 個遊戲資料: {owned_games[:3] if len(owned_games) >= 3 else owned_games}")
 
             for game_row in owned_games:
                 game_id = game_row[0]
                 user_ratings.append((username, game_id, 8.0))  # 假設評分
+            
+            # 如果 collection 表是空的，使用 hot_games 表的資料作為備用
+            if len(user_ratings) < 5:
+                print("⚠️ collection 表資料不足，嘗試使用 hot_games 表資料")
+                cursor.execute("SELECT DISTINCT objectid FROM hot_games ORDER BY rank LIMIT 20")
+                hot_games = cursor.fetchall()
+                print(f"🔍 從 hot_games 表獲取到 {len(hot_games)} 個熱門遊戲")
+                
+                for game_row in hot_games:
+                    game_id = game_row[0]
+                    user_ratings.append((username, game_id, 8.0))  # 假設評分
+
+        print(f"🔍 準備的訓練資料數量: {len(user_ratings)}")
+        print(f"🔍 前 3 個訓練資料: {user_ratings[:3] if len(user_ratings) >= 3 else user_ratings}")
 
         if len(user_ratings) < 5:
             raise Exception("訓練資料不足，至少需要 5 個收藏遊戲")
