@@ -104,6 +104,109 @@ def _load_owned_object_ids():
         return []
 
 
+# 一鍵重新訓練狀態（與前端輪詢介面相容）
+bgg_training_status = {
+    'is_running': False,
+    'current_step': '待機',
+    'progress': 0,
+    'message': '',
+    'started_at': None,
+    'ended_at': None,
+    'completed': False,
+    'error': False,
+    'error_message': ''
+}
+
+def _set_training_status(**kwargs):
+    for k, v in kwargs.items():
+        bgg_training_status[k] = v
+    # 自動補充時間戳
+    if 'is_running' in kwargs and kwargs['is_running'] and not bgg_training_status.get('started_at'):
+        bgg_training_status['started_at'] = datetime.now()
+    if 'completed' in kwargs and kwargs['completed']:
+        bgg_training_status['ended_at'] = datetime.now()
+
+
+@recommender_bp.route('/api/bgg/retrain-full', methods=['POST'])
+@login_required
+def api_bgg_retrain_full():
+    if bgg_training_status.get('is_running'):
+        return jsonify({'success': False, 'message': '訓練已在進行中'}), 400
+
+    username = _get_bgg_username()
+    if not username:
+        return jsonify({'success': False, 'message': '請先設定 BGG 用戶名'}), 400
+
+    _set_training_status(is_running=True, current_step='初始化', progress=0, message='準備環境', completed=False, error=False, error_message='')
+
+    def _task():
+        try:
+            # 第一步：抓取 BGG 收藏與評分
+            _set_training_status(current_step='抓取資料', progress=10, message=f'抓取 {username} 的 BGG 收藏...')
+            try:
+                from bgg_scraper_extractor import BGGScraperExtractor
+                ex = BGGScraperExtractor()
+                ok = ex.export_to_jsonl(username)
+                if not ok:
+                    _set_training_status(is_running=False, error=True, error_message='抓取收藏失敗', message='抓取收藏失敗')
+                    return
+            except Exception as e:
+                _set_training_status(is_running=False, error=True, error_message=f'抓取收藏異常: {e}', message='抓取收藏異常')
+                return
+
+            _set_training_status(current_step='準備訓練資料', progress=30, message='檢查訓練資料')
+            from services.recommender_service import get_user_rg_paths
+            paths = get_user_rg_paths(username)
+            games_file = paths['games_file']
+            ratings_file = paths['ratings_file']
+            model_dir = paths['model_dir']
+
+            if not (os.path.exists(games_file) and os.path.exists(ratings_file)):
+                _set_training_status(is_running=False, error=True, error_message='訓練資料不存在', message='訓練資料不存在')
+                return
+
+            # 第二步：訓練模型
+            _set_training_status(current_step='訓練模型', progress=60, message='使用 board-game-recommender 訓練')
+            try:
+                from board_game_recommender.recommend import BGGRecommender
+                import turicreate as tc  # noqa: F401
+                import shutil
+                os.makedirs(model_dir, exist_ok=True)
+                rec = BGGRecommender.train_from_files(games_file=games_file, ratings_file=ratings_file)
+                # 先清理舊資料（避免混合新舊檔案）
+                for sub in ('recommender', 'similarity', 'games', 'ratings', 'clusters', 'compilations'):
+                    p = os.path.join(model_dir, sub)
+                    if os.path.exists(p):
+                        try:
+                            shutil.rmtree(p)
+                        except Exception:
+                            pass
+                rec.save(model_dir)
+            except Exception as e:
+                _set_training_status(is_running=False, error=True, error_message=f'訓練失敗: {e}', message='訓練失敗')
+                return
+
+            # 完成
+            _set_training_status(current_step='完成', progress=100, message='訓練完成', is_running=False, completed=True)
+        except Exception as e:
+            _set_training_status(is_running=False, error=True, error_message=str(e), message='發生未知錯誤')
+
+    t = threading.Thread(target=_task, daemon=True)
+    t.start()
+
+    return jsonify({'success': True, 'message': 'BGG 一鍵訓練已啟動'})
+
+
+@recommender_bp.route('/api/bgg/training-status', methods=['GET'])
+@login_required
+def api_bgg_training_status():
+    st = bgg_training_status.copy()
+    if st.get('started_at'):
+        st['started_at'] = st['started_at'].isoformat()
+    if st.get('ended_at'):
+        st['ended_at'] = st['ended_at'].isoformat()
+    return jsonify({'success': True, 'status': st})
+
 # 簡化的 RG 抓取任務狀態（維持原有接口語意）
 rg_task_status = {'is_running': False, 'start_time': None, 'progress': 0, 'message': '', 'stdout_tail': [], 'stderr_tail': [], 'last_update': None}
 
