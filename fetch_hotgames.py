@@ -73,11 +73,8 @@ with get_db_connection() as conn:
     config = get_database_config()
 
     print("🗑️ 清理舊數據...")
-    # 先刪除今天的舊資料（如果有的話）
-    if config['type'] == 'postgresql':
-        cursor.execute("DELETE FROM hot_games WHERE snapshot_date = %s", (snapshot_date,))
-    else:
-        cursor.execute("DELETE FROM hot_games WHERE snapshot_date = ?", (snapshot_date,))
+    # 僅支援 PostgreSQL
+    cursor.execute("DELETE FROM hot_games WHERE snapshot_date = %s", (snapshot_date,))
 
     deleted_count = cursor.rowcount
     print(f"🗑️ 清理了 {deleted_count} 筆舊數據")
@@ -98,7 +95,6 @@ with get_db_connection() as conn:
             print(f"💾 正在插入第 {inserted_count + 1} 筆數據...")
 
         try:
-            # PostgreSQL 使用 ON CONFLICT
             cursor.execute("""
                 INSERT INTO hot_games (snapshot_date, rank, objectid, name, year, thumbnail)
                 VALUES (%s, %s, %s, %s, %s, %s)

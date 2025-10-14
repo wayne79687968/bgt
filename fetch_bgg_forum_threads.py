@@ -131,10 +131,7 @@ def is_i18n_fresh(objectid, lang, days=7):
         cursor = conn.cursor()
         config = get_database_config()
 
-        if config['type'] == 'postgresql':
-            cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
-        else:
-            cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
+        cursor.execute("SELECT updated_at FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
 
         row = cursor.fetchone()
         if row and row[0]:
@@ -286,10 +283,7 @@ def is_threads_expired(objectid):
         cursor = conn.cursor()
         config = get_database_config()
 
-        if config['type'] == 'postgresql':
-            cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
-        else:
-            cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+        cursor.execute("SELECT MAX(created_at), threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
 
         row = cursor.fetchone()
         if not row or not row[0]:
@@ -316,12 +310,8 @@ def delete_all_threads_and_i18n(objectid):
         cursor = conn.cursor()
         config = get_database_config()
 
-        if config['type'] == 'postgresql':
-            cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = %s", (objectid,))
-            cursor.execute("DELETE FROM forum_threads WHERE objectid = %s", (objectid,))
-        else:
-            cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = ?", (objectid,))
-            cursor.execute("DELETE FROM forum_threads WHERE objectid = ?", (objectid,))
+        cursor.execute("DELETE FROM forum_threads_i18n WHERE objectid = %s", (objectid,))
+        cursor.execute("DELETE FROM forum_threads WHERE objectid = %s", (objectid,))
 
         conn.commit()
 
@@ -367,16 +357,10 @@ def fetch_and_save_threads(objectid, name):
         cursor = conn.cursor()
         config = get_database_config()
 
-        if config['type'] == 'postgresql':
-            cursor.execute("""
-                INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
-                VALUES (%s, %s, %s, %s, %s)
-            """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
-        else:
-            cursor.execute("""
-                INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
+        cursor.execute("""
+            INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
 
         conn.commit()
 
@@ -389,10 +373,7 @@ def get_threads_by_objectid(objectid):
         cursor = conn.cursor()
         config = get_database_config()
 
-        if config['type'] == 'postgresql':
-            cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
-        else:
-            cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+        cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
 
         row = cursor.fetchone()
         if row:
@@ -496,26 +477,17 @@ def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
 
     # 3. 儲存到資料庫
     print(f"💾 [{name}] 保存討論串到數據庫...")
-    if config['type'] == 'postgresql':
-        cursor.execute("""
-            INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
-    else:
-        cursor.execute("""
-            INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
+    cursor.execute("""
+        INSERT INTO forum_threads (objectid, name, threads_json, snapshot_date, created_at)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (objectid, name, json.dumps(threads, ensure_ascii=False), today, datetime.utcnow().isoformat()))
     conn.commit()
 
     print(f"✅ [{name}] 已抓取 {len(threads)} 個討論串")
     return threads
 
 def get_threads_by_objectid_with_cursor(cursor, objectid, config):
-    if config['type'] == 'postgresql':
-        cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
-    else:
-        cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = ? ORDER BY created_at DESC LIMIT 1", (objectid,))
+    cursor.execute("SELECT threads_json FROM forum_threads WHERE objectid = %s ORDER BY created_at DESC LIMIT 1", (objectid,))
     row = cursor.fetchone()
     if row:
         return json.loads(row[0])
@@ -551,40 +523,23 @@ def main():
             if len(rows) >= 2:
                 today_date, yesterday_date = rows[0][0], rows[1][0]
 
-                if config['type'] == 'postgresql':
-                    cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = %s", (today_date,))
-                else:
-                    cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = ?", (today_date,))
+                cursor.execute("SELECT objectid, name FROM hot_games WHERE snapshot_date = %s", (today_date,))
                 today_list = cursor.fetchall()
 
-                if config['type'] == 'postgresql':
-                    cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = %s", (yesterday_date,))
-                else:
-                    cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = ?", (yesterday_date,))
+                cursor.execute("SELECT objectid FROM hot_games WHERE snapshot_date = %s", (yesterday_date,))
                 yesterday_ids = [r[0] for r in cursor.fetchall()]
                 new_games = [(oid, name) for oid, name in today_list if oid not in yesterday_ids]
 
             # 2. 今日榜上但沒有討論串資料或翻譯的遊戲
-            if config['type'] == 'postgresql':
-                cursor.execute("""
-                    SELECT h.objectid, h.name
-                    FROM hot_games h
-                    WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
-                    AND (
-                        h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
-                        OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = %s)
-                    )
-                """, (lang,))
-            else:
-                cursor.execute("""
-                    SELECT h.objectid, h.name
-                    FROM hot_games h
-                    WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
-                    AND (
-                        h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
-                        OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = ?)
-                    )
-                """, (lang,))
+            cursor.execute("""
+                SELECT h.objectid, h.name
+                FROM hot_games h
+                WHERE h.snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)
+                AND (
+                    h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads)
+                    OR h.objectid NOT IN (SELECT DISTINCT objectid FROM forum_threads_i18n WHERE lang = %s)
+                )
+            """, (lang,))
             missing_games = cursor.fetchall()
 
             # 合併並去重
@@ -640,10 +595,7 @@ def main():
 
                 # 2. 若該語言 reason 不存在，才丟給 LLM
                 print(f"🔍 檢查 {name} 是否已有 {lang} 語言的分析結果...")
-                if config['type'] == 'postgresql':
-                    cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
-                else:
-                    cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = ? AND lang = ?", (objectid, lang))
+                cursor.execute("SELECT 1 FROM forum_threads_i18n WHERE objectid = %s AND lang = %s", (objectid, lang))
                 reason_exists = cursor.fetchone() is not None
 
                 if reason_exists and not force_analysis:
@@ -671,18 +623,11 @@ def main():
                 print(f"📝 分析結果摘要: {reason[:120]}...")
 
                 print(f"💾 保存 {name} 的分析結果到數據庫...")
-                if config['type'] == 'postgresql':
-                    cursor.execute("""
-                        INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT(objectid, lang) DO UPDATE SET reason=EXCLUDED.reason, updated_at=EXCLUDED.updated_at
-                    """, (objectid, lang, reason, datetime.utcnow().isoformat()))
-                else:
-                    cursor.execute("""
-                        INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
-                        VALUES (?, ?, ?, ?)
-                        ON CONFLICT(objectid, lang) DO UPDATE SET reason=excluded.reason, updated_at=excluded.updated_at
-                    """, (objectid, lang, reason, datetime.utcnow().isoformat()))
+                cursor.execute("""
+                    INSERT INTO forum_threads_i18n (objectid, lang, reason, updated_at)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT(objectid, lang) DO UPDATE SET reason=EXCLUDED.reason, updated_at=EXCLUDED.updated_at
+                """, (objectid, lang, reason, datetime.utcnow().isoformat()))
 
                 all_results[objectid] = {
                     "name": name,
