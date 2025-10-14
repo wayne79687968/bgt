@@ -2350,9 +2350,8 @@ def api_save_settings():
         return jsonify({'success': False, 'message': f'保存失敗: {str(e)}'}), 500
 
 @app.route('/api/sync-collection', methods=['POST'])
+@login_required
 def api_sync_collection():
-    if 'logged_in' not in session:
-        return jsonify({'success': False, 'message': '未登入'}), 401
     username = get_app_setting('bgg_username')
     if not username:
         return jsonify({'success': False, 'message': '請先在設定頁設定 BGG 使用者名稱'}), 400

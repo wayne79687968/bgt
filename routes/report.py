@@ -36,9 +36,8 @@ def bgg_times():
 
 
 @report_bp.route('/api/check-files', methods=['GET'])
+@login_required
 def api_check_files():
-    if 'logged_in' not in session:
-        return jsonify({'success': False, 'message': '未登入'}), 401
     try:
         report_dir = 'frontend/public/outputs'
         files_info = []
@@ -59,9 +58,8 @@ def api_check_files():
 
 
 @report_bp.route('/api/check-database', methods=['GET'])
+@login_required
 def api_check_database():
-    if 'logged_in' not in session:
-        return jsonify({'success': False, 'message': '未登入'}), 401
     try:
         config = get_database_config()
         env_vars = {
