@@ -242,12 +242,13 @@ RG_API_KEY = os.getenv('RG_API_KEY')
 
 # Blueprint 註冊（逐步遷移路由）
 try:
-    from routes import health_bp, recommender_bp, admin_bp, auth_bp
+    from routes import health_bp, recommender_bp, admin_bp, auth_bp, report_bp
     app.register_blueprint(health_bp)
     app.register_blueprint(recommender_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(auth_bp)
-    logger.info("✅ 已註冊 blueprints: health, recommender, admin, auth")
+    app.register_blueprint(report_bp)
+    logger.info("✅ 已註冊 blueprints: health, recommender, admin, auth, report")
 except Exception as e:
     logger.warning(f"⚠️ 無法註冊部分 blueprints: {e}")
 # RG 推薦器路徑配置
@@ -4705,42 +4706,7 @@ def generate():
     return redirect(url_for('index'))
 
 
-@app.route('/bgg_times')
-def bgg_times():
-    """復古報紙風格的報表檢視 - 真正的舊報紙風格"""
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
-
-    # 獲取選擇的日期，預設為今日
-    selected_date = request.args.get('date')
-    if not selected_date:
-        selected_date = datetime.now().strftime('%Y-%m-%d')
-
-    # 獲取指定日期的報表
-    content, filename = get_report_by_date(selected_date)
-
-    # 如果找不到指定日期的報表，嘗試獲取最新報表
-    if content is None:
-        content, filename = get_latest_report()
-
-    if content is None:
-        return render_template('error.html', error=filename)
-
-    # 解析所有遊戲資料
-    all_games = parse_game_data_from_report(content)
-    current_page_games = all_games
-    total_games = len(all_games)
-
-    # 獲取所有可用日期
-    available_dates = get_available_dates()
-
-    return render_template('bgg_times.html',
-                         current_page_games=current_page_games,
-                         filename=filename,
-                         selected_date=selected_date,
-                         available_dates=available_dates,
-                         total_games=total_games,
-                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+## 已遷移至 routes/report.py 的 report_bp: /bgg_times, /api/check-files, /api/check-database
 
 @app.route('/api/check-files', methods=['GET'])
 def api_check_files():
