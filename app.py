@@ -251,6 +251,15 @@ try:
     logger.info("✅ 已註冊 blueprints: health, recommender, admin, auth, report")
 except Exception as e:
     logger.warning(f"⚠️ 無法註冊部分 blueprints: {e}")
+
+# 與 Blueprint 端點相容的別名（保持舊模板中的 url_for('login'/'logout') 可用）
+@app.route('/login', endpoint='login')
+def _login_alias():
+    return redirect(url_for('auth.login'))
+
+@app.route('/logout', endpoint='logout')
+def _logout_alias():
+    return redirect(url_for('auth.logout'))
 # RG 推薦器路徑配置
 def get_user_rg_paths(username=None):
     """已轉發至 services.recommender_service.get_user_rg_paths"""
