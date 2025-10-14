@@ -253,39 +253,11 @@ except Exception as e:
     logger.warning(f"⚠️ 無法註冊部分 blueprints: {e}")
 # RG 推薦器路徑配置
 def get_user_rg_paths(username=None):
-    """獲取用戶特定的 RG 文件路徑"""
+    """已轉發至 services.recommender_service.get_user_rg_paths"""
     if not username:
         username = get_app_setting('bgg_username', 'default')
-    
-    # 動態選擇最佳可用的資料目錄
-    possible_dirs = ['/app/data', 'data', '/tmp/data']
-    base_dir = None
-    
-    for data_dir in possible_dirs:
-        if os.path.exists(data_dir) and os.access(data_dir, os.W_OK):
-            base_dir = data_dir
-            logger.info(f"📁 使用資料目錄: {base_dir}")
-            break
-    
-    if not base_dir:
-        # 如果沒有可用的目錄，創建一個
-        base_dir = 'data'
-        os.makedirs(base_dir, exist_ok=True)
-        logger.warning(f"⚠️ 沒有找到可用的資料目錄，使用預設: {base_dir}")
-    
-    user_dir = os.path.join(base_dir, 'rg_users', username)
-    
-    # 確保目錄存在
-    os.makedirs(user_dir, exist_ok=True)
-    
-    return {
-        'user_dir': user_dir,
-        'games_file': os.path.join(user_dir, 'bgg_GameItem.jl'),
-        'ratings_file': os.path.join(user_dir, 'bgg_RatingItem.jl'),
-        'model_dir': os.path.join(user_dir, 'rg_model'),
-        'full_model': os.path.join(user_dir, 'rg_model', 'full.npz'),
-        'light_model': os.path.join(user_dir, 'rg_model', 'light.npz')
-    }
+    from services.recommender_service import get_user_rg_paths as svc_paths
+    return svc_paths(username)
 
 def ensure_data_directories():
     """確保必要的資料目錄存在"""
@@ -2454,12 +2426,9 @@ def recommendations():
                          current_view=current_view,
                          last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-@app.route('/rg-recommender')
-def rg_recommender():
-    """重定向到統一的推薦頁面"""
-    return redirect(url_for('recommendations'))
+## 已遷移至 routes/recommender.py 的 recommender_bp: /rg-recommender
 
-@app.route('/api/rg-train', methods=['POST'])
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg-train
 def api_rg_train():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
@@ -2627,7 +2596,7 @@ def api_rg_train():
         logger.error(f"RG 訓練異常: {e}")
         return jsonify({'success': False, 'message': f'訓練異常：{e}'})
 
-@app.route('/api/rg-status', methods=['GET'])
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg-status
 def api_rg_status():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
@@ -2677,7 +2646,7 @@ def api_rg_status():
     
     return jsonify({'success': True, 'status': status})
 
-@app.route('/api/rg-scrape', methods=['POST'])
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg-scrape
 def api_rg_scrape():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
@@ -2707,7 +2676,7 @@ def api_rg_scrape():
     thread.start()
     return jsonify({'success': True, 'message': '抓取任務已啟動'})
 
-@app.route('/api/rg-task-status', methods=['GET'])
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg-task-status
 def api_rg_task_status():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
@@ -2720,8 +2689,7 @@ def api_rg_task_status():
         st['last_update'] = st['last_update'].isoformat()
     return jsonify({'success': True, 'status': st})
 
-@app.route('/api/bgg/search', methods=['POST'])
-@login_required
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/bgg/search
 def api_bgg_search():
     """BGG 遊戲搜尋 API"""
     try:
@@ -2783,8 +2751,7 @@ def api_bgg_search():
         logger.error(f"BGG 搜尋發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'搜尋失敗: {str(e)}'})
 
-@app.route('/api/rg/recommend-score', methods=['POST'])
-@login_required
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg/recommend-score
 def api_rg_recommend_score():
     """計算特定遊戲的推薦分數 - 使用 BGGRecommender"""
     try:
@@ -2905,8 +2872,7 @@ def api_rg_recommend_score():
 # 複雜的高級推薦 API 已移除，請使用 /api/rg/recommend-score
 
 # BGG 推薦系統一鍵重新訓練相關 API
-@app.route('/api/bgg/retrain-full', methods=['POST'])
-@login_required
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/bgg/retrain-full
 def api_bgg_retrain_full():
     """一鍵重新訓練：自動 scraper + training"""
     try:
@@ -2938,8 +2904,7 @@ def api_bgg_retrain_full():
         logger.error(f"啟動一鍵重新訓練失敗: {e}")
         return jsonify({'success': False, 'message': f'啟動失敗: {str(e)}'})
 
-@app.route('/api/bgg/training-status', methods=['GET'])
-@login_required
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/bgg/training-status
 def api_bgg_training_status():
     """獲取訓練狀態"""
     try:
@@ -3297,8 +3262,7 @@ def api_volume_status():
         logger.error(f"檢查 Volume 狀態失敗: {e}")
         return jsonify({'success': False, 'message': str(e), 'traceback': traceback.format_exc()})
 
-@app.route('/api/rg/model-status', methods=['GET'])
-@login_required
+## 已遷移至 routes/recommender.py 的 recommender_bp: /api/rg/model-status
 def api_rg_model_status():
     """獲取推薦模型狀態信息"""
     try:

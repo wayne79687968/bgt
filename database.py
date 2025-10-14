@@ -665,6 +665,12 @@ def _create_tables_and_constraints(cursor, tables, config_type):
                 ON bgg_items (id, category)
                 """)
             print("✅ [INIT_DATABASE] bgg_items 唯一索引創建成功")
+            # 額外建議索引（如不存在）：加速常用查詢
+            print("🗃️ [INIT_DATABASE] 檢查與建立常用索引...")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_collection_objectid ON collection(objectid)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_game_detail_objectid ON game_detail(objectid)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_forum_threads_objectid ON forum_threads(objectid)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_follows_user_id ON user_follows(user_id)")
 
         except Exception as e:
             print(f"⚠️ [INIT_DATABASE] 索引創建警告 (可能已存在): {e}")
