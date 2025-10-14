@@ -132,18 +132,22 @@ document.addEventListener('click', function(e) {
 
 async function searchGames(query) {
     try {
-        const response = await fetch('/api/games/search', {
+        // 使用真正的 BGG API 搜尋
+        const response = await fetch('/api/bgg/search', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ query, limit: 20 })
+            body: JSON.stringify({ 
+                query: query, 
+                exact: false 
+            })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            displaySearchResults(data.games);
+            displaySearchResults(data.results);
         } else {
             console.error('搜尋失敗:', data.message);
         }
@@ -161,23 +165,27 @@ function displaySearchResults(games) {
         return;
     }
     
-    const selectedIds = selectedGames.map(game => game.objectid);
+    const selectedIds = selectedGames.map(game => game.id);
     
     resultsDiv.innerHTML = games.map(game => {
-        const isSelected = selectedIds.includes(game.objectid);
+        const isSelected = selectedIds.includes(game.id);
         return `
             <div class="p-2 border-bottom d-flex align-items-center ${isSelected ? 'bg-light' : ''}" 
                  style="cursor: ${isSelected ? 'default' : 'pointer'};"
-                 onclick="${isSelected ? '' : `selectGame(${JSON.stringify(game).replace(/"/g, '&quot;')})`}">
-                <img src="${game.image || '/static/default-game.png'}" 
+                 onclick="${isSelected ? '' : `selectGame(${JSON.stringify({
+                     id: game.id,
+                     name: game.name,
+                     year: game.year,
+                     objectid: game.id  // 為了相容性
+                 }).replace(/"/g, '&quot;')})`}">
+                <img src="/static/default-game.png" 
                      alt="${game.name}" class="me-2 rounded"
                      style="width: 40px; height: 40px; object-fit: cover;"
                      onerror="this.src='/static/default-game.png'">
                 <div class="flex-grow-1">
                     <h6 class="mb-1">${game.name}</h6>
                     <small class="text-muted">
-                        評分: ${game.rating ? game.rating.toFixed(1) : 'N/A'} | 
-                        排名: ${game.rank || 'N/A'} | 
+                        BGG ID: ${game.id} | 
                         年份: ${game.year || 'N/A'}
                     </small>
                 </div>
