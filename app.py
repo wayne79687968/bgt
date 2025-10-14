@@ -1042,7 +1042,8 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
         
         # 嘗試不同的用戶名格式，並確保排除已知遊戲
-        user_variants = [username, username.lower(), f"user_{username}"]
+        # BGGRecommender 會將用戶名轉換為小寫，所以優先嘗試小寫
+        user_variants = [username.lower(), username, f"user_{username.lower()}", f"user_{username}"]
         
         # 檢查 .jl 檔案中的實際用戶名格式
         try:
@@ -2758,8 +2759,9 @@ def api_rg_recommend_score():
             recommender = BGGRecommender.load(model_path)
             
             # 獲取推薦（不排除已知，因為我們要計算特定遊戲的分數）
+            # BGGRecommender 會將用戶名轉換為小寫
             recommendations_df = recommender.recommend(
-                users=[username],
+                users=[username.lower()],
                 num_games=1000,
                 exclude_known=False
             )
