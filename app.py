@@ -187,11 +187,11 @@ _db_initialized = False
 def force_db_initialization():
     """強制執行資料庫初始化，用於應用啟動"""
     global _db_initialized
-
+    
     if _db_initialized:
         print("✓ 資料庫已初始化，跳過重複初始化")
         return True
-
+    
     print("🔄 強制執行資料庫初始化...")
     try:
         from database import init_database
@@ -211,10 +211,10 @@ def force_db_initialization():
 def init_db_if_needed():
     """延遲初始化資料庫，避免啟動阻塞"""
     global _db_initialized
-
+    
     if _db_initialized:
         return True
-
+    
     try:
         from database import init_database
         config = get_database_config()
@@ -256,28 +256,28 @@ def get_user_rg_paths(username=None):
     """獲取用戶特定的 RG 文件路徑"""
     if not username:
         username = get_app_setting('bgg_username', 'default')
-
+    
     # 動態選擇最佳可用的資料目錄
     possible_dirs = ['/app/data', 'data', '/tmp/data']
     base_dir = None
-
+    
     for data_dir in possible_dirs:
         if os.path.exists(data_dir) and os.access(data_dir, os.W_OK):
             base_dir = data_dir
             logger.info(f"📁 使用資料目錄: {base_dir}")
             break
-
+    
     if not base_dir:
         # 如果沒有可用的目錄，創建一個
         base_dir = 'data'
         os.makedirs(base_dir, exist_ok=True)
         logger.warning(f"⚠️ 沒有找到可用的資料目錄，使用預設: {base_dir}")
-
+    
     user_dir = os.path.join(base_dir, 'rg_users', username)
-
+    
     # 確保目錄存在
     os.makedirs(user_dir, exist_ok=True)
-
+    
     return {
         'user_dir': user_dir,
         'games_file': os.path.join(user_dir, 'bgg_GameItem.jl'),
@@ -296,14 +296,14 @@ def ensure_data_directories():
             '/app/data/rg_users' if os.path.exists('/app/data') else 'data/rg_users',
             '/app/frontend/public/outputs' if os.path.exists('/app/frontend/public/outputs') else 'frontend/public/outputs'
         ]
-
+        
         for dir_path in data_dirs:
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
                 logger.info(f"✅ 創建目錄: {dir_path}")
             else:
                 logger.info(f"📁 目錄已存在: {dir_path}")
-
+                
         # 檢查目錄權限
         for dir_path in data_dirs:
             if os.path.exists(dir_path):
@@ -311,7 +311,7 @@ def ensure_data_directories():
                     logger.info(f"✅ 目錄可寫入: {dir_path}")
                 else:
                     logger.warning(f"⚠️ 目錄不可寫入: {dir_path}")
-
+                    
     except Exception as e:
         logger.error(f"❌ 創建資料目錄失敗: {e}")
 
@@ -319,52 +319,52 @@ def ensure_data_directories():
 def load_user_recommender(username, model_type='auto'):
     """
     使用 LRU 緩存載入用戶特定的推薦器
-
+    
     Args:
         username: BGG 用戶名
         model_type: 'auto', 'full', 'light'
-
+    
     Returns:
         tuple: (recommender_instance, model_info)
     """
     logger.info(f"🔄 載入推薦器: username={username}, model_type={model_type}")
-
+    
     user_paths = get_user_rg_paths(username)
-
+    
     # 檢查用戶數據是否存在
     if not (os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file'])):
         logger.warning(f"⚠️ 用戶 {username} 的數據不存在，使用預設推薦器")
         return load_fallback_recommender(), {'type': 'fallback', 'reason': 'no_user_data'}
-
+    
     # 根據 model_type 決定載入策略
     if model_type == 'auto':
         # 自動選擇：優先嘗試 full，失敗則使用 light
         recommender, info = _try_load_full_recommender(user_paths, username)
         if recommender:
             return recommender, info
-
+        
         recommender, info = _try_load_light_recommender(user_paths, username)
         if recommender:
             return recommender, info
-
+            
         # 都失敗則使用 fallback
         logger.warning(f"⚠️ 用戶 {username} 的所有 RG 模型都載入失敗，使用降級推薦器")
         return load_fallback_recommender(), {'type': 'fallback', 'reason': 'model_load_failed'}
-
+    
     elif model_type == 'full':
         recommender, info = _try_load_full_recommender(user_paths, username)
         if recommender:
             return recommender, info
         logger.warning(f"⚠️ 用戶 {username} 的完整模型載入失敗")
         return None, {'type': 'error', 'reason': 'full_model_failed'}
-
+    
     elif model_type == 'light':
         recommender, info = _try_load_light_recommender(user_paths, username)
         if recommender:
             return recommender, info
         logger.warning(f"⚠️ 用戶 {username} 的輕量模型載入失敗")
         return None, {'type': 'error', 'reason': 'light_model_failed'}
-
+    
     else:
         logger.error(f"❌ 不支援的模型類型: {model_type}")
         return None, {'type': 'error', 'reason': 'invalid_model_type'}
@@ -378,21 +378,21 @@ def _try_load_full_recommender(user_paths, username):
         except ImportError:
             logger.warning("⚠️ board_game_recommender 套件不可用")
             return None, {'type': 'error', 'reason': 'missing_package'}
-
+        
         # 尋找可用的 JSONL 檔案（優先用戶特定，降級到預設）
         games_file, ratings_file = _find_best_jsonl_files(user_paths, username)
-
+        
         if not games_file or not ratings_file:
             logger.warning(f"⚠️ 找不到可用的 JSONL 資料檔案")
             return None, {'type': 'error', 'reason': 'no_data_files'}
-
+        
         logger.info(f"🎯 嘗試載入用戶 {username} 的完整 BGGRecommender，使用檔案: {games_file}")
-
+        
         recommender = BGGRecommender(
             games_file=games_file,
             ratings_file=ratings_file
         )
-
+        
         logger.info(f"✅ 成功載入用戶 {username} 的完整 BGGRecommender")
         return recommender, {
             'type': 'bgg_full',
@@ -400,7 +400,7 @@ def _try_load_full_recommender(user_paths, username):
             'ratings_file': ratings_file,
             'username': username
         }
-
+        
     except Exception as e:
         logger.error(f"❌ 載入完整 BGGRecommender 失敗: {e}")
         return None, {'type': 'error', 'reason': str(e)}
@@ -412,15 +412,15 @@ def _find_best_jsonl_files(user_paths, username):
         if os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file']):
             logger.info(f"📋 使用用戶特定的 JSONL 檔案: {user_paths['games_file']}")
             return user_paths['games_file'], user_paths['ratings_file']
-
+        
         # 降級到預設檔案
         if os.path.exists(RG_DEFAULT_GAMES_FILE) and os.path.exists(RG_DEFAULT_RATINGS_FILE):
             logger.info(f"📋 使用預設 JSONL 檔案: {RG_DEFAULT_GAMES_FILE}")
             return RG_DEFAULT_GAMES_FILE, RG_DEFAULT_RATINGS_FILE
-
+        
         logger.warning("⚠️ 找不到任何可用的 JSONL 檔案")
         return None, None
-
+        
     except Exception as e:
         logger.error(f"❌ 尋找 JSONL 檔案時發生錯誤: {e}")
         return None, None
@@ -434,33 +434,33 @@ def _try_load_light_recommender(user_paths, username):
         except ImportError:
             logger.warning("⚠️ LightGamesRecommender 不可用")
             return None, {'type': 'error', 'reason': 'missing_light_package'}
-
+        
         # 檢查輕量模型檔案是否存在
         if not os.path.exists(user_paths['light_model']):
             logger.warning(f"⚠️ 用戶 {username} 的輕量模型檔案不存在: {user_paths['light_model']}")
             return None, {'type': 'error', 'reason': 'no_light_model'}
-
+        
         # 尋找可用的遊戲檔案
         games_file, _ = _find_best_jsonl_files(user_paths, username)
         if not games_file:
             logger.warning(f"⚠️ 找不到遊戲資料檔案")
             return None, {'type': 'error', 'reason': 'no_games_file'}
-
+        
         logger.info(f"🎯 嘗試載入用戶 {username} 的 LightGamesRecommender")
-
+        
         recommender = LightGamesRecommender(
             games_file=games_file,
             model_file=user_paths['light_model']
         )
-
+        
         logger.info(f"✅ 成功載入用戶 {username} 的 LightGamesRecommender")
         return recommender, {
             'type': 'light',
-            'games_file': games_file,
+            'games_file': games_file, 
             'model_file': user_paths['light_model'],
             'username': username
         }
-
+        
     except Exception as e:
         logger.error(f"❌ 載入 LightGamesRecommender 失敗: {e}")
         return None, {'type': 'error', 'reason': str(e)}
@@ -478,55 +478,55 @@ def load_fallback_recommender():
 
 class MinimalRecommender:
     """最簡化的推薦器實現，不依賴任何外部機器學習套件"""
-
+    
     def __init__(self):
         self.model_type = 'minimal'
         logger.info("🔧 初始化最簡化推薦器")
-
+    
     def get_recommendation_score(self, game_id, owned_ids):
         """計算遊戲推薦分數"""
         try:
             logger.info(f"🎯 最簡化推薦器計算遊戲 {game_id} 的分數")
-
+            
             # 使用簡單的基於特徵的相似度計算
             return self._calculate_similarity_score(game_id, owned_ids)
-
+            
         except Exception as e:
             logger.error(f"❌ 最簡化推薦器計算失敗: {e}")
             return 6.0  # 返回中性分數
-
+    
     def _calculate_similarity_score(self, game_id, owned_ids):
         """基於遊戲特徵計算相似度分數"""
         try:
             if not owned_ids:
                 # 如果沒有收藏，返回遊戲的一般評分
                 return self._get_game_base_score(game_id)
-
+            
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-
+                
                 # 獲取目標遊戲特徵
                 cursor.execute("""
                     SELECT category, mechanic, min_players, max_players, playing_time,
                            complexity, year_published, average_rating, bayes_average_rating
                     FROM game_detail WHERE objectid = %s
                 """, (game_id,))
-
+                
                 target_game = cursor.fetchone()
                 if not target_game:
                     logger.warning(f"⚠️ 找不到遊戲 {game_id} 的資料")
                     return 5.0
-
+                
                 # 計算與用戶收藏遊戲的相似度
                 similarity_scores = []
-
+                
                 for owned_id in owned_ids[:50]:  # 限制計算數量以提高性能
                     cursor.execute("""
                         SELECT category, mechanic, min_players, max_players, playing_time,
                                complexity, year_published, average_rating, bayes_average_rating
                         FROM game_detail WHERE objectid = %s
                     """, (owned_id,))
-
+                    
                     owned_game = cursor.fetchone()
                     if owned_game:
                         similarity = self._calculate_feature_similarity(target_game, owned_game)
@@ -534,37 +534,37 @@ class MinimalRecommender:
                         user_rating = 7.5 + (similarity * 1.5)  # 7.5-9.0 範圍
                         weighted_score = similarity * user_rating
                         similarity_scores.append(weighted_score)
-
+                
                 if similarity_scores:
                     # 計算平均相似度分數
                     avg_similarity = sum(similarity_scores) / len(similarity_scores)
-
+                    
                     # 結合遊戲本身的評分
                     base_score = float(target_game[7] or 6.0)  # average_rating
                     bayes_score = float(target_game[8] or 6.0)  # bayes_average_rating
                     game_score = (base_score + bayes_score) / 2
-
+                    
                     # 混合個人化和一般評分 (70% 個人化, 30% 一般評分)
                     final_score = (avg_similarity * 0.7) + (game_score * 0.3)
-
+                    
                     # 限制在合理範圍內
                     final_score = max(1.0, min(10.0, final_score))
-
+                    
                     logger.info(f"✅ 遊戲 {game_id} 相似度分數: {final_score:.3f}")
                     return float(final_score)
-
+                
                 # 如果沒有相似遊戲，返回遊戲的基本分數
                 return self._get_game_base_score(game_id)
-
+                
         except Exception as e:
             logger.error(f"❌ 相似度計算失敗: {e}")
             return 6.0
-
+    
     def _calculate_feature_similarity(self, game1, game2):
         """計算兩個遊戲的特徵相似度"""
         try:
             similarities = []
-
+            
             # 分類相似度
             if game1[0] and game2[0]:
                 cat1 = set(game1[0].split(','))
@@ -572,7 +572,7 @@ class MinimalRecommender:
                 if cat1 or cat2:
                     cat_sim = len(cat1.intersection(cat2)) / len(cat1.union(cat2))
                     similarities.append(cat_sim * 0.3)
-
+            
             # 機制相似度
             if game1[1] and game2[1]:
                 mech1 = set(game1[1].split(','))
@@ -580,7 +580,7 @@ class MinimalRecommender:
                 if mech1 or mech2:
                     mech_sim = len(mech1.intersection(mech2)) / len(mech1.union(mech2))
                     similarities.append(mech_sim * 0.3)
-
+            
             # 玩家數量相似度
             if all([game1[2], game2[2], game1[3], game2[3]]):
                 min1, max1 = int(game1[2]), int(game1[3])
@@ -589,7 +589,7 @@ class MinimalRecommender:
                 total_range = max(max1, max2) - min(min1, min2) + 1
                 player_sim = overlap / total_range if total_range > 0 else 0
                 similarities.append(player_sim * 0.2)
-
+            
             # 遊戲時間相似度
             if game1[4] and game2[4]:
                 time1, time2 = float(game1[4]), float(game2[4])
@@ -597,20 +597,20 @@ class MinimalRecommender:
                 max_time = max(time1, time2)
                 time_sim = max(0, 1 - time_diff / max_time) if max_time > 0 else 0
                 similarities.append(time_sim * 0.1)
-
+            
             # 複雜度相似度
             if game1[5] and game2[5]:
                 comp1, comp2 = float(game1[5]), float(game2[5])
                 comp_diff = abs(comp1 - comp2)
                 comp_sim = max(0, 1 - comp_diff / 5.0)  # 複雜度範圍 1-5
                 similarities.append(comp_sim * 0.1)
-
+            
             return sum(similarities) if similarities else 0.5
-
+            
         except Exception as e:
             logger.error(f"❌ 特徵相似度計算錯誤: {e}")
             return 0.5
-
+    
     def _get_game_base_score(self, game_id):
         """獲取遊戲的基本評分"""
         try:
@@ -620,48 +620,48 @@ class MinimalRecommender:
                     SELECT average_rating, bayes_average_rating, num_votes
                     FROM game_detail WHERE objectid = %s
                 """, (game_id,))
-
+                
                 result = cursor.fetchone()
                 if result:
                     avg_rating = float(result[0] or 6.0)
-                    bayes_avg = float(result[1] or 6.0)
+                    bayes_avg = float(result[1] or 6.0) 
                     num_votes = int(result[2] or 100)
-
+                    
                     # 基於評分和投票數的信心調整
                     confidence = min(1.0, num_votes / 500)
                     score = (avg_rating + bayes_avg) / 2
                     final_score = score * confidence + 6.0 * (1 - confidence)
-
+                    
                     return max(1.0, min(10.0, final_score))
-
+                
                 return 6.0
-
+                
         except Exception as e:
             logger.error(f"❌ 獲取遊戲基本分數失敗: {e}")
             return 6.0
-
+    
     def build_recommendations_from_collection(self, limit=20):
         """基於收藏建立推薦列表"""
         try:
             recommendations = []
-
+            
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-
+                
                 # 獲取用戶收藏
                 cursor.execute("SELECT objectid FROM collection")
                 owned_ids = [row[0] for row in cursor.fetchall()]
-
+                
                 if not owned_ids:
                     # 如果沒有收藏，推薦熱門遊戲
                     cursor.execute("""
                         SELECT objectid, name, average_rating
-                        FROM game_detail
-                        WHERE average_rating >= 7.0
+                        FROM game_detail 
+                        WHERE average_rating >= 7.0 
                         ORDER BY bayes_average_rating DESC
                         LIMIT %s
                     """, (limit,))
-
+                    
                     for row in cursor.fetchall():
                         recommendations.append({
                             'id': row[0],
@@ -672,15 +672,15 @@ class MinimalRecommender:
                     # 基於收藏推薦相似遊戲
                     cursor.execute("""
                         SELECT objectid, name
-                        FROM game_detail
+                        FROM game_detail 
                         WHERE objectid NOT IN %s
                         AND average_rating >= 6.5
                         ORDER BY bayes_average_rating DESC
                         LIMIT %s
                     """, (tuple(owned_ids), limit * 3))
-
+                    
                     candidates = cursor.fetchall()
-
+                    
                     # 計算推薦分數並排序
                     scored_candidates = []
                     for candidate in candidates:
@@ -690,14 +690,14 @@ class MinimalRecommender:
                             'name': candidate[1],
                             'score': score
                         })
-
+                    
                     # 按分數排序並取前 N 個
                     scored_candidates.sort(key=lambda x: x['score'], reverse=True)
                     recommendations = scored_candidates[:limit]
-
+                
             logger.info(f"✅ 生成了 {len(recommendations)} 個推薦")
             return recommendations
-
+            
         except Exception as e:
             logger.error(f"❌ 建立推薦列表失敗: {e}")
             return []
@@ -748,29 +748,29 @@ def run_rg_scrape_async(games_file: str, ratings_file: str, custom_cmd: Optional
             # 使用我們的 BGG scraper
             from bgg_scraper_extractor import BGGScraperExtractor
             extractor = BGGScraperExtractor()
-
+            
             update_rg_task_status(20, '正在抓取用戶收藏...')
-
+            
             # 從檔案路徑推導輸出目錄
             output_dir = 'data'
             if games_file:
                 output_dir = os.path.dirname(games_file)
-
+            
             # 執行抓取
             success = extractor.export_to_jsonl(bgg_username, output_dir)
-
+            
             if success:
                 update_rg_task_status(100, f'成功抓取用戶 {bgg_username} 的 BGG 資料')
             else:
                 update_rg_task_status(0, f'抓取用戶 {bgg_username} 的 BGG 資料失敗')
-
+                
         except Exception as e:
             error_msg = f"BGG 抓取過程發生錯誤: {str(e)}"
             update_rg_task_status(0, error_msg)
             logger.error(error_msg)
             import traceback
             logger.error(f"詳細錯誤: {traceback.format_exc()}")
-
+            
     except Exception as e:
         update_rg_task_status(0, f'抓取異常：{e}')
     finally:
@@ -850,18 +850,18 @@ def ensure_app_settings_table():
     try:
         config = get_database_config()
         logger.info(f"🔧 檢查 app_settings 表，資料庫類型: {config['type']}")
-
+        
         with get_db_connection() as conn:
             cursor = conn.cursor()
-
+            
             # 檢查表是否已存在 (PostgreSQL)
             cursor.execute("SELECT to_regclass('app_settings')")
             table_exists = cursor.fetchone()[0] is not None
-
+            
             if table_exists:
                 logger.info("✅ app_settings 表已存在")
                 return True
-
+            
             # 根據資料庫類型創建表
             if config['type'] == 'postgresql':
                 create_sql = """
@@ -879,7 +879,7 @@ def ensure_app_settings_table():
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
-
+            
             logger.info(f"📝 創建 app_settings 表...")
             cursor.execute(create_sql)
             conn.commit()
@@ -898,7 +898,7 @@ def set_app_setting(key, value):
         if not ensure_app_settings_table():
             logger.error("無法創建 app_settings 表")
             return False
-
+            
         with get_db_connection() as conn:
             cursor = conn.cursor()
             config = get_database_config()
@@ -1032,9 +1032,9 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
     """使用 board-game-recommender 進行推薦"""
     try:
         logger.info(f"🔍 開始 board-game-recommender 推薦 - 用戶: {username}, 擁有遊戲: {len(owned_ids) if owned_ids else 0}")
-
+        
         from board_game_recommender.recommend import BGGRecommender
-
+        
         # 載入已訓練的模型
         import os
         # 使用動態路徑選擇
@@ -1044,20 +1044,20 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             logger.warning(f"⚠️ 模型不存在: {model_path}")
             logger.info("💡 提示：模型可能因容器重啟而丟失，請重新訓練")
             return None
-
+        
         logger.info(f"📂 載入模型: {model_path}")
         try:
             # 檢查模型目錄結構
             model_files = os.listdir(model_path) if os.path.exists(model_path) else []
             logger.info(f"📁 模型目錄內容: {model_files}")
-
+            
             # 嘗試載入模型，可能需要指定子目錄
             if 'recommender' in model_files:
                 recommender = BGGRecommender.load(model_path, dir_model='recommender')
             else:
                 recommender = BGGRecommender.load(model_path)
             logger.info("✅ 模型載入成功")
-
+            
             # 測試模型基本功能
             try:
                 # 嘗試獲取模型的基本資訊
@@ -1070,17 +1070,17 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                     logger.info(f"🔍 遊戲資料行數: {len(recommender.games) if recommender.games else 'None'}")
             except Exception as info_error:
                 logger.warning(f"⚠️ 獲取模型資訊失敗: {info_error}")
-
+                
         except Exception as load_error:
             logger.error(f"❌ 模型載入失敗: {load_error}")
             import traceback
             logger.error(f"詳細錯誤: {traceback.format_exc()}")
             return None
-
+        
         # 獲取推薦
         logger.info(f"🎯 執行推薦算法，限制 {limit} 個結果...")
         logger.info(f"🔍 查詢用戶: {username}")
-
+        
         # 檢查用戶是否在訓練資料中
         try:
             # 先嘗試不排除已知遊戲，看看是否有任何推薦
@@ -1090,7 +1090,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                 exclude_known=False
             )
             logger.info(f"🧪 測試推薦（不排除已知）: {len(test_recs)} 個結果")
-
+            
             # 如果沒有結果，嘗試不同的用戶名格式
             if len(test_recs) == 0:
                 logger.info("🔍 嘗試不同的用戶名格式...")
@@ -1109,14 +1109,14 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                         logger.warning(f"⚠️ 用戶名格式 {variant} 失敗: {variant_error}")
                 else:
                     logger.warning("⚠️ 所有用戶名格式都無法獲取推薦")
-
+                
         except Exception as test_error:
             logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
-
+        
         # 嘗試不同的用戶名格式，並確保排除已知遊戲
         # BGGRecommender 會將用戶名轉換為小寫，所以優先嘗試小寫
         user_variants = [username.lower(), username, f"user_{username.lower()}", f"user_{username}"]
-
+        
         # 檢查 .jl 檔案中的實際用戶名格式
         try:
             import os
@@ -1136,9 +1136,9 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                                 user_variants.insert(0, actual_username)  # 優先嘗試實際用戶名
         except Exception as jl_error:
             logger.warning(f"⚠️ 檢查 .jl 檔案失敗: {jl_error}")
-
+        
         recommendations_df = None
-
+        
         for user_variant in user_variants:
             try:
                 logger.info(f"🔄 嘗試用戶名格式: {user_variant}")
@@ -1165,13 +1165,13 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             except Exception as variant_error:
                 logger.warning(f"⚠️ 用戶名格式 {user_variant} 失敗: {variant_error}")
                 continue
-
+        
         if recommendations_df is None or len(recommendations_df) == 0:
             logger.error(f"❌ 所有用戶名格式都無法獲取推薦")
             return None
-
+        
         logger.info(f"✅ 推薦查詢成功，獲得 {len(recommendations_df)} 個結果")
-
+        
         # 轉換為標準格式
         recommendations = []
         for row in recommendations_df:
@@ -1184,10 +1184,10 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                 'rec_score': float(row.get('score', 0.0)),
                 'source': 'board_game_recommender'
             })
-
+        
         logger.info(f"✅ board-game-recommender 成功產生 {len(recommendations)} 個推薦")
         return recommendations
-
+        
     except Exception as e:
         logger.error(f"❌ board-game-recommender 發生錯誤: {e}")
         import traceback
@@ -1198,12 +1198,12 @@ def get_local_recommendations(username, owned_ids, limit=10):
     """使用本地資料庫和 BGG API 提供基於熱門度的推薦"""
     try:
         owned_set = set(owned_ids) if owned_ids else set()
-
+        
         # 步驟 1: 從本地資料庫獲取基礎推薦
         local_recommendations = []
         with get_db_connection() as conn:
             cursor = conn.cursor()
-
+            
             # 構建排除已擁有遊戲的 WHERE 條件
             config = get_database_config()
             if owned_set:
@@ -1216,11 +1216,11 @@ def get_local_recommendations(username, owned_ids, limit=10):
             else:
                 exclude_clause = ""
                 params = [min(limit, 50)]
-
+            
             # 查詢推薦遊戲（基於評分和排名）
             limit_placeholder = '%s' if config['type'] == 'postgresql' else '?'
             query = f"""
-            SELECT
+            SELECT 
                 g.objectid,
                 g.name,
                 g.year,
@@ -1229,22 +1229,22 @@ def get_local_recommendations(username, owned_ids, limit=10):
                 g.weight,
                 g.minplayers,
                 g.maxplayers,
-                COALESCE(g.rating, 0) +
-                CASE
-                    WHEN g.rank > 0 THEN (10000 - g.rank) / 1000.0
-                    ELSE 0
+                COALESCE(g.rating, 0) + 
+                CASE 
+                    WHEN g.rank > 0 THEN (10000 - g.rank) / 1000.0 
+                    ELSE 0 
                 END as popularity_score
             FROM game_detail g
-            WHERE g.objectid IS NOT NULL
+            WHERE g.objectid IS NOT NULL 
                 AND g.name IS NOT NULL
                 {exclude_clause}
             ORDER BY popularity_score DESC, g.rating DESC
             LIMIT {limit_placeholder}
             """
-
+            
             cursor.execute(query, params)
             games = cursor.fetchall()
-
+            
             for game in games:
                 local_recommendations.append({
                     'game_id': game[0],
@@ -1258,11 +1258,11 @@ def get_local_recommendations(username, owned_ids, limit=10):
                     'rec_score': round(game[8], 2),
                     'source': 'local_db'
                 })
-
+        
         # 步驟 2: 如果本地推薦不足，使用 BGG 熱門遊戲補充
         if len(local_recommendations) < limit:
             logger.info(f"本地推薦只有 {len(local_recommendations)} 個，嘗試從 BGG 獲取更多推薦")
-
+            
             # BGG 熱門遊戲 ID（這些是一些知名的熱門遊戲）
             popular_game_ids = [
                 174430,  # Gloomhaven
@@ -1291,20 +1291,20 @@ def get_local_recommendations(username, owned_ids, limit=10):
                 12333,   # Twilight Struggle
                 150376,  # Gloom
             ]
-
+            
             # 排除已擁有的遊戲
             available_ids = [gid for gid in popular_game_ids if gid not in owned_set]
             local_game_ids = {rec['game_id'] for rec in local_recommendations}
             new_ids = [gid for gid in available_ids if gid not in local_game_ids]
-
+            
             # 只取需要的數量
             needed = limit - len(local_recommendations)
             bgg_ids = new_ids[:needed]
-
+            
             if bgg_ids:
                 # 從 BGG API 獲取詳細資料
                 bgg_details = fetch_game_details_from_bgg(bgg_ids)
-
+                
                 for game_id, details in bgg_details.items():
                     local_recommendations.append({
                         'game_id': details['id'],
@@ -1318,14 +1318,14 @@ def get_local_recommendations(username, owned_ids, limit=10):
                         'rec_score': details['rating'],  # 使用 BGG 評分作為推薦分數
                         'source': 'bgg_popular'
                     })
-
+        
         # 按推薦分數排序並限制數量
         local_recommendations.sort(key=lambda x: x['rec_score'], reverse=True)
         final_recommendations = local_recommendations[:limit]
-
+        
         logger.info(f"總共產生了 {len(final_recommendations)} 個推薦 (本地: {len([r for r in final_recommendations if r['source'] == 'local_db'])}, BGG: {len([r for r in final_recommendations if r['source'] == 'bgg_popular'])})")
         return final_recommendations
-
+        
     except Exception as e:
         logger.error(f"本地推薦器發生錯誤: {e}")
         return None
@@ -1334,49 +1334,49 @@ def fetch_game_details_from_bgg(game_ids):
     """從 BGG API 獲取遊戲詳細資訊"""
     if not game_ids:
         return {}
-
+    
     try:
         import xml.etree.ElementTree as ET
         import time
-
+        
         # BGG API 限制一次最多查詢20個遊戲
         game_details = {}
-
+        
         for i in range(0, len(game_ids), 20):
             batch_ids = game_ids[i:i+20]
             ids_str = ','.join(map(str, batch_ids))
-
+            
             # 構建 BGG API URL
             url = f'https://boardgamegeek.com/xmlapi2/thing?id={ids_str}&type=boardgame&stats=1'
-
+            
             try:
                 response = requests.get(url, timeout=10)
                 response.raise_for_status()
-
+                
                 # 解析 XML 響應
                 root = ET.fromstring(response.content)
-
+                
                 for item in root.findall('item'):
                     game_id = int(item.get('id'))
-
+                    
                     # 提取基本資訊
                     name_elem = item.find('.//name[@type="primary"]')
                     name = name_elem.get('value') if name_elem is not None else f'遊戲 {game_id}'
-
+                    
                     year_elem = item.find('yearpublished')
                     year = int(year_elem.get('value')) if year_elem is not None and year_elem.get('value') else 0
-
+                    
                     # 提取統計資訊
                     stats = item.find('statistics/ratings')
                     rating = 0.0
                     rank = 0
                     weight = 0.0
-
+                    
                     if stats is not None:
                         average_elem = stats.find('average')
                         if average_elem is not None:
                             rating = float(average_elem.get('value') or 0)
-
+                        
                         # 尋找 BoardGame Rank
                         for rank_elem in stats.findall('.//rank'):
                             if rank_elem.get('name') == 'boardgame':
@@ -1384,21 +1384,21 @@ def fetch_game_details_from_bgg(game_ids):
                                 if rank_value and rank_value != 'Not Ranked':
                                     rank = int(rank_value)
                                 break
-
+                        
                         weight_elem = stats.find('averageweight')
                         if weight_elem is not None:
                             weight = float(weight_elem.get('value') or 0)
-
+                    
                     # 提取玩家數量
                     minplayers_elem = item.find('minplayers')
                     maxplayers_elem = item.find('maxplayers')
                     min_players = int(minplayers_elem.get('value')) if minplayers_elem is not None else 1
                     max_players = int(maxplayers_elem.get('value')) if maxplayers_elem is not None else 1
-
+                    
                     # 提取遊戲時間
                     playingtime_elem = item.find('playingtime')
                     playing_time = int(playingtime_elem.get('value')) if playingtime_elem is not None else 0
-
+                    
                     game_details[game_id] = {
                         'id': game_id,
                         'name': name,
@@ -1411,18 +1411,18 @@ def fetch_game_details_from_bgg(game_ids):
                         'playing_time': playing_time,
                         'source': 'bgg_api'
                     }
-
+                
                 # BGG API 要求限制請求頻率
                 if i + 20 < len(game_ids):
                     time.sleep(1)
-
+                    
             except Exception as e:
                 logger.error(f"獲取遊戲 {batch_ids} 的 BGG 資料時發生錯誤: {e}")
                 continue
-
+        
         logger.info(f"從 BGG API 獲取了 {len(game_details)} 個遊戲的詳細資料")
         return game_details
-
+        
     except Exception as e:
         logger.error(f"BGG API 查詢發生錯誤: {e}")
         return {}
@@ -2323,28 +2323,28 @@ def settings():
 @app.route('/api/save-settings', methods=['POST'])
 @login_required
 def api_save_settings():
-
+    
     try:
         data = request.get_json() or {}
         bgg_username = data.get('bgg_username', '').strip()
-
+        
         if not bgg_username:
             return jsonify({'success': False, 'message': '請輸入 BGG 使用者名稱'}), 400
-
+        
         # 驗證 BGG 使用者名稱格式（基本檢查）
         if len(bgg_username) < 3 or len(bgg_username) > 50:
             return jsonify({'success': False, 'message': 'BGG 使用者名稱長度需在 3-50 字元之間'}), 400
-
+        
         # 檢查是否有變更 BGG 用戶名
         current_username = get_app_setting('bgg_username', '')
         is_username_changed = (current_username != bgg_username)
-
+        
         logger.info(f"嘗試保存 BGG 使用者名稱: {bgg_username}")
         ok = set_app_setting('bgg_username', bgg_username)
-
+        
         if ok:
             logger.info(f"✅ BGG 使用者名稱保存成功: {bgg_username}")
-
+            
             # 如果用戶名有變更，自動觸發收藏同步和模型訓練
             if is_username_changed and bgg_username:
                 logger.info(f"🔄 BGG 用戶名已變更，觸發自動同步和訓練")
@@ -2354,25 +2354,25 @@ def api_save_settings():
                     thread = threading.Thread(target=auto_sync_and_train, args=(bgg_username,))
                     thread.daemon = True
                     thread.start()
-
+                    
                     return jsonify({
-                        'success': True,
+                        'success': True, 
                         'message': '設定已儲存，正在背景同步收藏並訓練模型...',
                         'auto_sync_started': True
                     })
                 except Exception as e:
                     logger.error(f"自動同步啟動失敗: {e}")
                     return jsonify({
-                        'success': True,
+                        'success': True, 
                         'message': '設定已儲存，但自動同步啟動失敗，請手動同步',
                         'auto_sync_failed': True
                     })
-
+            
             return jsonify({'success': True, 'message': '設定已儲存'})
         else:
             logger.error(f"❌ BGG 使用者名稱保存失敗: {bgg_username}")
             return jsonify({'success': False, 'message': '儲存失敗，請檢查資料庫連接'}), 500
-
+            
     except Exception as e:
         logger.error(f"保存設定時發生異常: {e}")
         return jsonify({'success': False, 'message': f'保存失敗: {str(e)}'}), 500
@@ -2405,14 +2405,14 @@ def recommendations():
     if not username:
         flash('請先在設定頁設定 BGG 使用者名稱並同步收藏', 'info')
         return redirect(url_for('settings'))
-
+    
     # 檢查模型是否存在（使用統一路徑工具）
     user_paths = get_user_rg_paths(username)
     model_path = user_paths['model_dir']
     if not os.path.exists(model_path):
         flash('推薦模型尚未訓練，請先到設定頁點擊「🚀 一鍵重新訓練」。', 'warning')
         return redirect(url_for('settings'))
-
+    
     # 讀取已收藏的 objectid 清單
     owned_ids = []
     try:
@@ -2422,32 +2422,32 @@ def recommendations():
             owned_ids = [row[0] for row in cursor.fetchall()]
     except Exception:
         pass
-
+    
     # 使用 board-game-recommender 獲取推薦
     from flask import request
     algorithm = request.args.get('algorithm', 'hybrid')
-
+    
     logger.info(f"🔍 開始獲取推薦 - 用戶: {username}, 算法: {algorithm}, 擁有遊戲: {len(owned_ids)}")
     recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
     logger.info(f"📊 推薦結果: {len(recommendations) if recommendations else 0} 個推薦")
-
+    
     if not recommendations:
         logger.warning(f"⚠️ 推薦為空 - 用戶: {username}, 算法: {algorithm}")
         flash('無法獲取推薦，請檢查模型是否正確訓練', 'error')
         return redirect(url_for('settings'))
-
+    
     # 傳遞可用的算法選項
     available_algorithms = [
         {'value': 'hybrid', 'name': '混合推薦 (Hybrid)', 'description': '結合多種算法的推薦'},
         {'value': 'popularity', 'name': '熱門推薦 (Popularity)', 'description': '基於遊戲熱門度的推薦'},
         {'value': 'content', 'name': '內容推薦 (Content-based)', 'description': '基於遊戲特徵相似性的推薦'}
     ]
-
+    
     current_algorithm = algorithm
     current_view = request.args.get('view', 'search')  # 'search' 或 'grid'
-
-    return render_template('recommendations.html',
-                         recommendations=recommendations,
+    
+    return render_template('recommendations.html', 
+                         recommendations=recommendations, 
                          bgg_username=username,
                          available_algorithms=available_algorithms,
                          current_algorithm=current_algorithm,
@@ -2501,19 +2501,19 @@ def api_rg_train():
         # 使用 LightGamesRecommender 直接訓練
         from board_game_recommender.light import LightGamesRecommender
         import os
-
+        
         # 確保模型目錄存在
         os.makedirs(model_dir, exist_ok=True)
-
+        
         # 檢查輸入檔案是否存在，如果不存在則從 BGG 直接抓取
         if not os.path.exists(games_file) or not os.path.exists(ratings_file):
             logger.info("從 BGG 直接抓取用戶資料...")
-
+            
             # 獲取 BGG 用戶名
             username = get_app_setting('bgg_username')
             if not username:
                 return jsonify({'success': False, 'message': '請先在設定頁面輸入 BGG 用戶名'})
-
+            
             try:
                 from bgg_scraper_extractor import BGGScraperExtractor
                 extractor = BGGScraperExtractor()
@@ -2524,12 +2524,12 @@ def api_rg_train():
             except Exception as e:
                 logger.error(f"從 BGG 抓取資料時發生錯誤: {e}")
                 return jsonify({'success': False, 'message': f'資料抓取失敗: {str(e)}'})
-
+        
         logger.info(f"開始 RG 訓練: games={games_file}, ratings={ratings_file}, model={model_dir}")
-
+        
         # 檢查是否有現有模型，如果沒有則創建基礎推薦器
         model_file = os.path.join(model_dir, 'recommender.npz')
-
+        
         if os.path.exists(model_file):
             # 載入現有模型
             try:
@@ -2541,12 +2541,12 @@ def api_rg_train():
                 })
             except Exception as e:
                 logger.error(f"載入模型失敗: {e}")
-
+        
         # 如果沒有現有模型，創建簡單的基準推薦器
         from board_game_recommender.baseline import PopularGamesRecommender
         import pandas as pd
         import numpy as np
-
+        
         # 讀取資料並創建基準推薦器
         try:
             # 讀取評分資料
@@ -2556,40 +2556,40 @@ def api_rg_train():
                     if line.strip():
                         rating = json.loads(line)
                         ratings_data.append(rating)
-
+            
             # 轉換為 DataFrame
             df = pd.DataFrame(ratings_data)
-
+            
             # 計算每個遊戲的平均評分和評分數量
             game_stats = df.groupby('game_id').agg({
                 'rating': ['mean', 'count']
             }).round(2)
             game_stats.columns = ['avg_rating', 'num_ratings']
             game_stats = game_stats.reset_index()
-
+            
             # 計算熱門度分數（結合平均評分和評分數量）
             # 使用貝葉斯平均來處理評分數量較少的遊戲
             global_mean = df['rating'].mean()
             min_votes = 3  # 最少需要3個評分才考慮
-
+            
             def bayesian_average(row):
                 avg_rating = row['avg_rating']
                 num_ratings = row['num_ratings']
                 return (num_ratings * avg_rating + min_votes * global_mean) / (num_ratings + min_votes)
-
+            
             game_stats['popularity_score'] = game_stats.apply(bayesian_average, axis=1)
-
+            
             # 準備推薦器所需的資料
             game_ids = [int(gid) for gid in game_stats['game_id'].tolist()]
             scores = game_stats['popularity_score'].values
-
+            
             # 創建基準推薦器
             recommender = PopularGamesRecommender(
                 game_ids=game_ids,
                 scores=scores,
                 default_value=global_mean
             )
-
+            
             # 保存模型
             model_file = os.path.join(model_dir, 'popular_recommender.json')
             model_data = {
@@ -2602,9 +2602,9 @@ def api_rg_train():
             }
             with open(model_file, 'w', encoding='utf-8') as f:
                 json.dump(model_data, f, ensure_ascii=False, indent=2)
-
+            
             logger.info(f"創建基準推薦器成功，資料包含 {len(df)} 個評分")
-
+            
             return jsonify({
                 'success': True,
                 'message': f'✅ 推薦器訓練完成！處理了 {len(df)} 個評分，{df["game_id"].nunique()} 個遊戲，{df["user_id"].nunique()} 個用戶。模型已保存到 {model_file}',
@@ -2616,7 +2616,7 @@ def api_rg_train():
                     'model_type': 'PopularGamesRecommender'
                 }
             })
-
+            
         except Exception as e:
             logger.error(f"創建推薦器時發生錯誤: {e}")
             return jsonify({
@@ -2631,23 +2631,23 @@ def api_rg_train():
 def api_rg_status():
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-
+    
     username = get_app_setting('bgg_username', '')
     if not username:
         return jsonify({
-            'success': False,
+            'success': False, 
             'message': '請先設定 BGG 用戶名',
             'need_username': True
         })
-
+    
     # 獲取用戶特定的路徑
     user_paths = get_user_rg_paths(username)
-
+    
     # 檢查文件和目錄是否存在
     model_dir_exists = os.path.exists(user_paths['model_dir'])
     games_file_exists = os.path.exists(user_paths['games_file'])
     ratings_file_exists = os.path.exists(user_paths['ratings_file'])
-
+    
     # 計算用戶數據完整度
     data_completeness = 0
     if games_file_exists:
@@ -2656,7 +2656,7 @@ def api_rg_status():
         data_completeness += 30
     if model_dir_exists:
         data_completeness += 30
-
+        
     status = {
         'username': username,
         'rg_model_dir': user_paths['model_dir'],
@@ -2674,7 +2674,7 @@ def api_rg_status():
             'model_dir': RG_DEFAULT_MODEL_DIR
         }
     }
-
+    
     return jsonify({'success': True, 'status': status})
 
 @app.route('/api/rg-scrape', methods=['POST'])
@@ -2728,14 +2728,14 @@ def api_bgg_search():
         data = request.get_json()
         query = data.get('query', '').strip()
         exact = data.get('exact', False)
-
+        
         if not query:
             return jsonify({'success': False, 'message': '搜尋關鍵字不能為空'})
-
+        
         # 使用 BGG XML API 2 搜尋遊戲
         import xml.etree.ElementTree as ET
         import urllib.parse
-
+        
         # 構建搜尋 URL
         base_url = "https://boardgamegeek.com/xmlapi2/search"
         params = {
@@ -2743,21 +2743,21 @@ def api_bgg_search():
             'type': 'boardgame',
             'exact': '1' if exact else '0'
         }
-
+        
         url = f"{base_url}?{urllib.parse.urlencode(params)}"
-
+        
         response = requests.get(url, timeout=10)
         response.raise_for_status()
-
+        
         # 解析 XML 回應
         root = ET.fromstring(response.text)
-
+        
         results = []
         for item in root.findall('item')[:10]:  # 限制最多10個結果
             game_id = item.get('id')
             name_element = item.find('name')
             year_element = item.find('yearpublished')
-
+            
             if game_id and name_element is not None:
                 game_info = {
                     'id': game_id,
@@ -2765,14 +2765,14 @@ def api_bgg_search():
                     'year': year_element.get('value') if year_element is not None else None
                 }
                 results.append(game_info)
-
+        
         return jsonify({
             'success': True,
             'results': results,
             'query': query,
             'exact': exact
         })
-
+        
     except requests.exceptions.RequestException as e:
         logger.error(f"BGG API 請求失敗: {e}")
         return jsonify({'success': False, 'message': f'BGG API 請求失敗: {str(e)}'})
@@ -2821,7 +2821,7 @@ def api_rg_recommend_score():
         # 使用 board-game-recommender 模型計算分數
         try:
             from board_game_recommender.recommend import BGGRecommender
-
+            
             # 檢查是否有訓練的模型
             # 使用動態路徑選擇
             paths = get_user_rg_paths(username)
@@ -2834,7 +2834,7 @@ def api_rg_recommend_score():
 
             # 載入模型
             recommender = BGGRecommender.load(model_path)
-
+            
             # 獲取推薦（不排除已知，因為我們要計算特定遊戲的分數）
             # BGGRecommender 會將用戶名轉換為小寫
             recommendations_df = recommender.recommend(
@@ -2851,7 +2851,7 @@ def api_rg_recommend_score():
 
             if len(target_recs) > 0:
                 raw_score = float(target_recs['score'].iloc[0])  # 原始推薦分數
-
+                
                 # 將分數標準化到 0-10 範圍
                 # board-game-recommender 的分數通常在 0-1 或 0-5 範圍
                 if raw_score <= 1.0:
@@ -3005,30 +3005,30 @@ def sync_user_collection(username):
     """同步用戶收藏"""
     try:
         logger.info(f"同步用戶 {username} 的收藏")
-
+        
         # 使用 BGG scraper 抓取用戶收藏
         from bgg_scraper_extractor import BGGScraperExtractor
         extractor = BGGScraperExtractor()
-
+        
         # 抓取用戶收藏資料
         collection_data = extractor.fetch_user_collection(username)
         if not collection_data:
             logger.warning(f"無法獲取用戶 {username} 的收藏資料")
             return False
-
+        
         # 將資料保存到資料庫
         with get_db_connection() as conn:
             cursor = conn.cursor()
             config = get_database_config()
-
+            
             # 清空現有的收藏資料
             execute_query(cursor, "DELETE FROM collection", (), config['type'])
-
+            
             # 插入新的收藏資料
             for item in collection_data:
                 # 確定收藏狀態
                 status = 'owned' if item.get('own') else ('wishlist' if item.get('wishlist') else 'want')
-
+                
                 # 使用 UPSERT 語法避免重複 key 錯誤
                 if config['type'] == 'postgresql':
                     execute_query(cursor, """
@@ -3060,10 +3060,10 @@ def sync_user_collection(username):
                         item.get('bgg_rank'),
                         datetime.now().isoformat()
                     ), config['type'])
-
+            
             conn.commit()
             logger.info(f"成功同步 {len(collection_data)} 個收藏遊戲")
-
+        
         return True
     except Exception as e:
         logger.error(f"同步用戶收藏失敗: {e}")
@@ -3073,16 +3073,16 @@ def scrape_bgg_data(username):
     """抓取 BGG 資料"""
     try:
         logger.info(f"開始為用戶 {username} 抓取 BGG 資料")
-
+        
         # 使用 BGG scraper 抓取真實的用戶資料
         from bgg_scraper_extractor import BGGScraperExtractor
         extractor = BGGScraperExtractor()
-
+        
         # 抓取用戶收藏資料並生成 .jl 檔案到用戶特定目錄
         success = extractor.export_to_jsonl(username, 'data')
         if not success:
             raise Exception("抓取用戶收藏資料失敗")
-
+        
         logger.info(f"成功為用戶 {username} 抓取 BGG 資料")
         return True
     except Exception as e:
@@ -3093,12 +3093,12 @@ def prepare_training_data(username):
     """準備訓練資料"""
     try:
         logger.info(f"為用戶 {username} 準備訓練資料")
-
+        
         # 使用現有的 create_temp_jsonl_files 函數生成個人化的 .jl 檔案
         games_file, ratings_file = create_temp_jsonl_files()
         if not games_file or not ratings_file:
             raise Exception("無法生成訓練資料檔案")
-
+        
         logger.info(f"成功準備訓練資料: {games_file}, {ratings_file}")
         return True
     except Exception as e:
@@ -3115,33 +3115,33 @@ def train_bgg_model(username):
 
         # 使用 board-game-recommender 的正確方式
         from board_game_recommender.recommend import BGGRecommender
-
+        
         # 使用用戶特定的檔案路徑
         # 使用動態路徑選擇
         paths = get_user_rg_paths(username)
         user_dir = paths['user_dir']
         games_file = os.path.join(user_dir, 'bgg_GameItem.jl')
         ratings_file = os.path.join(user_dir, 'bgg_RatingItem.jl')
-
+        
         if not os.path.exists(games_file):
             raise Exception(f"遊戲資料檔案不存在: {games_file}")
         if not os.path.exists(ratings_file):
             raise Exception(f"評分資料檔案不存在: {ratings_file}")
-
+        
         print(f"🔍 使用遊戲資料檔案: {games_file}")
         print(f"🔍 使用評分資料檔案: {ratings_file}")
-
+        
         # 使用 BGGRecommender 訓練模型
         recommender = BGGRecommender.train_from_files(
             games_file=games_file,
             ratings_file=ratings_file,
             max_iterations=100
         )
-
+        
         # 保存模型到用戶特定目錄
         model_dir = os.path.join(user_dir, 'rg_model')
         os.makedirs(model_dir, exist_ok=True)
-
+        
         # 檢查目錄是否可寫入
         if not os.access(user_dir, os.W_OK):
             logger.error(f"❌ 目錄不可寫入: {user_dir}")
@@ -3151,15 +3151,15 @@ def train_bgg_model(username):
             logger.warning(f"⚠️ 使用備用目錄: {backup_dir}")
             model_dir = os.path.join(backup_dir, 'rg_model')
             os.makedirs(model_dir, exist_ok=True)
-
+        
         logger.info(f"💾 開始保存模型到: {model_dir}")
         recommender.save(model_dir)
-
+        
         # 驗證模型是否成功保存
         if os.path.exists(model_dir) and os.listdir(model_dir):
             logger.info(f"✅ 模型已成功保存到 {model_dir}")
             logger.info(f"📁 模型目錄內容: {os.listdir(model_dir)}")
-
+            
             # 同時保存到資料庫作為備份
             try:
                 save_model_to_database(username, model_dir)
@@ -3180,7 +3180,7 @@ def save_model_to_database(username, model_dir):
         import os
         import json
         from datetime import datetime
-
+        
         # 收集模型資訊
         model_info = {
             'username': username,
@@ -3188,7 +3188,7 @@ def save_model_to_database(username, model_dir):
             'created_at': datetime.now().isoformat(),
             'files': []
         }
-
+        
         # 列出模型檔案
         if os.path.exists(model_dir):
             for file in os.listdir(model_dir):
@@ -3199,11 +3199,11 @@ def save_model_to_database(username, model_dir):
                         'size': os.path.getsize(file_path),
                         'modified': os.path.getmtime(file_path)
                     })
-
+        
         # 保存到資料庫
         with get_db_connection() as conn:
             cursor = conn.cursor()
-
+            
             # 創建模型備份表（如果不存在）
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS model_backups (
@@ -3213,16 +3213,16 @@ def save_model_to_database(username, model_dir):
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-
+            
             # 插入模型資訊
             cursor.execute("""
                 INSERT INTO model_backups (username, model_info)
                 VALUES (%s, %s)
             """, (username, json.dumps(model_info)))
-
+            
             conn.commit()
             logger.info(f"✅ 模型資訊已備份到資料庫: {username}")
-
+            
     except Exception as e:
         logger.error(f"❌ 資料庫備份失敗: {e}")
         raise
@@ -3234,7 +3234,7 @@ def api_volume_status():
     try:
         import os
         import stat
-
+        
         # 檢查多個可能的資料目錄
         possible_dirs = ['/app/data', 'data', '/tmp/data']
         volume_info = {
@@ -3243,7 +3243,7 @@ def api_volume_status():
             'recommended_dir': None,
             'volume_mounted': False
         }
-
+        
         for data_dir in possible_dirs:
             dir_info = {
                 'exists': os.path.exists(data_dir),
@@ -3254,12 +3254,12 @@ def api_volume_status():
                 'rg_users_exists': False,
                 'rg_users_contents': []
             }
-
+            
             if os.path.exists(data_dir):
                 try:
                     dir_info['writable'] = os.access(data_dir, os.W_OK)
                     dir_info['contents'] = os.listdir(data_dir)
-
+                    
                     # 檢查權限
                     stat_info = os.stat(data_dir)
                     dir_info['permissions'] = {
@@ -3267,32 +3267,32 @@ def api_volume_status():
                         'uid': stat_info.st_uid,
                         'gid': stat_info.st_gid
                     }
-
+                    
                     # 檢查是否為掛載點（簡單檢查）
                     try:
                         mount_info = os.statvfs(data_dir)
                         dir_info['is_mount'] = mount_info.f_blocks > 0
                     except:
                         pass
-
+                    
                     # 檢查 rg_users 目錄
                     rg_users_dir = os.path.join(data_dir, 'rg_users')
                     if os.path.exists(rg_users_dir):
                         dir_info['rg_users_exists'] = True
                         dir_info['rg_users_contents'] = os.listdir(rg_users_dir)
-
+                    
                     # 如果這個目錄可用且可寫，推薦使用
                     if dir_info['writable'] and not volume_info['recommended_dir']:
                         volume_info['recommended_dir'] = data_dir
                         volume_info['volume_mounted'] = True
-
+                        
                 except Exception as e:
                     dir_info['error'] = str(e)
-
+            
             volume_info['checked_dirs'][data_dir] = dir_info
-
+        
         return jsonify(volume_info)
-
+        
     except Exception as e:
         logger.error(f"檢查 Volume 狀態失敗: {e}")
         return jsonify({'success': False, 'message': str(e), 'traceback': traceback.format_exc()})
@@ -3305,61 +3305,61 @@ def api_rg_model_status():
         username = get_app_setting('bgg_username', '')
         if not username:
             return jsonify({'success': False, 'message': '請先設定 BGG 使用者名稱'})
-
+        
         user_paths = get_user_rg_paths(username)
-
+        
         # 檢查用戶數據狀態
         has_games_data = os.path.exists(user_paths['games_file'])
         has_ratings_data = os.path.exists(user_paths['ratings_file'])
         has_full_model = os.path.exists(user_paths['full_model'])
         has_light_model = os.path.exists(user_paths['light_model'])
-
+        
         # 檢查系統支援
         bgg_recommender_available = False
         light_recommender_available = False
         fallback_available = False
-
+        
         try:
             from board_game_recommender import BGGRecommender
             bgg_recommender_available = True
         except ImportError:
             pass
-
+        
         try:
             from board_game_recommender import LightGamesRecommender
             light_recommender_available = True
         except ImportError:
             pass
-
+        
         try:
             from board_game_recommender.recommend import BGGRecommender
             fallback_available = True
         except ImportError:
             pass
-
+        
         # 計算數據統計
         games_count = 0
         ratings_count = 0
-
+        
         if has_games_data:
             try:
                 with open(user_paths['games_file'], 'r', encoding='utf-8') as f:
                     games_count = sum(1 for _ in f)
             except:
                 pass
-
+        
         if has_ratings_data:
             try:
                 with open(user_paths['ratings_file'], 'r', encoding='utf-8') as f:
                     ratings_count = sum(1 for _ in f)
             except:
                 pass
-
+        
         # 推薦可用性
         can_use_full = bgg_recommender_available and has_games_data and has_ratings_data
         can_use_light = light_recommender_available and has_games_data and has_light_model
         can_use_fallback = fallback_available
-
+        
         return jsonify({
             'success': True,
             'result': {
@@ -3390,7 +3390,7 @@ def api_rg_model_status():
                 )
             }
         })
-
+        
     except Exception as e:
         logger.error(f"模型狀態 API 發生錯誤: {e}")
         return jsonify({'success': False, 'message': f'處理請求時發生錯誤: {str(e)}'})
@@ -3443,7 +3443,7 @@ def get_score_context(score, algorithm):
         }
     elif score >= 7.5:
         return {
-            'level': 'very_good',
+            'level': 'very_good', 
             'description': '強烈推薦 - 很可能會喜歡'
         }
     elif score >= 6.5:
@@ -3466,26 +3466,26 @@ def auto_sync_and_train(username):
     """自動同步收藏並訓練模型（背景任務）"""
     try:
         logger.info(f"🚀 開始為用戶 {username} 自動同步收藏和訓練模型")
-
+        
         # 確保用戶目錄存在
         user_paths = get_user_rg_paths(username)
         os.makedirs(user_paths['user_dir'], exist_ok=True)
-
+        
         # 第一步：同步 BGG 收藏
         logger.info(f"📥 第一步：同步 BGG 收藏...")
         try:
             xml_main = fetch_bgg_collection_xml(username, {"stats": 1, "excludesubtype": "boardgameexpansion"})
             xml_exp = fetch_bgg_collection_xml(username, {"stats": 1, "subtype": "boardgameexpansion"})
-
+            
             if xml_main or xml_exp:
                 save_collection_to_db(xml_main, xml_exp)
                 logger.info(f"✅ 收藏同步成功")
             else:
                 logger.warning(f"⚠️ 收藏同步失敗或無收藏資料")
-
+                
         except Exception as e:
             logger.error(f"❌ 收藏同步失敗: {e}")
-
+            
         # 第二步：生成用戶特定的 JSONL 資料
         logger.info(f"📊 第二步：生成推薦資料...")
         try:
@@ -3493,13 +3493,13 @@ def auto_sync_and_train(username):
             logger.info(f"✅ 推薦資料生成成功: {result['games_count']} 遊戲, {result['ratings_count']} 評分")
         except Exception as e:
             logger.error(f"❌ 推薦資料生成失敗: {e}")
-
+            
         # 第三步：訓練推薦模型
         logger.info(f"🧠 第三步：訓練推薦模型...")
         try:
             # 嘗試訓練輕量級模型（優先）和完整模型
             results = train_user_rg_model(username, model_types=['light', 'full'])
-
+            
             success_count = 0
             for model_type, result in results.items():
                 if result.get('success'):
@@ -3507,32 +3507,32 @@ def auto_sync_and_train(username):
                     success_count += 1
                 else:
                     logger.warning(f"⚠️ {model_type} 模型訓練失敗: {result.get('error')}")
-
+            
             if success_count > 0:
                 logger.info(f"✅ 共 {success_count} 個推薦模型訓練成功")
             else:
                 logger.warning(f"⚠️ 沒有推薦模型訓練成功")
-
+                
         except Exception as e:
             logger.error(f"❌ 推薦模型訓練失敗: {e}")
-
+            
         logger.info(f"🎉 用戶 {username} 的自動同步和訓練完成")
-
+        
     except Exception as e:
         logger.error(f"❌ 自動同步和訓練異常: {e}")
 
 def generate_user_rg_data(username, use_global_files=True):
     """為特定用戶生成 RG 推薦所需的 JSONL 資料
-
+    
     Args:
         username: BGG 用戶名
         use_global_files: 是否生成/更新全域檔案（預設路徑），同時複製到用戶目錄
     """
     user_paths = get_user_rg_paths(username)
-
+    
     with get_db_connection() as conn:
         cursor = conn.cursor()
-
+        
         # 決定主要生成路徑
         if use_global_files:
             # 生成到預設路徑（供 scraper 和其他功能使用）
@@ -3546,10 +3546,10 @@ def generate_user_rg_data(username, use_global_files=True):
             primary_ratings_file = user_paths['ratings_file']
             # 確保用戶目錄存在
             os.makedirs(os.path.dirname(user_paths['games_file']), exist_ok=True)
-
+        
         # 生成遊戲資料
         cursor.execute("""
-            SELECT
+            SELECT 
                 objectid as bgg_id,
                 name,
                 year,
@@ -3567,7 +3567,7 @@ def generate_user_rg_data(username, use_global_files=True):
             ORDER BY rating DESC NULLS LAST
             LIMIT 10000
         """)
-
+        
         games_count = 0
         with open(primary_games_file, 'w', encoding='utf-8') as f:
             for row in cursor.fetchall():
@@ -3592,14 +3592,14 @@ def generate_user_rg_data(username, use_global_files=True):
                 }
                 f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
                 games_count += 1
-
+        
         # 生成評分資料（基於用戶收藏）
         cursor.execute("""
-            SELECT objectid, rating
-            FROM collection
+            SELECT objectid, rating 
+            FROM collection 
             WHERE rating > 0 AND rating <= 10
         """)
-
+        
         ratings_count = 0
         with open(primary_ratings_file, 'w', encoding='utf-8') as f:
             for row in cursor.fetchall():
@@ -3610,23 +3610,23 @@ def generate_user_rg_data(username, use_global_files=True):
                 }
                 f.write(json.dumps(rating_data, ensure_ascii=False) + '\n')
                 ratings_count += 1
-
+        
         logger.info(f"✅ 生成了 {games_count} 個遊戲和 {ratings_count} 個評分記錄到 {primary_games_file}")
-
+        
         # 如果生成到了預設路徑，同時複製到用戶特定路徑
         if use_global_files and primary_games_file != user_paths['games_file']:
             try:
                 import shutil
                 # 確保用戶目錄存在
                 os.makedirs(os.path.dirname(user_paths['games_file']), exist_ok=True)
-
+                
                 # 複製檔案
                 shutil.copy2(primary_games_file, user_paths['games_file'])
                 shutil.copy2(primary_ratings_file, user_paths['ratings_file'])
                 logger.info(f"📋 已複製檔案到用戶目錄: {user_paths['games_file']}")
             except Exception as e:
                 logger.warning(f"⚠️ 複製到用戶目錄失敗: {e}")
-
+                
         return {
             'games_file': primary_games_file,
             'ratings_file': primary_ratings_file,
@@ -3638,43 +3638,43 @@ def generate_user_rg_data(username, use_global_files=True):
 
 def train_user_rg_model(username, model_types=['light']):
     """訓練用戶特定的 RG 推薦模型
-
+    
     Args:
         username: BGG 用戶名
         model_types: 要訓練的模型類型列表，可選 ['full', 'light']
     """
     user_paths = get_user_rg_paths(username)
-
+    
     # 檢查資料檔案是否存在
     if not (os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file'])):
         raise Exception("缺少必要的資料檔案")
-
+    
     # 創建模型目錄
     os.makedirs(user_paths['model_dir'], exist_ok=True)
-
+    
     results = {}
-
+    
     for model_type in model_types:
         try:
             if model_type == 'light':
                 result = _train_light_model(username, user_paths)
                 results['light'] = result
             elif model_type == 'full':
-                result = _train_full_model(username, user_paths)
+                result = _train_full_model(username, user_paths)  
                 results['full'] = result
             else:
                 logger.warning(f"⚠️ 不支援的模型類型: {model_type}")
-
+                
         except Exception as e:
             logger.error(f"❌ 訓練 {model_type} 模型失敗: {e}")
             results[model_type] = {'success': False, 'error': str(e)}
-
+    
     return results
 
 def _train_light_model(username, user_paths):
     """訓練輕量級推薦模型"""
     logger.info(f"🪶 開始訓練用戶 {username} 的輕量級模型")
-
+    
     try:
         # 檢查 LightGamesRecommender 是否可用
         try:
@@ -3682,7 +3682,7 @@ def _train_light_model(username, user_paths):
         except ImportError:
             logger.warning("⚠️ LightGamesRecommender 不可用，嘗試使用替代方案")
             return _create_simple_light_model(username, user_paths)
-
+        
         # 讀取遊戲和評分數據
         games_data = []
         with open(user_paths['games_file'], 'r', encoding='utf-8') as f:
@@ -3691,7 +3691,7 @@ def _train_light_model(username, user_paths):
                     games_data.append(json.loads(line.strip()))
                 except:
                     continue
-
+        
         ratings_data = []
         with open(user_paths['ratings_file'], 'r', encoding='utf-8') as f:
             for line in f:
@@ -3699,23 +3699,23 @@ def _train_light_model(username, user_paths):
                     ratings_data.append(json.loads(line.strip()))
                 except:
                     continue
-
+        
         if len(games_data) < 10 or len(ratings_data) < 5:
             logger.warning(f"⚠️ 數據量不足，遊戲: {len(games_data)}, 評分: {len(ratings_data)}")
             return _create_simple_light_model(username, user_paths)
-
+        
         # 訓練輕量級模型
         logger.info("🎯 開始訓練 LightGamesRecommender...")
-
+        
         # 創建並訓練模型
         model = LightGamesRecommender.train(
             games_file=user_paths['games_file'],
             ratings_file=user_paths['ratings_file'],
             model_file=user_paths['light_model']
         )
-
+        
         logger.info(f"✅ 輕量級模型訓練完成: {user_paths['light_model']}")
-
+        
         return {
             'success': True,
             'model_path': user_paths['light_model'],
@@ -3723,7 +3723,7 @@ def _train_light_model(username, user_paths):
             'ratings_count': len(ratings_data),
             'model_type': 'light_full'
         }
-
+        
     except Exception as e:
         logger.error(f"❌ 輕量級模型訓練失敗: {e}")
         # 嘗試創建簡單的替代模型
@@ -3732,7 +3732,7 @@ def _train_light_model(username, user_paths):
 def _create_simple_light_model(username, user_paths):
     """創建簡單的輕量級模型（不依賴 board-game-recommender）"""
     logger.info(f"🔧 創建簡單輕量級模型：{username}")
-
+    
     try:
         # 讀取用戶評分數據以創建簡單的偏好向量
         ratings_data = []
@@ -3742,7 +3742,7 @@ def _create_simple_light_model(username, user_paths):
                     ratings_data.append(json.loads(line.strip()))
                 except:
                     continue
-
+        
         # 創建簡單的用戶偏好模型
         user_preferences = {
             'username': username,
@@ -3751,14 +3751,14 @@ def _create_simple_light_model(username, user_paths):
             'model_type': 'simple_light',
             'created_at': datetime.now().isoformat()
         }
-
+        
         # 保存為 numpy 格式模擬輕量級模型
         import numpy as np
-
+        
         # 創建特徵向量
         game_ids = list(user_preferences['ratings'].keys())
         ratings = list(user_preferences['ratings'].values())
-
+        
         model_data = {
             'user_id': username,
             'game_ids': np.array(game_ids),
@@ -3766,12 +3766,12 @@ def _create_simple_light_model(username, user_paths):
             'preferences': user_preferences,
             'model_version': 'simple_v1'
         }
-
+        
         # 保存模型
         np.savez(user_paths['light_model'], **model_data)
-
+        
         logger.info(f"✅ 簡單輕量級模型創建完成: {user_paths['light_model']}")
-
+        
         return {
             'success': True,
             'model_path': user_paths['light_model'],
@@ -3779,7 +3779,7 @@ def _create_simple_light_model(username, user_paths):
             'ratings_count': len(ratings),
             'model_type': 'simple_light'
         }
-
+        
     except Exception as e:
         logger.error(f"❌ 簡單輕量級模型創建失敗: {e}")
         return {'success': False, 'error': str(e)}
@@ -3787,7 +3787,7 @@ def _create_simple_light_model(username, user_paths):
 def _train_full_model(username, user_paths):
     """訓練完整的 BGGRecommender 模型"""
     logger.info(f"🎯 開始訓練用戶 {username} 的完整模型")
-
+    
     try:
         # 檢查 BGGRecommender 是否可用
         try:
@@ -3795,23 +3795,23 @@ def _train_full_model(username, user_paths):
         except ImportError:
             logger.warning("⚠️ BGGRecommender 不可用")
             return {'success': False, 'error': 'BGGRecommender not available'}
-
+        
         # 訓練 BGGRecommender
         logger.info("📊 開始訓練 BGGRecommender...")
-
+        
         recommender = BGGRecommender.train_from_files(
             games_file=user_paths['games_file'],
             ratings_file=user_paths['ratings_file'],
             max_iterations=50,
             verbose=False
         )
-
+        
         # 保存模型（如果 BGGRecommender 支援保存）
         try:
             model_path = user_paths['full_model']
             recommender.save(model_path)
             logger.info(f"✅ 完整模型訓練並保存完成: {model_path}")
-
+            
             return {
                 'success': True,
                 'model_path': model_path,
@@ -3822,15 +3822,15 @@ def _train_full_model(username, user_paths):
             marker_file = user_paths['full_model'] + '.marker'
             with open(marker_file, 'w') as f:
                 f.write(f"BGGRecommender trained for {username} at {datetime.now()}")
-
+            
             logger.info(f"✅ 完整模型訓練完成（無法保存，已創建標記）")
-
+            
             return {
                 'success': True,
                 'model_path': marker_file,
                 'model_type': 'bgg_full_marker'
             }
-
+        
     except Exception as e:
         logger.error(f"❌ 完整模型訓練失敗: {e}")
         return {'success': False, 'error': str(e)}
@@ -3841,11 +3841,11 @@ def create_temp_jsonl_files():
         # 優先使用預設路徑的檔案（scraper 生成的）
         games_file = RG_DEFAULT_GAMES_FILE
         ratings_file = RG_DEFAULT_RATINGS_FILE
-
+        
         # 檢查檔案是否存在
         if not os.path.exists(games_file) or not os.path.exists(ratings_file):
             logger.warning("⚠️ 預設 JSONL 資料檔案不存在")
-
+            
             # 嘗試使用當前用戶的檔案
             username = get_app_setting('bgg_username', '')
             if username:
@@ -3853,13 +3853,13 @@ def create_temp_jsonl_files():
                 if os.path.exists(user_paths['games_file']) and os.path.exists(user_paths['ratings_file']):
                     logger.info(f"🔄 使用用戶特定的 JSONL 檔案")
                     return user_paths['games_file'], user_paths['ratings_file']
-
+            
             logger.info("🔄 將使用簡單推薦方法")
             return None, None
-
+        
         logger.info(f"📄 使用預設 JSONL 資料檔案: {games_file}, {ratings_file}")
         return games_file, ratings_file
-
+        
     except Exception as e:
         logger.error(f"存取 JSONL 檔案失敗: {e}")
         return None, None
@@ -3869,9 +3869,9 @@ def get_production_recommendation_score(username, owned_ids, game_id):
     """生產環境推薦分數計算 - 不依賴 turicreate"""
     try:
         logger.info(f"🏭 使用生產環境推薦器計算遊戲 {game_id} 的推薦分數")
-
+        
         from board_game_recommender.recommend import BGGRecommender
-
+        
         # 載入已訓練的模型
         # 使用動態路徑選擇
         paths = get_user_rg_paths(username)
@@ -3879,38 +3879,38 @@ def get_production_recommendation_score(username, owned_ids, game_id):
         if not os.path.exists(model_path):
             logger.error(f"❌ 模型不存在: {model_path}")
             return 0.0
-
+        
         recommender = BGGRecommender.load(model_path)
-
+        
         # 獲取推薦
         recommendations_df = recommender.recommend(
             users=[username],
             num_games=100,
             exclude_known=True
         )
-
+        
         # 查找目標遊戲的分數
         for row in recommendations_df:
             if int(row['bgg_id']) == game_id:
                 score = float(row.get('score', 0))
                 logger.info(f"✅ 生產環境推薦分數: {score:.4f}")
                 return score
-
+        
         # 如果沒找到，計算基於內容的相似度分數
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-
+                
                 # 獲取目標遊戲資訊
                 cursor.execute("""
                     SELECT categories, mechanics, rating, weight, minplayers, maxplayers
                     FROM game_detail WHERE objectid = %s
                 """, (game_id,))
                 target_game = cursor.fetchone()
-
+                
                 if not target_game:
                     return None
-
+                
                 # 獲取用戶收藏遊戲的平均特徵
                 placeholders = ','.join(['%s'] * len(owned_ids))
                 cursor.execute(f"""
@@ -3918,25 +3918,25 @@ def get_production_recommendation_score(username, owned_ids, game_id):
                     FROM game_detail WHERE objectid IN ({placeholders})
                 """, owned_ids)
                 user_prefs = cursor.fetchone()
-
+                
                 if user_prefs:
                     target_rating, target_weight = target_game[2] or 0, target_game[3] or 0
                     user_avg_rating, user_avg_weight = user_prefs[0] or 0, user_prefs[1] or 0
-
+                    
                     # 簡單的相似度計算
                     rating_similarity = 1 - abs(target_rating - user_avg_rating) / 10
                     weight_similarity = 1 - abs(target_weight - user_avg_weight) / 5
-
+                    
                     # 綜合分數 (0-5 範圍)
                     similarity_score = (rating_similarity + weight_similarity) / 2
                     final_score = max(0, min(5, similarity_score * 5))
-
+                    
                     logger.info(f"📊 基於內容相似度分數: {final_score:.4f}")
                     return final_score
-
+                
         except Exception as e:
             logger.error(f"內容相似度計算失敗: {e}")
-
+        
         # 最後的降級方案：返回目標遊戲的 BGG 評分
         try:
             with get_db_connection() as conn:
@@ -3951,9 +3951,9 @@ def get_production_recommendation_score(username, owned_ids, game_id):
                     return fallback_score
         except Exception as e:
             logger.error(f"BGG 評分降級計算失敗: {e}")
-
+        
         return None
-
+        
     except Exception as e:
         logger.error(f"生產環境推薦分數計算失敗: {e}")
         return None
@@ -3963,29 +3963,29 @@ def get_similarity_based_score(recommender, user_ratings_data, game_id):
     """當遊戲不在推薦結果中時，使用相似度計算分數"""
     try:
         import turicreate as tc
-
+        
         # 獲取用戶喜好的遊戲特徵
         user_game_ids = [r['bgg_id'] for r in user_ratings_data]
-
+        
         # 從推薦器獲取遊戲相似度
         if hasattr(recommender, 'similarity_model') and recommender.similarity_model:
             similar_games = recommender.similarity_model.query(tc.SFrame([{'bgg_id': game_id}]), k=10)
-
+            
             # 計算與用戶收藏遊戲的相似度分數
             similarity_scores = []
             for _, row in similar_games.iterrows():
                 if row['bgg_id'] in user_game_ids:
                     similarity_scores.append(row.get('score', 0))
-
+            
             if similarity_scores:
                 avg_similarity = sum(similarity_scores) / len(similarity_scores)
                 score = min(10, max(0, avg_similarity * 10))
                 logger.info(f"🔄 使用相似度計算分數: {score:.3f}")
                 return score
-
+        
         # 降級到基礎分數
         return 5.0
-
+        
     except Exception as e:
         logger.error(f"相似度計算失敗: {e}")
         return 5.0
@@ -3994,30 +3994,30 @@ def get_single_game_recommendation_score(username, owned_ids, game_id, algorithm
     """使用新的 LRU 緩存載入機制計算單個遊戲的推薦分數"""
     try:
         logger.info(f"🎯 計算遊戲 {game_id} 的推薦分數，算法: {algorithm}, 模型: {model_type}")
-
+        
         # 使用新的 LRU 緩存載入機制
         recommender, model_info = load_user_recommender(username, model_type)
-
+        
         if not recommender:
             logger.warning(f"❌ 無法載入推薦器: {model_info}")
             return None
-
+        
         logger.info(f"📊 使用推薦器類型: {model_info['type']}")
-
+        
         # 根據推薦器類型使用不同的推薦邏輯
         if model_info['type'] == 'bgg_full':
             return _calculate_score_with_bgg_recommender(recommender, username, owned_ids, game_id, algorithm)
-
+        
         elif model_info['type'] == 'light':
             return _calculate_score_with_light_recommender(recommender, username, owned_ids, game_id, algorithm)
-
+        
         elif model_info['type'] == 'fallback':
             return _calculate_score_with_fallback_recommender(recommender, username, owned_ids, game_id, algorithm)
-
+        
         else:
             logger.error(f"❌ 不支援的推薦器類型: {model_info['type']}")
             return None
-
+        
     except Exception as e:
         logger.error(f"RG 推薦分數計算失敗: {e}")
         return None
@@ -4033,38 +4033,38 @@ def _calculate_score_with_bgg_recommender(recommender, username, owned_ids, game
                 'bgg_user_name': username,
                 'bgg_user_rating': 8.0  # 假設收藏的遊戲評分都是8分
             })
-
+        
         if not user_ratings_data:
             logger.warning(f"用戶 {username} 沒有收藏的遊戲")
             return None
-
+        
         logger.info(f"💫 開始推薦計算，用戶評分: {len(user_ratings_data)} 個遊戲")
-
+        
         # 執行推薦計算
         recommendations = recommender.recommend(
             users=[username],
             num_games=1000,  # 取較多結果以找到目標遊戲
             diversity=0.1 if algorithm == 'hybrid' else 0.0
         )
-
+        
         if not recommendations or recommendations.num_rows() == 0:
             logger.warning("推薦器未返回任何結果")
             return None
-
+        
         # 尋找目標遊戲的推薦分數
         target_recommendations = recommendations[recommendations['bgg_id'] == game_id]
-
+        
         if target_recommendations.num_rows() == 0:
             logger.warning(f"目標遊戲 {game_id} 不在推薦結果中")
             # 嘗試使用相似度模型計算
             return get_similarity_based_score(recommender, user_ratings_data, game_id)
-
+        
         # 返回推薦分數（rank 越小越好，轉換為分數）
         rank = target_recommendations['rank'].mean()
         score = max(0, 10 - (rank / 100))  # 將排名轉換為0-10分數
         logger.info(f"✅ 遊戲 {game_id} 推薦分數: {score:.3f} (排名: {rank})")
         return float(score)
-
+        
     except Exception as e:
         logger.error(f"BGGRecommender 推薦分數計算失敗: {e}")
         return None
@@ -4073,11 +4073,11 @@ def _calculate_score_with_light_recommender(recommender, username, owned_ids, ga
     """使用 LightGamesRecommender 計算推薦分數"""
     try:
         logger.info(f"🪶 使用輕量級推薦器計算遊戲 {game_id}")
-
+        
         # 檢查是否是我們的簡單輕量級模型
         if hasattr(recommender, 'model_type') and recommender.model_type == 'simple_light':
             return _calculate_score_with_simple_light_model(recommender, username, owned_ids, game_id, algorithm)
-
+        
         # 標準 LightGamesRecommender 邏輯
         try:
             # 構建用戶偏好向量（基於收藏）
@@ -4085,22 +4085,22 @@ def _calculate_score_with_light_recommender(recommender, username, owned_ids, ga
                 'owned_games': owned_ids,
                 'user_id': username
             }
-
+            
             # 獲取單個遊戲的推薦分數
             score = recommender.score_game(game_id, user_preferences)
-
+            
             if score is not None:
                 logger.info(f"✅ 遊戲 {game_id} 輕量級推薦分數: {score:.3f}")
                 return float(score)
             else:
                 logger.warning(f"⚠️ 無法使用輕量級推薦器計算遊戲 {game_id} 的分數")
                 return None
-
+                
         except AttributeError:
             # 如果推薦器沒有 score_game 方法，嘗試其他方法
             logger.warning("⚠️ 輕量級推薦器沒有 score_game 方法，嘗試替代計算")
             return _calculate_score_with_simple_algorithm(owned_ids, game_id)
-
+        
     except Exception as e:
         logger.error(f"LightGamesRecommender 推薦分數計算失敗: {e}")
         return None
@@ -4109,7 +4109,7 @@ def _calculate_score_with_simple_light_model(model_data, username, owned_ids, ga
     """使用簡單輕量級模型計算推薦分數"""
     try:
         logger.info(f"🔧 使用簡單輕量級模型計算遊戲 {game_id}")
-
+        
         # 如果是文件路徑，載入模型數據
         if isinstance(model_data, str):
             user_paths = get_user_rg_paths(username)
@@ -4119,36 +4119,36 @@ def _calculate_score_with_simple_light_model(model_data, username, owned_ids, ga
         else:
             # 已經是載入的模型數據
             preferences = model_data.get('preferences', {})
-
+        
         user_ratings = preferences.get('ratings', {})
-
+        
         # 基於用戶評分計算相似度推薦分數
         if str(game_id) in user_ratings:
             # 如果用戶已經有這個遊戲，返回用戶的評分
             score = user_ratings[str(game_id)]
             logger.info(f"✅ 遊戲 {game_id} 用戶已評分: {score}")
             return float(score)
-
+        
         # 計算基於相似遊戲的推薦分數
         similar_scores = []
-
+        
         # 從資料庫獲取遊戲特徵來計算相似度
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
-
+                
                 # 獲取目標遊戲的特徵
                 cursor.execute("""
-                    SELECT category, mechanic, min_players, max_players, playing_time,
+                    SELECT category, mechanic, min_players, max_players, playing_time, 
                            complexity, year_published
                     FROM game_detail WHERE objectid = %s
                 """, (game_id,))
-
+                
                 target_game = cursor.fetchone()
                 if not target_game:
                     logger.warning(f"⚠️ 找不到遊戲 {game_id} 的詳細資料")
                     return _calculate_score_with_simple_algorithm(owned_ids, game_id)
-
+                
                 # 計算與用戶收藏遊戲的相似度
                 for rated_game_id, rating in user_ratings.items():
                     cursor.execute("""
@@ -4156,28 +4156,28 @@ def _calculate_score_with_simple_light_model(model_data, username, owned_ids, ga
                                complexity, year_published
                         FROM game_detail WHERE objectid = %s
                     """, (int(rated_game_id),))
-
+                    
                     owned_game = cursor.fetchone()
                     if owned_game:
                         similarity = _calculate_game_similarity(target_game, owned_game)
                         weighted_score = similarity * float(rating)
                         similar_scores.append(weighted_score)
-
+                
                 if similar_scores:
                     # 計算加權平均分數
                     avg_score = sum(similar_scores) / len(similar_scores)
                     # 正規化到 1-10 範圍
                     final_score = min(max(avg_score, 1.0), 10.0)
-
+                    
                     logger.info(f"✅ 遊戲 {game_id} 簡單模型推薦分數: {final_score:.3f}")
                     return float(final_score)
-
+        
         except Exception as e:
             logger.error(f"資料庫查詢失敗: {e}")
-
+        
         # 降級到簡單演算法
         return _calculate_score_with_simple_algorithm(owned_ids, game_id)
-
+        
     except Exception as e:
         logger.error(f"簡單輕量級模型計算失敗: {e}")
         return _calculate_score_with_simple_algorithm(owned_ids, game_id)
@@ -4187,7 +4187,7 @@ def _calculate_game_similarity(game1_features, game2_features):
     try:
         similarity = 0.0
         total_weight = 0.0
-
+        
         # 比較分類 (權重: 0.3)
         if game1_features[0] and game2_features[0]:
             cat1 = set(game1_features[0].split(',')) if game1_features[0] else set()
@@ -4196,7 +4196,7 @@ def _calculate_game_similarity(game1_features, game2_features):
                 cat_sim = len(cat1.intersection(cat2)) / len(cat1.union(cat2)) if cat1.union(cat2) else 0
                 similarity += cat_sim * 0.3
                 total_weight += 0.3
-
+        
         # 比較機制 (權重: 0.3)
         if game1_features[1] and game2_features[1]:
             mech1 = set(game1_features[1].split(',')) if game1_features[1] else set()
@@ -4205,7 +4205,7 @@ def _calculate_game_similarity(game1_features, game2_features):
                 mech_sim = len(mech1.intersection(mech2)) / len(mech1.union(mech2)) if mech1.union(mech2) else 0
                 similarity += mech_sim * 0.3
                 total_weight += 0.3
-
+        
         # 比較玩家數量 (權重: 0.2)
         if game1_features[2] and game2_features[2] and game1_features[3] and game2_features[3]:
             min1, max1 = int(game1_features[2] or 1), int(game1_features[3] or 1)
@@ -4215,7 +4215,7 @@ def _calculate_game_similarity(game1_features, game2_features):
             player_sim = overlap / total_range if total_range > 0 else 0
             similarity += player_sim * 0.2
             total_weight += 0.2
-
+        
         # 比較遊戲時間 (權重: 0.1)
         if game1_features[4] and game2_features[4]:
             time1, time2 = float(game1_features[4] or 60), float(game2_features[4] or 60)
@@ -4223,7 +4223,7 @@ def _calculate_game_similarity(game1_features, game2_features):
             time_sim = max(0, 1 - time_diff / max(time1, time2)) if max(time1, time2) > 0 else 0
             similarity += time_sim * 0.1
             total_weight += 0.1
-
+        
         # 比較複雜度 (權重: 0.1)
         if game1_features[5] and game2_features[5]:
             comp1, comp2 = float(game1_features[5] or 2.5), float(game2_features[5] or 2.5)
@@ -4231,9 +4231,9 @@ def _calculate_game_similarity(game1_features, game2_features):
             comp_sim = max(0, 1 - comp_diff / 5.0)  # 複雜度範圍 1-5
             similarity += comp_sim * 0.1
             total_weight += 0.1
-
+        
         return similarity / total_weight if total_weight > 0 else 0.5
-
+        
     except Exception as e:
         logger.error(f"相似度計算錯誤: {e}")
         return 0.5
@@ -4242,40 +4242,40 @@ def _calculate_score_with_simple_algorithm(owned_ids, game_id):
     """使用最簡單的演算法計算推薦分數"""
     try:
         logger.info(f"🔄 使用簡單演算法計算遊戲 {game_id}")
-
+        
         with get_db_connection() as conn:
             cursor = conn.cursor()
-
+            
             # 獲取遊戲的基本評分
             cursor.execute("""
                 SELECT average_rating, bayes_average_rating, num_votes
                 FROM game_detail WHERE objectid = %s
             """, (game_id,))
-
+            
             game_info = cursor.fetchone()
             if game_info:
                 avg_rating = float(game_info[0] or 6.0)
                 bayes_avg = float(game_info[1] or 6.0)
                 num_votes = int(game_info[2] or 100)
-
+                
                 # 基於評分和投票數計算推薦分數
                 base_score = (avg_rating + bayes_avg) / 2
-
+                
                 # 根據投票數調整（更多投票 = 更可靠）
                 vote_factor = min(1.0, num_votes / 1000) * 0.2
                 final_score = base_score + vote_factor
-
+                
                 # 稍微隨機化以模擬個人化
                 import random
                 personal_factor = random.uniform(-0.3, 0.3)
                 final_score = max(1.0, min(10.0, final_score + personal_factor))
-
+                
                 logger.info(f"✅ 遊戲 {game_id} 簡單演算法推薦分數: {final_score:.3f}")
                 return float(final_score)
-
+        
         logger.warning(f"⚠️ 無法找到遊戲 {game_id} 的資料，返回預設分數")
         return 6.0
-
+        
     except Exception as e:
         logger.error(f"簡單演算法計算失敗: {e}")
         return 5.0
@@ -4284,17 +4284,17 @@ def _calculate_score_with_fallback_recommender(recommender, username, owned_ids,
     """使用降級推薦器計算推薦分數"""
     try:
         logger.info(f"🔄 使用降級推薦器計算遊戲 {game_id}")
-
+        
         # 使用 AdvancedBoardGameRecommender 的邏輯
         score = recommender.get_recommendation_score(game_id, owned_ids)
-
+        
         if score is not None:
             logger.info(f"✅ 遊戲 {game_id} 降級推薦分數: {score:.3f}")
             return float(score)
         else:
             logger.warning(f"⚠️ 無法使用降級推薦器計算遊戲 {game_id} 的分數")
             return None
-
+        
     except Exception as e:
         logger.error(f"降級推薦器推薦分數計算失敗: {e}")
         return None
@@ -4303,43 +4303,43 @@ def get_basic_game_recommendation_score(username, owned_ids, game_id):
     """使用基礎方法從 JSONL 資料計算單個遊戲的推薦分數"""
     try:
         logger.info(f"🎯 使用基礎方法計算遊戲 {game_id} 的推薦分數")
-
+        
         import turicreate as tc
         import tempfile
         import json
-
+        
         # 從資料庫創建臨時 JSONL 文件
         games_file, ratings_file = create_temp_jsonl_files()
         if not games_file or not ratings_file:
             logger.error("❌ 無法創建 JSONL 資料檔案")
             return None
-
+        
         try:
             # 讀取遊戲資料
             games_data = tc.SFrame.read_json(url=games_file, orient="lines")
             target_game = games_data[games_data['bgg_id'] == game_id]
-
+            
             if target_game.num_rows() == 0:
                 logger.warning(f"遊戲 {game_id} 不在資料中")
                 return 5.0
-
+            
             game_info = target_game[0]
             name = game_info.get('name', 'Unknown')
             rating = game_info.get('avg_rating', 0)
             rank = game_info.get('rank', 0)
             weight = game_info.get('complexity', 0)
             year = game_info.get('year', 0)
-
+            
             logger.info(f"📊 遊戲資訊: {name} (評分: {rating}, 排名: {rank})")
-
+            
             # 基礎推薦分數計算
             base_score = 0
-
+            
             # 根據 BGG 評分計算 (40%)
             if rating and rating > 0:
                 rating_score = min(rating / 10 * 4, 4)  # 最高4分
                 base_score += rating_score
-
+                
             # 根據排名計算 (30%)
             if rank and rank > 0:
                 if rank <= 100:
@@ -4351,13 +4351,13 @@ def get_basic_game_recommendation_score(username, owned_ids, game_id):
                 else:
                     rank_score = 0.5
                 base_score += rank_score
-
+            
             # 根據複雜度適配性計算 (20%)
             if weight and weight > 0:
                 # 假設用戶偏好中等複雜度遊戲
                 complexity_score = max(0, 2 - abs(weight - 2.5))
                 base_score += complexity_score
-
+                
             # 根據年份新鮮度計算 (10%)
             if year and year > 0:
                 current_year = 2024
@@ -4368,14 +4368,14 @@ def get_basic_game_recommendation_score(username, owned_ids, game_id):
                 else:
                     freshness_score = 0.2
                 base_score += freshness_score
-
+            
             logger.info(f"✅ 基礎推薦分數: {base_score:.2f}")
             return base_score
-
+            
         finally:
             # 不需要清理檔案，因為使用的是持久化的資料檔案
             pass
-
+            
     except Exception as e:
         logger.error(f"基礎推薦分數計算失敗: {e}")
         return None
@@ -4437,12 +4437,12 @@ def api_cron_trigger():
         return jsonify({'success': False, 'message': '未授權'}), 401
 
     logger.info(f"收到外部 Cron 觸發請求，來源 IP: {request.remote_addr}")
-
+    
     # 檢查是否已有任務正在執行
     if task_status['is_running']:
         logger.info("已有任務正在執行，跳過此次觸發")
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': '任務已在執行中',
             'status': 'already_running',
             'current_step': task_status.get('current_step', ''),
@@ -4455,7 +4455,7 @@ def api_cron_trigger():
             try:
                 logger.info("🚀 開始非同步報表產生")
                 from scheduler import fetch_and_generate_report
-
+                
                 # 更新任務狀態
                 global task_status
                 task_status.update({
@@ -4468,9 +4468,9 @@ def api_cron_trigger():
                     'stop_requested': False,
                     'stopped_by_user': False
                 })
-
+                
                 result = fetch_and_generate_report('all', 'zh-tw', False, False)
-
+                
                 # 完成任務
                 task_status.update({
                     'is_running': False,
@@ -4479,12 +4479,12 @@ def api_cron_trigger():
                     'message': '報表產生完成' if result else '報表產生失敗',
                     'last_update': datetime.now()
                 })
-
+                
                 if result:
                     logger.info("✅ 非同步 Cron 觸發的報表產生成功")
                 else:
                     logger.error("❌ 非同步 Cron 觸發的報表產生失敗")
-
+                    
             except Exception as e:
                 logger.error(f"❌ 非同步報表產生異常: {e}")
                 task_status.update({
@@ -4500,10 +4500,10 @@ def api_cron_trigger():
         thread = threading.Thread(target=async_report_generation)
         thread.daemon = True
         thread.start()
-
+        
         logger.info("✅ Cron 觸發已接受，報表產生已在背景執行")
         return jsonify({
-            'success': True,
+            'success': True, 
             'message': '報表產生已啟動',
             'status': 'started',
             'info': '任務正在背景執行，請稍後查看結果'
@@ -4518,14 +4518,14 @@ def api_diagnose_recommendations():
     """診斷推薦系統狀態（用於 Zeabur 調試）"""
     if 'logged_in' not in session:
         return jsonify({'success': False, 'message': '未登入'}), 401
-
+    
     diagnosis = {}
-
+    
     try:
         # 基本資料檢查
         username = get_app_setting('bgg_username', '')
         diagnosis['bgg_username'] = username or 'None'
-
+        
         # 檢查收藏資料
         owned_ids = []
         try:
@@ -4537,39 +4537,39 @@ def api_diagnose_recommendations():
             diagnosis['owned_games_sample'] = owned_ids[:5] if owned_ids else []
         except Exception as e:
             diagnosis['collection_error'] = str(e)
-
+        
         # 檢查 board-game-recommender
         try:
             from board_game_recommender.recommend import BGGRecommender
-
+            
             # 檢查模型是否存在
             # 使用動態路徑選擇
             paths = get_user_rg_paths(username)
             model_path = paths['model_dir']
             diagnosis['model_exists'] = os.path.exists(model_path)
-
+            
             if diagnosis['model_exists']:
                 try:
                     recommender = BGGRecommender.load(model_path)
                     diagnosis['model_load_success'] = True
-
+                    
                     # 測試推薦功能
                     test_recs = recommender.recommend(users=[username], num_games=3)
                     diagnosis['sample_recommendations'] = [
-                        {'name': rec['name'], 'score': rec.get('score', 0)}
+                        {'name': rec['name'], 'score': rec.get('score', 0)} 
                         for rec in test_recs[:3]
                     ] if test_recs else []
-
+                    
                 except Exception as rec_error:
                     diagnosis['model_load_error'] = str(rec_error)
             else:
                 diagnosis['model_missing'] = True
-
+                
         except Exception as e:
             diagnosis['board_game_recommender_error'] = str(e)
             import traceback
             diagnosis['board_game_recommender_traceback'] = traceback.format_exc()
-
+        
         # 測試完整推薦流程
         try:
             test_recs = get_advanced_recommendations(username, owned_ids[:5], 'popularity', 3)
@@ -4580,13 +4580,13 @@ def api_diagnose_recommendations():
             }
         except Exception as e:
             diagnosis['full_recommendation_error'] = str(e)
-
+        
         return jsonify({
             'success': True,
             'diagnosis': diagnosis,
             'timestamp': datetime.now().isoformat()
         })
-
+        
     except Exception as e:
         return jsonify({
             'success': False,
@@ -4652,22 +4652,22 @@ def google_auth_callback():
     if not GOOGLE_AUTH_AVAILABLE or not google_auth:
         flash('Google 登入功能暫不可用', 'error')
         return redirect(url_for('login'))
-
+    
     token = request.args.get('token')
     if not token:
         flash('登入失敗：未收到認證 token', 'error')
         return redirect(url_for('login'))
-
+    
     # 驗證 Google token
     user_info = google_auth.verify_google_token(token)
     if not user_info:
         flash('登入失敗：無效的認證 token', 'error')
         return redirect(url_for('login'))
-
+    
     if not user_info['email_verified']:
         flash('登入失敗：請先驗證您的 Google 帳戶 email', 'error')
         return redirect(url_for('login'))
-
+    
     # 創建或更新用戶
     user_data = google_auth.create_or_update_user(
         user_info['google_id'],
@@ -4675,7 +4675,7 @@ def google_auth_callback():
         user_info['name'],
         user_info['picture']
     )
-
+    
     if user_data:
         session['user'] = user_data
         session['logged_in'] = True
@@ -4823,7 +4823,7 @@ def api_check_database():
 @app.route('/health')
 def health():
     """健康檢查端點 - 快速響應版本"""
-
+    
     # 簡單健康檢查，不阻塞啟動
     health_info = {
         'status': 'ok',
@@ -4832,35 +4832,35 @@ def health():
         'port': os.getenv('PORT', 'not set'),
         'database_url_configured': 'yes' if os.getenv('DATABASE_URL') else 'no'
     }
-
+    
     # 只有在應用已經完全啟動後才嘗試資料庫檢查
     if os.getenv('SKIP_DB_HEALTH_CHECK') != '1':
         # 非阻塞式資料庫狀態檢查
         try:
             from database import get_db_connection
             import signal
-
+            
             # 設置 5 秒超時
             def timeout_handler(signum, frame):
                 raise TimeoutError("Database connection timeout")
-
+            
             signal.signal(signal.SIGALRM, timeout_handler)
             signal.alarm(5)  # 5 秒超時
-
+            
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1")
                 health_info['database'] = 'connected'
-
+            
             signal.alarm(0)  # 取消超時
-
+            
         except TimeoutError:
             health_info['database'] = 'timeout'
         except Exception as e:
             health_info['database'] = f'error: {str(e)[:50]}'
     else:
         health_info['database'] = 'check_skipped'
-
+    
     return health_info
 
 @app.route('/health/quick')
@@ -4875,177 +4875,15 @@ def health_quick():
 ## 已遷移至 routes/admin.py 的 admin_bp
 
 # 設計師/繪師追蹤相關路由
-@app.route('/creator-tracker')
-@full_access_required
-def creator_tracker():
-    """設計師/繪師追蹤頁面"""
-    user = session.get('user', {})
-    user_email = user.get('email', '')
-    return render_template('creator_tracker.html', user_email=user_email)
+## 已遷移至 routes/creator.py 的 admin_bp: /creator-tracker
 
-@app.route('/api/creators/search', methods=['POST'])
-@full_access_required
-def api_search_creators():
-    """搜尋設計師/繪師 API"""
-    try:
-        data = request.get_json()
-        query = data.get('query', '').strip()
-        creator_type = data.get('type', 'boardgamedesigner')
+## 已遷移至 routes/creator.py 的 admin_bp: /api/creators/search
 
-        if not query:
-            return jsonify({'success': False, 'message': '請輸入搜尋關鍵字'})
+## 已遷移至 routes/creator.py 的 admin_bp: /creator/<id>
 
-        from creator_tracker import CreatorTracker
-        tracker = CreatorTracker()
+## 已遷移至 routes/creator.py 的 admin_bp: /api/creators/<id>
 
-        results = tracker.search_creators(query, creator_type)
-
-        return jsonify({
-            'success': True,
-            'results': results
-        })
-
-    except Exception as e:
-        logger.error(f"搜尋設計師失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)})
-
-@app.route('/creator/<int:creator_id>/<creator_type>')
-def creator_details_page(creator_id, creator_type):
-    """設計師/繪師詳細資料頁面"""
-    return render_template('creator_details.html', creator_id=creator_id, creator_type=creator_type)
-
-@app.route('/api/creators/<int:creator_id>/<creator_type>')
-def api_get_creator_details(creator_id, creator_type):
-    """獲取設計師/繪師詳細資料 API"""
-    try:
-        from creator_tracker import CreatorTracker
-        tracker = CreatorTracker()
-
-        # 獲取詳細資料
-        details = tracker.get_creator_details(creator_id, creator_type)
-        if not details:
-            return jsonify({'success': False, 'message': '無法獲取詳細資料'})
-
-        # 確定正確的 API 類型
-        api_type = 'boardgamedesigner' if creator_type in ['designer', 'boardgamedesigner'] else 'boardgameartist'
-        slug = details.get('slug')
-
-        # 獲取 average 排序的第一筆遊戲（top game）
-        top_game = None
-        if slug:
-            top_games = tracker.get_all_creator_games(creator_id, slug, api_type, sort='average', limit=1)
-            if top_games:
-                game = top_games[0]
-                top_game = {
-                    'name': game.get('name'),
-                    'url': f"https://boardgamegeek.com/boardgame/{game.get('bgg_id')}"
-                }
-
-        # 獲取 yearpublished 排序的前5筆遊戲
-        recent_games = []
-        if slug:
-            games = tracker.get_all_creator_games(creator_id, slug, api_type, sort='yearpublished', limit=5)
-            for game in games:
-                recent_games.append({
-                    'name': game.get('name'),
-                    'year': game.get('year'),
-                    'url': f"https://boardgamegeek.com/boardgame/{game.get('bgg_id')}"
-                })
-
-        # 檢查用戶是否已追蹤
-        user_data = session.get('user')
-        is_following = False
-
-        if user_data and user_data.get('id'):
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT 1 FROM user_follows uf
-                    JOIN creators c ON uf.creator_id = c.id
-                    WHERE c.bgg_id = %s AND uf.user_id = %s
-                """, (creator_id, user_data['id']))
-                is_following = cursor.fetchone() is not None
-
-        details['is_following'] = is_following
-        details['top_game'] = top_game
-        details['recent_games'] = recent_games
-
-        return jsonify({
-            'success': True,
-            'creator': details
-        })
-
-    except Exception as e:
-        logger.error(f"獲取設計師詳細資料失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)})
-
-@app.route('/api/creators/follow', methods=['POST'])
-@full_access_required
-def api_follow_creator():
-    """追蹤/取消追蹤設計師/繪師 API"""
-    try:
-        user_data = session.get('user', {})
-        user_id = user_data.get('id')
-        user_email = user_data.get('email')
-
-        if not user_id:
-            return jsonify({'success': False, 'message': '請先登入'})
-
-        data = request.get_json()
-        creator_bgg_id = data.get('creator_id')
-        creator_type = data.get('type')
-        action = data.get('action')  # 'follow' or 'unfollow'
-
-        if not all([creator_bgg_id, creator_type, action]):
-            return jsonify({'success': False, 'message': '參數不完整'})
-
-        # 檢查用戶是否設定了 email（追蹤功能需要 email 通知）
-        if action == 'follow' and not user_email:
-            return jsonify({'success': False, 'message': '請先在設定頁面設定 Email 地址才能使用追蹤功能'})
-
-        from creator_tracker import CreatorTracker
-        tracker = CreatorTracker()
-
-        if action == 'follow':
-            # 映射前端類型到 BGG API 類型
-            bgg_type_map = {
-                'designer': 'boardgamedesigner',
-                'artist': 'boardgameartist'
-            }
-            bgg_type = bgg_type_map.get(creator_type, 'boardgamedesigner')
-
-            # 獲取設計師名稱
-            details = tracker.get_creator_details(creator_bgg_id, bgg_type)
-            if not details:
-                return jsonify({'success': False, 'message': '無法獲取設計師資料'})
-
-            creator_name = details['name']
-
-            # 使用修復過的 follow_creator 方法
-            result = tracker.follow_creator(user_id, int(creator_bgg_id), bgg_type, creator_name)
-
-            return jsonify(result)
-
-        else:  # unfollow
-            # 取消追蹤
-            with get_db_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    DELETE FROM user_follows
-                    WHERE user_id = %s AND creator_id = (
-                        SELECT id FROM creators WHERE bgg_id = %s
-                    )
-                """, (user_id, creator_bgg_id))
-                conn.commit()
-
-            return jsonify({
-                'success': True,
-                'message': '已取消追蹤'
-            })
-
-    except Exception as e:
-        logger.error(f"追蹤操作失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)})
+## 已遷移至 routes/creator.py 的 admin_bp: /api/creators/follow
 
 @app.route('/api/recommendations/by-games', methods=['POST'])
 @full_access_required
@@ -5055,31 +4893,31 @@ def api_get_recommendations_by_games():
         data = request.get_json()
         selected_games = data.get('games', [])
         num_recommendations = data.get('num_recommendations', 10)
-
+        
         if not selected_games:
             return jsonify({'success': False, 'message': '請選擇至少一款遊戲'})
-
+        
         if len(selected_games) > 10:
             return jsonify({'success': False, 'message': '最多只能選擇10款遊戲'})
-
+        
         # 使用 board-game-recommender 進行推薦
         username = get_app_setting('bgg_username', '')
         if not username:
             return jsonify({'success': False, 'message': '請先設定 BGG 用戶名'})
-
+        
         # 檢查模型是否存在
         # 使用動態路徑選擇
         paths = get_user_rg_paths(username)
         model_path = paths['model_dir']
         if not os.path.exists(model_path):
             return jsonify({'success': False, 'message': '推薦模型尚未訓練，請先到設定頁重新訓練'})
-
+        
         # 使用 board-game-recommender 獲取推薦
         recommendations = get_advanced_recommendations(username, selected_games, algorithm='hybrid', limit=num_recommendations)
-
+        
         if not recommendations:
             return jsonify({'success': False, 'message': '無法獲取推薦，請檢查模型是否正確訓練'})
-
+        
         return jsonify({
             'success': True,
             'recommendations': recommendations,
@@ -5090,7 +4928,7 @@ def api_get_recommendations_by_games():
                 'selected_games_count': len(selected_games)
             }
         })
-
+        
     except Exception as e:
         logger.error(f"獲取遊戲推薦失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -5102,26 +4940,26 @@ def api_search_games():
         data = request.get_json()
         query = data.get('query', '').strip()
         limit = min(data.get('limit', 20), 50)  # 最多返回50個結果
-
+        
         if not query:
             return jsonify({'success': False, 'message': '請輸入搜尋關鍵字'})
-
+        
         with get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT objectid, name, year, rating, rank, image,
+                SELECT objectid, name, year, rating, rank, image, 
                        categories, mechanics
-                FROM game_detail
-                WHERE name ILIKE %s
-                    AND rating IS NOT NULL
+                FROM game_detail 
+                WHERE name ILIKE %s 
+                    AND rating IS NOT NULL 
                     AND rating > 5.0
                 ORDER BY rating DESC, rank ASC
                 LIMIT %s
             """, (f'%{query}%', limit))
-
+            
             results = cursor.fetchall()
             games = []
-
+            
             for row in results:
                 games.append({
                     'objectid': row[0],
@@ -5134,131 +4972,23 @@ def api_search_games():
                     'mechanics': row[7],
                     'display_name': f"{row[1]} ({row[2]})" if row[2] else row[1]
                 })
-
+            
             return jsonify({
                 'success': True,
                 'games': games,
                 'query': query,
                 'total': len(games)
             })
-
+            
     except Exception as e:
         logger.error(f"搜尋遊戲失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
 # 移除重複的 /recommendations 路由，避免 302/覆蓋行為
 
-@app.route('/api/creators/following')
-@full_access_required
-def api_get_following_creators():
-    """獲取用戶追蹤的設計師/繪師列表 API"""
-    try:
-        user = session.get('user', {})
-        user_id = user.get('id')
-        if not user_id:
-            return jsonify({'success': False, 'message': '請先登入'})
+## 已遷移至 routes/creator.py 的 admin_bp: /api/creators/following
 
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            config = get_database_config()
-
-            if config['type'] == 'postgresql':
-                cursor.execute("""
-                    SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
-                    FROM creators c
-                    JOIN user_follows uf ON c.id = uf.creator_id
-                    WHERE uf.user_id = %s
-                    ORDER BY uf.followed_at DESC
-                """, (user_id,))
-            else:
-                cursor.execute("""
-                    SELECT c.bgg_id, c.name, c.type, c.description, c.image_url, uf.followed_at
-                    FROM creators c
-                    JOIN user_follows uf ON c.id = uf.creator_id
-                    WHERE uf.user_id = ?
-                    ORDER BY uf.followed_at DESC
-                """, (user_id,))
-
-            creators = []
-            for row in cursor.fetchall():
-                creators.append({
-                    'bgg_id': row[0],
-                    'name': row[1],
-                    'type': row[2],
-                    'description': row[3],
-                    'image_url': row[4],
-                    'followed_at': row[5]
-                })
-
-        return jsonify({
-            'success': True,
-            'creators': creators
-        })
-
-    except Exception as e:
-        logger.error(f"獲取追蹤列表失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)})
-
-@app.route('/api/cron-update-creators', methods=['POST'])
-def cron_update_creators():
-    """定時更新設計師/繪師作品的 API 端點"""
-    # 檢查授權
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return jsonify({'success': False, 'message': '未授權'}), 401
-
-    token = auth_header.split(' ')[1]
-    expected_token = os.getenv('CRON_SECRET_TOKEN')
-
-    if not expected_token or token != expected_token:
-        return jsonify({'success': False, 'message': '授權失敗'}), 401
-
-    try:
-        data = request.get_json() or {}
-        force_update = data.get('force', False)
-
-        logger.info(f"開始更新設計師/繪師作品 (force: {force_update})")
-
-        # 在背景執行更新程序
-        import subprocess
-        import threading
-
-        def run_update():
-            try:
-                cmd = ['python3', 'update_creators.py']
-                if force_update:
-                    cmd.append('--force')
-
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=3600  # 1小時超時
-                )
-
-                if result.returncode == 0:
-                    logger.info("設計師/繪師作品更新完成")
-                else:
-                    logger.error(f"設計師/繪師作品更新失敗: {result.stderr}")
-
-            except Exception as e:
-                logger.error(f"執行更新腳本失敗: {e}")
-
-        # 在背景執行
-        update_thread = threading.Thread(target=run_update)
-        update_thread.daemon = True
-        update_thread.start()
-
-        return jsonify({
-            'success': True,
-            'message': '設計師/繪師作品更新已開始',
-            'force': force_update,
-            'timestamp': datetime.now().isoformat()
-        })
-
-    except Exception as e:
-        logger.error(f"觸發設計師更新失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+## 已遷移至 routes/creator.py 的 admin_bp: /api/cron-update-creators
 
 @app.route('/api/save-user-email', methods=['POST'])
 def api_save_user_email():
@@ -5266,30 +4996,30 @@ def api_save_user_email():
     try:
         if 'logged_in' not in session:
             return jsonify({'success': False, 'message': '請先登入'}), 401
-
+        
         data = request.get_json()
         email = data.get('email', '').strip()
-
+        
         if not email:
             return jsonify({'success': False, 'message': '請輸入 Email 地址'})
-
+        
         # 簡單的 email 格式驗證
         import re
         email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
         if not re.match(email_regex, email):
             return jsonify({'success': False, 'message': '請輸入有效的 Email 地址'})
-
+        
         # 更新 session 中的 email
         session['user_email'] = email
-
+        
         # 如果有用戶系統，也可以儲存到資料庫
         # 這裡暫時只儲存在 session 中
-
+        
         return jsonify({
             'success': True,
             'message': 'Email 地址已儲存'
         })
-
+        
     except Exception as e:
         logger.error(f"儲存用戶 Email 失敗: {e}")
         return jsonify({'success': False, 'message': str(e)})
@@ -5308,15 +5038,15 @@ def api_save_user_email():
         data = request.get_json()
         email = data.get('email', '').strip().lower()
         code_type = data.get('type', 'register')
-
+        
         if not email:
             return jsonify({'success': False, 'message': '請提供 Email 地址'})
-
+        
         # 檢查 email 格式
         import re
         if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             return jsonify({'success': False, 'message': 'Email 格式無效'})
-
+        
         # 對於登入和密碼重設，檢查用戶是否存在
         if code_type in ['login', 'password_reset']:
             user = email_auth.get_user_by_email(email)
@@ -5324,26 +5054,26 @@ def api_save_user_email():
                 return jsonify({'success': False, 'message': '用戶不存在'})
             if not user['is_active']:
                 return jsonify({'success': False, 'message': '帳號已被停用'})
-
+        
         # 對於註冊，檢查用戶是否已存在
         elif code_type == 'register':
             user = email_auth.get_user_by_email(email)
             if user:
                 return jsonify({'success': False, 'message': '此 Email 已註冊'})
-
+        
         # 生成並發送驗證碼
         code = email_auth.generate_verification_code()
-
+        
         # 儲存驗證碼
         if not email_auth.store_verification_code(email, code, code_type):
             return jsonify({'success': False, 'message': '驗證碼儲存失敗'})
-
+        
         # 發送郵件
         if email_auth.send_verification_code(email, code, code_type):
             return jsonify({'success': True, 'message': '驗證碼已發送'})
         else:
             return jsonify({'success': False, 'message': '郵件發送失敗，請檢查 SMTP 設定'})
-
+        
     except Exception as e:
         logger.error(f"發送驗證碼失敗: {e}")
         return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
@@ -5355,16 +5085,16 @@ def api_save_user_email():
         email = data.get('email', '').strip().lower()
         code = data.get('code', '').strip()
         code_type = data.get('type', 'register')
-
+        
         if not email or not code:
             return jsonify({'success': False, 'message': '請提供 Email 和驗證碼'})
-
+        
         # 驗證驗證碼
         if email_auth.verify_code(email, code, code_type):
             return jsonify({'success': True, 'message': '驗證成功'})
         else:
             return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
-
+        
     except Exception as e:
         logger.error(f"驗證驗證碼失敗: {e}")
         return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
@@ -5375,55 +5105,55 @@ def api_save_user_email():
         data = request.get_json()
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
-
+        
         if not email or not password:
             return jsonify({'success': False, 'message': '請提供 Email 和密碼'})
-
+        
         if len(password) < 6:
             return jsonify({'success': False, 'message': '密碼至少需要6個字符'})
-
+        
         # 檢查是否有有效的驗證碼（確保用戶已通過驗證）
         with get_db_connection() as conn:
             cursor = conn.cursor()
             config = get_database_config()
             execute_query(cursor, """
-                SELECT id FROM verification_codes
+                SELECT id FROM verification_codes 
                 WHERE email = ? AND type = 'register' AND used = 1
                 AND expires_at > ?
             """, (email, datetime.now().isoformat()), config['type'])
-
+            
             if not cursor.fetchone():
                 return jsonify({'success': False, 'message': '請先完成 Email 驗證'})
-
+        
         # 使用 email 前綴作為預設名稱
         name = email.split('@')[0]
-
+        
         # 創建用戶
         user_data, message = email_auth.create_user(email, password, name)
-
+        
         if user_data:
             # 設定 session
             session['user'] = user_data
             session['logged_in'] = True
             session['user_email'] = email
-
+            
             # 清理已使用的驗證碼
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 config = get_database_config()
-                execute_query(cursor,
-                    "DELETE FROM verification_codes WHERE email = ? AND type = 'register'",
+                execute_query(cursor, 
+                    "DELETE FROM verification_codes WHERE email = ? AND type = 'register'", 
                     (email,), config['type'])
                 conn.commit()
-
+            
             return jsonify({
-                'success': True,
+                'success': True, 
                 'message': message,
                 'redirect': url_for('dashboard')
             })
         else:
             return jsonify({'success': False, 'message': message})
-
+        
     except Exception as e:
         logger.error(f"用戶註冊失敗: {e}")
         return jsonify({'success': False, 'message': f'註冊失敗: {str(e)}'})
@@ -5434,13 +5164,13 @@ def api_save_user_email():
         data = request.get_json()
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
-
+        
         if not email or not password:
             return jsonify({'success': False, 'message': '請提供 Email 和密碼'})
-
+        
         # 驗證用戶
         user_data, message = email_auth.authenticate_user(email, password)
-
+        
         if user_data:
             # 設定 session
             session['user'] = user_data
@@ -5453,7 +5183,7 @@ def api_save_user_email():
             })
         else:
             return jsonify({'success': False, 'message': message})
-
+        
     except Exception as e:
         logger.error(f"用戶登入失敗: {e}")
         return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
@@ -5464,18 +5194,18 @@ def api_save_user_email():
         data = request.get_json()
         email = data.get('email', '').strip().lower()
         code = data.get('code', '').strip()
-
+        
         if not email or not code:
             return jsonify({'success': False, 'message': '請提供 Email 和驗證碼'})
-
+        
         # 檢查用戶是否存在
         user_data = email_auth.get_user_by_email(email)
         if not user_data:
             return jsonify({'success': False, 'message': '用戶不存在'})
-
+        
         if not user_data['is_active']:
             return jsonify({'success': False, 'message': '帳號已被停用'})
-
+        
         # 驗證驗證碼
         if email_auth.verify_code(email, code, 'login'):
             # 設定 session
@@ -5489,7 +5219,7 @@ def api_save_user_email():
             })
         else:
             return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
-
+        
     except Exception as e:
         logger.error(f"驗證碼登入失敗: {e}")
         return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
@@ -5501,41 +5231,41 @@ def api_save_user_email():
         email = data.get('email', '').strip().lower()
         code = data.get('code', '').strip()
         new_password = data.get('password', '')
-
+        
         if not email or not code or not new_password:
             return jsonify({'success': False, 'message': '請提供完整資訊'})
-
+        
         if len(new_password) < 6:
             return jsonify({'success': False, 'message': '密碼至少需要6個字符'})
-
+        
         # 再次驗證驗證碼
         if not email_auth.verify_code(email, code, 'password_reset'):
             return jsonify({'success': False, 'message': '驗證碼無效或已過期'})
-
+        
         # 更新密碼
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 from database import execute_query, get_database_config
-
+                
                 password_hash = email_auth.hash_password(new_password)
                 updated_at = datetime.now().isoformat()
                 config = get_database_config()
-
+                
                 execute_query(cursor, """
-                    UPDATE users
+                    UPDATE users 
                     SET password_hash = ?, updated_at = ?
                     WHERE email = ?
                 """, (password_hash, updated_at, email), config['type'])
-
+                
                 conn.commit()
-
+                
                 return jsonify({'success': True, 'message': '密碼重設成功'})
-
+                
         except Exception as e:
             logger.error(f"更新密碼失敗: {e}")
             return jsonify({'success': False, 'message': '密碼更新失敗'})
-
+        
     except Exception as e:
         logger.error(f"重設密碼失敗: {e}")
         return jsonify({'success': False, 'message': f'重設失敗: {str(e)}'})
@@ -5553,13 +5283,13 @@ try:
             import time
             time.sleep(1)  # 等待 1 秒確保所有模塊載入完成
             force_db_initialization()
-
+        
         init_thread = threading.Thread(target=delayed_init, daemon=True)
         init_thread.start()
         print("📋 模塊載入: 資料庫初始化線程已啟動")
     elif os.getenv('SKIP_MODULE_DB_INIT'):
         print("📋 模塊載入: 跳過資料庫初始化（由啟動腳本管理）")
-
+        
         # 在 Zeabur 生產環境中，延遲檢查 RG 推薦資料
         def delayed_rg_init():
             import time
@@ -5571,7 +5301,7 @@ try:
                 print("📊 [RG] 推薦系統資料檢查完成")
             except Exception as e:
                 print(f"⚠️ [RG] 推薦資料初始化警告: {e}")
-
+        
         rg_thread = threading.Thread(target=delayed_rg_init, daemon=True)
         rg_thread.start()
         print("📋 模塊載入: RG 資料檢查線程已啟動")
@@ -5582,10 +5312,10 @@ if __name__ == '__main__':
     # 確保資料庫在應用啟動前完成初始化
     print("🔄 應用啟動前執行資料庫檢查...")
     force_db_initialization()
-
+    
     # 確保必要的資料目錄存在
     print("📁 確保資料目錄存在...")
     ensure_data_directories()
-
+    
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
