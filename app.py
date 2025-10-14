@@ -982,7 +982,8 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         import os
         model_path = f'data/rg_users/{username}/rg_model'
         if not os.path.exists(model_path):
-            logger.error(f"❌ 模型不存在: {model_path}")
+            logger.warning(f"⚠️ 模型不存在: {model_path}")
+            logger.info("💡 提示：模型可能因容器重啟而丟失，請重新訓練")
             return None
         
         logger.info(f"📂 載入模型: {model_path}")

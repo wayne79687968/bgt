@@ -39,6 +39,9 @@ services:
     volumes:
       - name: reports
         mount: /app/frontend/public/outputs
+      - name: models
+        mount: /app/data
 
 volumes:
   reports:
+  models:
