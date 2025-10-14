@@ -7,7 +7,7 @@ from email_auth import login_required
 from database import get_db_connection, get_database_config
 
 
-@report_bp.route('/bgg_times')
+@report_bp.route('/bgg_times', endpoint='bgg_times')
 @login_required
 def bgg_times():
     # 從原 app 導入幫手函數（延遲導入避免循環）
