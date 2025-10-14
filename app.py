@@ -2811,8 +2811,8 @@ def api_rg_recommend_score():
             
             # 檢查是否有訓練的模型
             # 使用動態路徑選擇
-        paths = get_user_rg_paths(username)
-        model_path = paths['model_dir']
+            paths = get_user_rg_paths(username)
+            model_path = paths['model_dir']
             if not os.path.exists(model_path):
                 return jsonify({
                     'success': False,
@@ -4531,8 +4531,8 @@ def api_diagnose_recommendations():
             
             # 檢查模型是否存在
             # 使用動態路徑選擇
-        paths = get_user_rg_paths(username)
-        model_path = paths['model_dir']
+            paths = get_user_rg_paths(username)
+            model_path = paths['model_dir']
             diagnosis['model_exists'] = os.path.exists(model_path)
             
             if diagnosis['model_exists']:
