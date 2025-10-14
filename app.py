@@ -1030,6 +1030,20 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             else:
                 recommender = BGGRecommender.load(model_path)
             logger.info("✅ 模型載入成功")
+            
+            # 測試模型基本功能
+            try:
+                # 嘗試獲取模型的基本資訊
+                logger.info(f"🔍 模型類型: {type(recommender)}")
+                if hasattr(recommender, 'model'):
+                    logger.info(f"🔍 內部模型類型: {type(recommender.model)}")
+                if hasattr(recommender, 'ratings'):
+                    logger.info(f"🔍 評分資料行數: {len(recommender.ratings) if recommender.ratings else 'None'}")
+                if hasattr(recommender, 'games'):
+                    logger.info(f"🔍 遊戲資料行數: {len(recommender.games) if recommender.games else 'None'}")
+            except Exception as info_error:
+                logger.warning(f"⚠️ 獲取模型資訊失敗: {info_error}")
+                
         except Exception as load_error:
             logger.error(f"❌ 模型載入失敗: {load_error}")
             import traceback
@@ -1050,28 +1064,24 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             )
             logger.info(f"🧪 測試推薦（不排除已知）: {len(test_recs)} 個結果")
             
-            # 如果沒有結果，嘗試獲取所有用戶的推薦
+            # 如果沒有結果，嘗試不同的用戶名格式
             if len(test_recs) == 0:
-                logger.info("🔍 嘗試獲取所有用戶的推薦...")
-                try:
-                    all_recs = recommender.recommend(
-                        users=None,  # 獲取所有用戶
-                        num_games=1,
-                        exclude_known=False
-                    )
-                    if len(all_recs) > 0:
-                        # 轉換為 pandas 查看用戶名
-                        import pandas as pd
-                        all_recs_pd = all_recs.to_dataframe()
-                        if 'user' in all_recs_pd.columns:
-                            unique_users = all_recs_pd['user'].unique()
-                            logger.info(f"🔍 訓練資料中的用戶名範例: {list(unique_users[:5])}")
-                        else:
-                            logger.info(f"🔍 推薦結果欄位: {list(all_recs_pd.columns)}")
-                    else:
-                        logger.warning("⚠️ 模型無法為任何用戶生成推薦")
-                except Exception as debug_error:
-                    logger.warning(f"⚠️ 調試用戶名失敗: {debug_error}")
+                logger.info("🔍 嘗試不同的用戶名格式...")
+                test_variants = [username.lower(), f"user_{username.lower()}", f"user_{username}"]
+                for variant in test_variants:
+                    try:
+                        variant_recs = recommender.recommend(
+                            users=[variant],
+                            num_games=1,
+                            exclude_known=False
+                        )
+                        if len(variant_recs) > 0:
+                            logger.info(f"✅ 找到推薦 - 用戶名格式: {variant}")
+                            break
+                    except Exception as variant_error:
+                        logger.warning(f"⚠️ 用戶名格式 {variant} 失敗: {variant_error}")
+                else:
+                    logger.warning("⚠️ 所有用戶名格式都無法獲取推薦")
                 
         except Exception as test_error:
             logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
