@@ -239,6 +239,14 @@ def inject_auth_functions():
     }
 RG_API_URL = os.getenv('RG_API_URL')  # 例如: https://api.recommend.games
 RG_API_KEY = os.getenv('RG_API_KEY')
+
+# Blueprint 註冊（逐步遷移路由）
+try:
+    from routes import health_bp
+    app.register_blueprint(health_bp)
+    logger.info("✅ 已註冊 health blueprint")
+except Exception as e:
+    logger.warning(f"⚠️ 無法註冊 health blueprint: {e}")
 # RG 推薦器路徑配置
 def get_user_rg_paths(username=None):
     """獲取用戶特定的 RG 文件路徑"""
