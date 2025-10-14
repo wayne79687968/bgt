@@ -1020,7 +1020,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         except Exception as test_error:
             logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
         
-        # 嘗試不同的用戶名格式
+        # 嘗試不同的用戶名格式，並確保排除已知遊戲
         user_variants = [username, username.lower(), f"user_{username}"]
         recommendations_df = None
         
@@ -1030,10 +1030,14 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                 recommendations_df = recommender.recommend(
                     users=[user_variant],
                     num_games=limit,
-                    exclude_known=True
+                    exclude_known=True  # 確保排除已知遊戲
                 )
                 if len(recommendations_df) > 0:
                     logger.info(f"✅ 找到推薦 - 用戶名格式: {user_variant}")
+                    # 額外檢查：確保推薦的遊戲不在用戶收藏中
+                    if owned_ids:
+                        recommendations_df = recommendations_df[~recommendations_df['bgg_id'].isin(owned_ids)]
+                        logger.info(f"🔍 排除已知遊戲後剩餘: {len(recommendations_df)} 個推薦")
                     break
                 else:
                     logger.info(f"📭 無推薦結果 - 用戶名格式: {user_variant}")
@@ -2692,33 +2696,42 @@ def api_rg_recommend_score():
                 'message': '請先同步您的 BGG 收藏才能計算推薦分數'
             })
 
-        # 使用預訓練的 BGGRecommender 模型計算分數
+        # 使用 board-game-recommender 模型計算分數
         try:
-            # 檢查是否有預訓練的模型
-            model_dir = f'data/bgg_models/{username}'
-            model_path = f'{model_dir}/recommender_model'
-
+            from board_game_recommender.recommend import BGGRecommender
+            
+            # 檢查是否有訓練的模型
+            model_path = f'data/rg_users/{username}/rg_model'
             if not os.path.exists(model_path):
                 return jsonify({
                     'success': False,
                     'message': '尚未訓練推薦模型。請先到設定頁點擊「🚀 一鍵重新訓練」來建立您的個人化推薦模型。'
                 })
 
-            # 載入預訓練的模型
-            import turicreate as tc
-            model = tc.load_model(model_path)
-
-            # 創建 BGGRecommender 實例
-            recommender = BGGRecommender(model=model)
-
-            # 獲取推薦
-            recommendations = recommender.recommend([username], num_games=1000)
+            # 載入模型
+            recommender = BGGRecommender.load(model_path)
+            
+            # 獲取推薦（不排除已知，因為我們要計算特定遊戲的分數）
+            recommendations_df = recommender.recommend(
+                users=[username],
+                num_games=1000,
+                exclude_known=False
+            )
 
             # 尋找目標遊戲的分數
-            target_recs = recommendations[recommendations['bgg_id'] == int(game_id)]
+            target_recs = recommendations_df[recommendations_df['bgg_id'] == int(game_id)]
 
             if len(target_recs) > 0:
-                score = float(target_recs['score'][0]) * 10  # 轉換為 0-10 分數
+                raw_score = float(target_recs['score'].iloc[0])  # 原始推薦分數
+                
+                # 將分數標準化到 0-10 範圍
+                # board-game-recommender 的分數通常在 0-1 或 0-5 範圍
+                if raw_score <= 1.0:
+                    score = raw_score * 10  # 0-1 轉換為 0-10
+                elif raw_score <= 5.0:
+                    score = raw_score * 2   # 0-5 轉換為 0-10
+                else:
+                    score = min(raw_score, 10)  # 限制在 0-10 範圍
 
                 # 計算分數等級
                 if score >= 8.5:
