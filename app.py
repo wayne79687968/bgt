@@ -242,11 +242,12 @@ RG_API_KEY = os.getenv('RG_API_KEY')
 
 # Blueprint 註冊（逐步遷移路由）
 try:
-    from routes import health_bp, recommender_bp, admin_bp
+    from routes import health_bp, recommender_bp, admin_bp, auth_bp
     app.register_blueprint(health_bp)
     app.register_blueprint(recommender_bp)
     app.register_blueprint(admin_bp)
-    logger.info("✅ 已註冊 blueprints: health, recommender, admin")
+    app.register_blueprint(auth_bp)
+    logger.info("✅ 已註冊 blueprints: health, recommender, admin, auth")
 except Exception as e:
     logger.warning(f"⚠️ 無法註冊部分 blueprints: {e}")
 # RG 推薦器路徑配置
@@ -4642,15 +4643,7 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
-@app.route('/login')
-@app.route('/login_email')
-def login():
-    """顯示登入頁面"""
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-
-    # 使用新的 email 登入模板
-    return render_template('login_email.html')
+## 已遷移至 routes/auth.py 的 auth_bp: /login, /login_email
 
 @app.route('/auth/google')
 def google_auth_callback():
@@ -5339,22 +5332,11 @@ def api_save_user_email():
 # Email 認證路由
 # ============================
 
-@app.route('/register')
-def register():
-    """註冊頁面"""
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('register.html')
+## 已遷移至 routes/auth.py 的 auth_bp: /register
 
-@app.route('/forgot-password')
-def forgot_password():
-    """忘記密碼頁面"""
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('forgot_password.html')
+## 已遷移至 routes/auth.py 的 auth_bp: /forgot-password
 
-@app.route('/auth/send-code', methods=['POST'])
-def send_verification_code():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/send-code
     """發送驗證碼"""
     try:
         data = request.get_json()
@@ -5400,8 +5382,7 @@ def send_verification_code():
         logger.error(f"發送驗證碼失敗: {e}")
         return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
 
-@app.route('/auth/verify-code', methods=['POST'])
-def verify_code():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/verify-code
     """驗證驗證碼"""
     try:
         data = request.get_json()
@@ -5422,8 +5403,7 @@ def verify_code():
         logger.error(f"驗證驗證碼失敗: {e}")
         return jsonify({'success': False, 'message': f'系統錯誤: {str(e)}'})
 
-@app.route('/auth/register', methods=['POST'])
-def register_user():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/register
     """完成用戶註冊"""
     try:
         data = request.get_json()
@@ -5482,8 +5462,7 @@ def register_user():
         logger.error(f"用戶註冊失敗: {e}")
         return jsonify({'success': False, 'message': f'註冊失敗: {str(e)}'})
 
-@app.route('/auth/login', methods=['POST'])
-def login_user():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/login
     """用戶登入"""
     try:
         data = request.get_json()
@@ -5513,8 +5492,7 @@ def login_user():
         logger.error(f"用戶登入失敗: {e}")
         return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
 
-@app.route('/auth/verify-login', methods=['POST'])
-def verify_login():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/verify-login
     """驗證碼登入"""
     try:
         data = request.get_json()
@@ -5550,8 +5528,7 @@ def verify_login():
         logger.error(f"驗證碼登入失敗: {e}")
         return jsonify({'success': False, 'message': f'登入失敗: {str(e)}'})
 
-@app.route('/auth/reset-password', methods=['POST'])
-def reset_password():
+## 已遷移至 routes/auth.py 的 auth_bp: /auth/reset-password
     """重設密碼"""
     try:
         data = request.get_json()
@@ -5597,11 +5574,7 @@ def reset_password():
         logger.error(f"重設密碼失敗: {e}")
         return jsonify({'success': False, 'message': f'重設失敗: {str(e)}'})
 
-@app.route('/logout')
-def logout():
-    """登出"""
-    session.clear()
-    return redirect(url_for('login'))
+## 已遷移至 routes/auth.py 的 auth_bp: /logout
 
 # 模塊級資料庫初始化 - 適用於 Gunicorn/WSGI 環境
 try:
