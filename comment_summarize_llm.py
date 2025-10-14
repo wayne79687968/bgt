@@ -3,7 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 import time
 from datetime import datetime, timedelta
-from openai import OpenAI
+import openai
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -13,10 +13,9 @@ import json
 import argparse
 from database import get_db_connection
 
-# 初始化 OpenAI 客戶端
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 
 # 確保數據庫已初始化
 print("🗃️ 確保數據庫已初始化...")
@@ -329,7 +328,7 @@ def analyze_with_gpt(objectid, low, mid, high):
                     for rating, original in group:
                         data[sentiment].append({"rating": rating, "original": original, "translated": original})
                 # summary 用 LLM
-                res = client.chat.completions.create(
+                res = openai.ChatCompletion.create(
                     model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": SYSTEM_MSG[lang]},
@@ -337,11 +336,11 @@ def analyze_with_gpt(objectid, low, mid, high):
                     ],
                     temperature=0.7
                 )
-                output = res.choices[0].message.content
+                output = res["choices"][0]["message"]["content"]
                 parsed = parse_gpt_output(output)
                 data["summary"] = parsed.get("summary", "")
             else:
-                res = client.chat.completions.create(
+                res = openai.ChatCompletion.create(
                     model=OPENAI_MODEL,
                     messages=[
                         {"role": "system", "content": SYSTEM_MSG[lang]},
@@ -349,7 +348,7 @@ def analyze_with_gpt(objectid, low, mid, high):
                     ],
                     temperature=0.7
                 )
-                output = res.choices[0].message.content
+                output = res["choices"][0]["message"]["content"]
                 data = parse_gpt_output(output)
 
             if data["summary"] == "解析錯誤：無法解析 GPT 回應":

@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import xml.etree.ElementTree as ET
-import openai
 from dotenv import load_dotenv
 import time
 import argparse
@@ -171,11 +170,9 @@ def summarize_reason_with_llm(game_name, threads):
             pass
 
     try:
-        from openai import OpenAI, APITimeoutError, RateLimitError
-        client = OpenAI(
-            api_key=api_key,
-            http_client=http_client  # 傳遞配置好的 httpx 客戶端
-        )
+        import openai
+        openai.api_key = api_key
+        client = openai
     except ImportError:
         print("❌ [LLM] 未安裝 openai 套件，請執行 pip install openai")
         return None
@@ -222,38 +219,22 @@ def summarize_reason_with_llm(game_name, threads):
         try:
             print(f"🔄 [{game_name}] 第 {attempt + 1}/{max_retries} 次嘗試調用 OpenAI API...")
 
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
+            completion = client.ChatCompletion.create(
+                model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.7,
                 max_tokens=500,
-                timeout=60.0,
             )
 
-            reason = completion.choices[0].message.content
+            reason = completion["choices"][0]["message"]["content"]
             print(f"✅ [{game_name}] OpenAI API 調用成功")
             return reason.strip()
 
-        except (APITimeoutError, RateLimitError) as e:
-            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試失敗: {type(e).__name__}")
-            if attempt < max_retries - 1:
-                wait_time = base_wait_time * (2 ** attempt)
-                print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
-                time.sleep(wait_time)
-            else:
-                print(f"❌ [{game_name}] 所有重試均失敗，放棄處理。")
-                return None
         except Exception as e:
-            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試時發生未預期錯誤: {type(e).__name__} - {e}")
-
-            # 打印完整的錯誤堆疊追蹤以進行深入調試
-            import traceback
-            print(f"詳細錯誤追蹤: {traceback.format_exc()}")
-
-            # 對於非預期的錯誤，可以選擇立即放棄或同樣重試
+            print(f"❌ [{game_name}] 第 {attempt + 1} 次嘗試失敗: {type(e).__name__}")
             if attempt < max_retries - 1:
                 wait_time = base_wait_time * (2 ** attempt)
                 print(f"⏳ [{game_name}] 等待 {wait_time} 秒後重試...")
