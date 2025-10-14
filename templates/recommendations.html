@@ -6,14 +6,65 @@
 <div class="container mt-4">
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
-            <h2 class="mb-0">🎯 智慧遊戲推薦系統</h2>
+            <h2 class="mb-0">🧠 個人化推薦系統</h2>
         </div>
         <div class="card-body">
+            <!-- 算法選擇 -->
+            {% if available_algorithms %}
+            <div class="mb-4">
+                <label class="form-label"><strong>推薦算法：</strong></label>
+                <div class="btn-group" role="group">
+                    {% for algo in available_algorithms %}
+                    <a href="{{ url_for('recommendations', algorithm=algo.value) }}" 
+                       class="btn {% if current_algorithm == algo.value %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        {{ algo.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                <small class="form-text text-muted">
+                    {% for algo in available_algorithms %}
+                        {% if current_algorithm == algo.value %}{{ algo.description }}{% endif %}
+                    {% endfor %}
+                </small>
+            </div>
+            {% endif %}
+            
+            <!-- 顯示現有推薦 -->
+            {% if recommendations %}
+            <div class="mb-4">
+                <h4>🎯 為您推薦的遊戲</h4>
+                <div class="row">
+                    {% for rec in recommendations %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ rec.name }}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        {% if rec.year %}年份: {{ rec.year }}<br>{% endif %}
+                                        {% if rec.rating %}評分: {{ "%.1f"|format(rec.rating) }}/10<br>{% endif %}
+                                        {% if rec.rank %}排名: #{{ rec.rank }}<br>{% endif %}
+                                        {% if rec.rec_score %}推薦分數: {{ "%.2f"|format(rec.rec_score) }}{% endif %}
+                                    </small>
+                                </p>
+                            </div>
+                            <div class="card-footer">
+                                <button class="btn btn-sm btn-outline-primary" onclick="searchGame('{{ rec.name }}')">
+                                    查看詳情
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
             <div id="welcome-state" class="text-center py-4">
                 <div style="font-size: 48px; margin-bottom: 16px;">🎲</div>
-                <h3>歡迎使用智慧遊戲推薦系統</h3>
-                <p>選擇您喜歡的桌遊，我們將為您推薦相似的優質遊戲</p>
+                <h3>歡迎使用個人化推薦系統</h3>
+                <p>基於您的收藏和評分，為您推薦優質的桌遊</p>
             </div>
+            {% endif %}
             
             <!-- 遊戲搜尋 -->
             <div class="mb-3" style="position: relative;">

@@ -970,76 +970,6 @@ def upsert_collection_items(items):
         logger.error(f"寫入收藏清單失敗: {e}")
     return count
 
-def build_recommendations_from_collection(limit=20):
-    """根據使用者收藏與資料庫遊戲特徵產生推薦（簡易相似度）"""
-    # 取出使用者收藏的 objectid 清單
-    collected_ids = []
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        config = get_database_config()
-        try:
-            cursor.execute("SELECT objectid FROM collection")
-            collected_ids = [row[0] for row in cursor.fetchall()]
-        except Exception:
-            collected_ids = []
-
-    if not collected_ids:
-        return []
-
-    # 取出收藏遊戲的特徵集合
-    favorite_categories = set()
-    favorite_mechanics = set()
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        config = get_database_config()
-        placeholders = ','.join(['%s' if config['type'] == 'postgresql' else '?'] * len(collected_ids))
-        try:
-            cursor.execute(
-                f"SELECT categories, mechanics FROM game_detail WHERE objectid IN ({placeholders})",
-                collected_ids
-            )
-            for cat_str, mech_str in cursor.fetchall():
-                if cat_str:
-                    favorite_categories.update([c.strip() for c in cat_str.split(',') if c.strip()])
-                if mech_str:
-                    favorite_mechanics.update([m.strip() for m in mech_str.split(',') if m.strip()])
-        except Exception as e:
-            logger.warning(f"讀取收藏特徵失敗: {e}")
-
-    # 掃描候選遊戲（排除已收藏）
-    candidates = []
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        try:
-            cursor.execute("SELECT objectid, name, rating, rank, weight, minplayers, maxplayers, minplaytime, maxplaytime, image, categories, mechanics FROM game_detail")
-            for row in cursor.fetchall():
-                oid, name, rating, bgg_rank, weight, minp, maxp, minpt, maxpt, image, cat_str, mech_str = row
-                if oid in collected_ids:
-                    continue
-                cats = set([c.strip() for c in (cat_str or '').split(',') if c.strip()])
-                mechs = set([m.strip() for m in (mech_str or '').split(',') if m.strip()])
-                # Jaccard 相似度（類別與機制）
-                cat_sim = len(cats & favorite_categories) / len(cats | favorite_categories) if (cats or favorite_categories) else 0
-                mech_sim = len(mechs & favorite_mechanics) / len(mechs | favorite_mechanics) if (mechs or favorite_mechanics) else 0
-                sim = 0.6 * mech_sim + 0.4 * cat_sim
-                # 加權評分（偏好高評分與高排名）
-                score = sim
-                if rating:
-                    score += 0.1 * (rating - 6.5)  # 平移
-                if bgg_rank and bgg_rank > 0:
-                    score += 0.05 * (2000 / (bgg_rank + 200))
-                candidates.append({
-                    'objectid': oid, 'name': name, 'image': image, 'rating': rating, 'bgg_rank': bgg_rank,
-                    'weight': weight, 'min_players': minp, 'max_players': maxp, 'minplaytime': minpt, 'maxplaytime': maxpt,
-                    'similarity': sim, 'score': score
-                })
-        except Exception as e:
-            logger.error(f"讀取候選遊戲失敗: {e}")
-            return []
-
-    candidates.sort(key=lambda x: x['score'], reverse=True)
-    topk = candidates[:limit]
-    return topk
 
 def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=10):
     """使用 board-game-recommender 進行推薦"""
@@ -2298,16 +2228,14 @@ def recommendations():
     if not username:
         flash('請先在設定頁設定 BGG 使用者名稱並同步收藏', 'info')
         return redirect(url_for('settings'))
-    recs = build_recommendations_from_collection(limit=30)
-    return render_template('recommendations.html', recommendations=recs, bgg_username=username,
-                           last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-
-@app.route('/rg-recommender')
-def rg_recommender():
-    if 'logged_in' not in session:
-        return redirect(url_for('login'))
-    username = get_app_setting('bgg_username', '')
-    # 讀取已收藏的 objectid 清單，供外部 API（若有）使用
+    
+    # 檢查模型是否存在
+    model_path = f'data/rg_users/{username}/rg_model'
+    if not os.path.exists(model_path):
+        flash('推薦模型尚未訓練，請先到設定頁點擊「🚀 一鍵重新訓練」來建立您的個人化推薦模型。', 'warning')
+        return redirect(url_for('settings'))
+    
+    # 讀取已收藏的 objectid 清單
     owned_ids = []
     try:
         with get_db_connection() as conn:
@@ -2316,34 +2244,16 @@ def rg_recommender():
             owned_ids = [row[0] for row in cursor.fetchall()]
     except Exception:
         pass
-
-    rg_results = None
-    rg_error = None
     
-    # 首先嘗試使用進階推薦器
-    try:
-        # 檢查是否有算法參數（從 URL 參數或 session 中獲取）
-        from flask import request
-        algorithm = request.args.get('algorithm', 'hybrid')
-        
-        rg_results = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
-        if not rg_results:
-            logger.info("進階推薦器沒有結果，嘗試基礎推薦器")
-            rg_results = get_local_recommendations(username, owned_ids, limit=30)
-        if not rg_results:
-            logger.info("本地推薦器沒有結果，嘗試外部 API")
-    except Exception as e:
-        logger.error(f"進階推薦器發生錯誤: {e}")
-        rg_error = f"推薦器錯誤: {str(e)}"
+    # 使用 board-game-recommender 獲取推薦
+    from flask import request
+    algorithm = request.args.get('algorithm', 'hybrid')
     
-    # 如果本地推薦失敗且有外部 API，則嘗試外部 API
-    if not rg_results and username and RG_API_URL:
-        external_results, external_error = call_recommend_games_api(username, owned_ids, limit=30)
-        if external_results:
-            rg_results = external_results
-        elif external_error and not rg_error:
-            rg_error = external_error
-
+    recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
+    if not recommendations:
+        flash('無法獲取推薦，請檢查模型是否正確訓練', 'error')
+        return redirect(url_for('settings'))
+    
     # 傳遞可用的算法選項
     available_algorithms = [
         {'value': 'hybrid', 'name': '混合推薦 (Hybrid)', 'description': '結合多種算法的推薦'},
@@ -2351,19 +2261,21 @@ def rg_recommender():
         {'value': 'content', 'name': '內容推薦 (Content-based)', 'description': '基於遊戲特徵相似性的推薦'}
     ]
     
-    current_algorithm = request.args.get('algorithm', 'hybrid')
+    current_algorithm = algorithm
     current_view = request.args.get('view', 'search')  # 'search' 或 'grid'
     
-    return render_template('rg_recommender.html',
-                           bgg_username=username,
-                           rg_results=rg_results,
-                           rg_error=rg_error,
-                           available_algorithms=available_algorithms,
-                           current_algorithm=current_algorithm,
-                           current_view=current_view,
-                           rg_site_url='https://recommend.games/',
-                           rg_repo_url='https://gitlab.com/recommend.games/board-game-recommender',
-                           last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    return render_template('recommendations.html', 
+                         recommendations=recommendations, 
+                         bgg_username=username,
+                         available_algorithms=available_algorithms,
+                         current_algorithm=current_algorithm,
+                         current_view=current_view,
+                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+
+@app.route('/rg-recommender')
+def rg_recommender():
+    """重定向到統一的推薦頁面"""
+    return redirect(url_for('recommendations'))
 
 @app.route('/api/rg-train', methods=['POST'])
 def api_rg_train():
