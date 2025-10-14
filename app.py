@@ -1036,7 +1036,13 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
                     logger.info(f"✅ 找到推薦 - 用戶名格式: {user_variant}")
                     # 額外檢查：確保推薦的遊戲不在用戶收藏中
                     if owned_ids:
-                        recommendations_df = recommendations_df[~recommendations_df['bgg_id'].isin(owned_ids)]
+                        # 轉換為 pandas DataFrame 進行過濾
+                        import pandas as pd
+                        recommendations_pd = recommendations_df.to_dataframe()
+                        recommendations_pd = recommendations_pd[~recommendations_pd['bgg_id'].isin(owned_ids)]
+                        # 轉回 SFrame
+                        import turicreate as tc
+                        recommendations_df = tc.SFrame(recommendations_pd)
                         logger.info(f"🔍 排除已知遊戲後剩餘: {len(recommendations_df)} 個推薦")
                     break
                 else:
@@ -2719,7 +2725,10 @@ def api_rg_recommend_score():
             )
 
             # 尋找目標遊戲的分數
-            target_recs = recommendations_df[recommendations_df['bgg_id'] == int(game_id)]
+            # 轉換為 pandas DataFrame 進行查詢
+            import pandas as pd
+            recommendations_pd = recommendations_df.to_dataframe()
+            target_recs = recommendations_pd[recommendations_pd['bgg_id'] == int(game_id)]
 
             if len(target_recs) > 0:
                 raw_score = float(target_recs['score'].iloc[0])  # 原始推薦分數
