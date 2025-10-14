@@ -286,6 +286,15 @@ def _recommendations_alias():
 @app.route('/creator-tracker', endpoint='creator_tracker')
 def _creator_tracker_alias():
     return redirect(url_for('admin.creator_tracker'))
+
+# 舊端點相容：auth blueprint 相關模板連結
+@app.route('/register', endpoint='register')
+def _register_alias():
+    return redirect(url_for('auth.register'))
+
+@app.route('/forgot-password', endpoint='forgot_password')
+def _forgot_password_alias():
+    return redirect(url_for('auth.forgot_password'))
 # RG 推薦器路徑配置
 def get_user_rg_paths(username=None):
     """已轉發至 services.recommender_service.get_user_rg_paths"""
