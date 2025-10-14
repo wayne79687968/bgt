@@ -33,19 +33,12 @@ def recommendations():
     if not os.path.exists(model_path):
         flash('推薦模型尚未訓練：將先提供熱門度後備推薦。', 'warning')
 
+    # 精簡：不主動產生清單，僅提供搜尋與單一遊戲打分
     owned_ids = _load_owned_object_ids()
-
     algorithm = request.args.get('algorithm', 'hybrid')
-    recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
-    if not recommendations:
-        flash('目前無推薦結果，請先嘗試於設定頁「🚀 一鍵重新訓練」。', 'info')
-        recommendations = []
+    recommendations = []
 
-    available_algorithms = [
-        {'value': 'hybrid', 'name': '混合推薦 (Hybrid)', 'description': '結合多種算法的推薦'},
-        {'value': 'popularity', 'name': '熱門推薦 (Popularity)', 'description': '基於遊戲熱門度的推薦'},
-        {'value': 'content', 'name': '內容推薦 (Content-based)', 'description': '基於遊戲特徵相似性的推薦'}
-    ]
+    available_algorithms = []
 
     current_algorithm = algorithm
     current_view = request.args.get('view', 'search')
