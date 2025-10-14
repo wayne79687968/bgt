@@ -246,8 +246,12 @@ def get_user_rg_paths(username=None):
         username = get_app_setting('bgg_username', 'default')
     
     # 使用 Zeabur 的持久化目錄
-    base_dir = '/data/rg_users' if os.path.exists('/data') else 'data/rg_users'
+    # 在 Zeabur 環境中，data 目錄掛載在 /app/data
+    base_dir = '/app/data/rg_users' if os.path.exists('/app/data') else 'data/rg_users'
     user_dir = os.path.join(base_dir, username)
+    
+    # 確保目錄存在
+    os.makedirs(user_dir, exist_ok=True)
     
     return {
         'user_dir': user_dir,
@@ -257,6 +261,34 @@ def get_user_rg_paths(username=None):
         'full_model': os.path.join(user_dir, 'rg_model', 'full.npz'),
         'light_model': os.path.join(user_dir, 'rg_model', 'light.npz')
     }
+
+def ensure_data_directories():
+    """確保必要的資料目錄存在"""
+    try:
+        # 檢查並創建主要資料目錄
+        data_dirs = [
+            '/app/data' if os.path.exists('/app/data') else 'data',
+            '/app/data/rg_users' if os.path.exists('/app/data') else 'data/rg_users',
+            '/app/frontend/public/outputs' if os.path.exists('/app/frontend/public/outputs') else 'frontend/public/outputs'
+        ]
+        
+        for dir_path in data_dirs:
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+                logger.info(f"✅ 創建目錄: {dir_path}")
+            else:
+                logger.info(f"📁 目錄已存在: {dir_path}")
+                
+        # 檢查目錄權限
+        for dir_path in data_dirs:
+            if os.path.exists(dir_path):
+                if os.access(dir_path, os.W_OK):
+                    logger.info(f"✅ 目錄可寫入: {dir_path}")
+                else:
+                    logger.warning(f"⚠️ 目錄不可寫入: {dir_path}")
+                    
+    except Exception as e:
+        logger.error(f"❌ 創建資料目錄失敗: {e}")
 
 @lru_cache(maxsize=8)
 def load_user_recommender(username, model_type='auto'):
@@ -980,7 +1012,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         
         # 載入已訓練的模型
         import os
-        model_path = f'data/rg_users/{username}/rg_model'
+        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
         if not os.path.exists(model_path):
             logger.warning(f"⚠️ 模型不存在: {model_path}")
             logger.info("💡 提示：模型可能因容器重啟而丟失，請重新訓練")
@@ -1049,7 +1081,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         try:
             import os
             import json
-            ratings_file = f'data/rg_users/{username}/bgg_RatingItem.jl'
+            ratings_file = f'/app/data/rg_users/{username}/bgg_RatingItem.jl' if os.path.exists('/app/data') else f'data/rg_users/{username}/bgg_RatingItem.jl'
             if os.path.exists(ratings_file):
                 with open(ratings_file, 'r', encoding='utf-8') as f:
                     first_line = f.readline().strip()
@@ -2333,7 +2365,7 @@ def recommendations():
         return redirect(url_for('settings'))
     
     # 檢查模型是否存在
-    model_path = f'data/rg_users/{username}/rg_model'
+    model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
     if not os.path.exists(model_path):
         flash('推薦模型尚未訓練，請先到設定頁點擊「🚀 一鍵重新訓練」來建立您的個人化推薦模型。', 'warning')
         return redirect(url_for('settings'))
@@ -2748,7 +2780,7 @@ def api_rg_recommend_score():
             from board_game_recommender.recommend import BGGRecommender
             
             # 檢查是否有訓練的模型
-            model_path = f'data/rg_users/{username}/rg_model'
+            model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
             if not os.path.exists(model_path):
                 return jsonify({
                     'success': False,
@@ -3040,7 +3072,7 @@ def train_bgg_model(username):
         from board_game_recommender.recommend import BGGRecommender
         
         # 使用用戶特定的檔案路徑
-        user_dir = f'data/rg_users/{username}'
+        user_dir = f'/app/data/rg_users/{username}' if os.path.exists('/app/data') else f'data/rg_users/{username}'
         games_file = os.path.join(user_dir, 'bgg_GameItem.jl')
         ratings_file = os.path.join(user_dir, 'bgg_RatingItem.jl')
         
@@ -3771,7 +3803,7 @@ def get_production_recommendation_score(username, owned_ids, game_id):
         from board_game_recommender.recommend import BGGRecommender
         
         # 載入已訓練的模型
-        model_path = f'data/rg_users/{username}/rg_model'
+        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
         if not os.path.exists(model_path):
             logger.error(f"❌ 模型不存在: {model_path}")
             return 0.0
@@ -4439,7 +4471,7 @@ def api_diagnose_recommendations():
             from board_game_recommender.recommend import BGGRecommender
             
             # 檢查模型是否存在
-            model_path = f'data/rg_users/{username}/rg_model'
+            model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
             diagnosis['model_exists'] = os.path.exists(model_path)
             
             if diagnosis['model_exists']:
@@ -5076,7 +5108,7 @@ def api_get_recommendations_by_games():
             return jsonify({'success': False, 'message': '請先設定 BGG 用戶名'})
         
         # 檢查模型是否存在
-        model_path = f'data/rg_users/{username}/rg_model'
+        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
         if not os.path.exists(model_path):
             return jsonify({'success': False, 'message': '推薦模型尚未訓練，請先到設定頁重新訓練'})
         
@@ -5611,6 +5643,10 @@ if __name__ == '__main__':
     # 確保資料庫在應用啟動前完成初始化
     print("🔄 應用啟動前執行資料庫檢查...")
     force_db_initialization()
+    
+    # 確保必要的資料目錄存在
+    print("📁 確保資料目錄存在...")
+    ensure_data_directories()
     
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)

@@ -15,10 +15,14 @@ def create_app():
     
     # 創建基本目錄（非阻塞）
     try:
-        os.makedirs('data', exist_ok=True)
+        # 在 Zeabur 環境中，data 目錄掛載在 /app/data
+        data_dir = '/app/data' if os.path.exists('/app/data') else 'data'
+        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(os.path.join(data_dir, 'rg_users'), exist_ok=True)
         os.makedirs('frontend/public/outputs', exist_ok=True)
-    except:
-        pass  # 忽略錄創建錯誤
+        print(f"📁 創建資料目錄: {data_dir}")
+    except Exception as e:
+        print(f"⚠️ 目錄創建警告: {e}")  # 記錄但不中斷
     
     # 延遲導入，避免模組級初始化
     try:
