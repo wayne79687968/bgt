@@ -3015,21 +3015,21 @@ def scrape_bgg_data():
     try:
         logger.info("開始抓取 BGG 資料")
         
-        # 使用現有的抓取邏輯
-        from bgg_data_extractor import BGGDataExtractor
-        extractor = BGGDataExtractor()
+        # 使用 BGG scraper 抓取真實的用戶資料
+        from bgg_scraper_extractor import BGGScraperExtractor
+        extractor = BGGScraperExtractor()
         
-        # 抓取遊戲資料
-        games_file = extractor.extract_games_data('data/bgg_GameItem.jl')
-        if not games_file:
-            raise Exception("抓取遊戲資料失敗")
+        # 獲取當前用戶名
+        username = get_app_setting('bgg_username', '')
+        if not username:
+            raise Exception("BGG 用戶名未設定")
         
-        # 抓取評分資料
-        ratings_file = extractor.extract_ratings_data('data/bgg_RatingItem.jl')
-        if not ratings_file:
-            raise Exception("抓取評分資料失敗")
+        # 抓取用戶收藏資料並生成 .jl 檔案
+        success = extractor.export_to_jsonl(username, 'data')
+        if not success:
+            raise Exception("抓取用戶收藏資料失敗")
         
-        logger.info(f"成功抓取 BGG 資料: {games_file}, {ratings_file}")
+        logger.info(f"成功為用戶 {username} 抓取 BGG 資料")
         return True
     except Exception as e:
         logger.error(f"抓取 BGG 資料失敗: {e}")

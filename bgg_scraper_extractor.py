@@ -283,19 +283,25 @@ class BGGScraperExtractor:
                     processed_games.add(game_id)
                     
                     # 使用收藏資料中的遊戲資訊創建基本遊戲資料
+                    # 格式要符合 board-game-recommender 的要求
                     game_data = {
-                        'id': game_id,
+                        'bgg_id': int(game_id),
                         'name': item['game_name'] or f'Game {game_id}',
                         'year': item['year'] or 0,
                         'min_players': 1,  # 預設值
                         'max_players': 6,  # 預設值
-                        'playing_time': 60,  # 預設值
+                        'min_time': 60,  # 預設值
+                        'max_time': 120,  # 預設值
                         'min_age': 0,
+                        'avg_rating': item['bgg_rating'] or 0.0,
+                        'rank': item['bgg_rank'] or 0,
                         'complexity': 2.5,  # 預設值
-                        'bgg_rank': item['bgg_rank'] or 0,
-                        'rating': item['bgg_rating'] or 0.0,
-                        'weight': 2.5,  # 預設值
-                        'description': ''
+                        'num_votes': 100,  # 預設值
+                        'cooperative': False,  # 預設值
+                        'compilation': False,  # 預設值
+                        'compilation_of': [],  # 預設值
+                        'implementation': [],  # 預設值
+                        'integration': []  # 預設值
                     }
                     f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
             
@@ -314,9 +320,9 @@ class BGGScraperExtractor:
                             rating = 5.0
                     
                     rating_item = {
-                        'user_id': item['user_id'],
-                        'game_id': item['game_id'],
-                        'rating': rating
+                        'bgg_id': int(item['game_id']),
+                        'bgg_user_name': username,
+                        'bgg_user_rating': rating
                     }
                     f.write(json.dumps(rating_item, ensure_ascii=False) + '\n')
             
