@@ -263,11 +263,16 @@ except Exception as e:
 # 與 Blueprint 端點相容的別名（保持舊模板中的 url_for('login'/'logout') 可用）
 @app.route('/login', endpoint='login')
 def _login_alias():
-    return redirect(url_for('auth.login'))
+    # 直接提供登入頁，避免在 blueprint 未註冊時發生 BuildError
+    try:
+        return redirect(url_for('auth.login'))
+    except Exception:
+        from flask import render_template
+        return render_template('login_email.html')
 
 @app.route('/logout', endpoint='logout')
 def _logout_alias():
-    return redirect(url_for('auth.logout'))
+    return redirect(url_for('login'))
 
 # 舊端點相容：bgg_times / recommendations / creator_tracker
 @app.route('/bgg_times', endpoint='bgg_times')
