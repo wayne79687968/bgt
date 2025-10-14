@@ -1006,16 +1006,46 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         
         # 獲取推薦
         logger.info(f"🎯 執行推薦算法，限制 {limit} 個結果...")
+        logger.info(f"🔍 查詢用戶: {username}")
+        
+        # 檢查用戶是否在訓練資料中
         try:
-            recommendations_df = recommender.recommend(
+            # 先嘗試不排除已知遊戲，看看是否有任何推薦
+            test_recs = recommender.recommend(
                 users=[username],
-                num_games=limit,
-                exclude_known=True
+                num_games=5,
+                exclude_known=False
             )
-            logger.info(f"✅ 推薦查詢成功，獲得 {len(recommendations_df)} 個結果")
-        except Exception as rec_error:
-            logger.error(f"❌ 推薦查詢失敗: {rec_error}")
+            logger.info(f"🧪 測試推薦（不排除已知）: {len(test_recs)} 個結果")
+        except Exception as test_error:
+            logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
+        
+        # 嘗試不同的用戶名格式
+        user_variants = [username, username.lower(), f"user_{username}"]
+        recommendations_df = None
+        
+        for user_variant in user_variants:
+            try:
+                logger.info(f"🔄 嘗試用戶名格式: {user_variant}")
+                recommendations_df = recommender.recommend(
+                    users=[user_variant],
+                    num_games=limit,
+                    exclude_known=True
+                )
+                if len(recommendations_df) > 0:
+                    logger.info(f"✅ 找到推薦 - 用戶名格式: {user_variant}")
+                    break
+                else:
+                    logger.info(f"📭 無推薦結果 - 用戶名格式: {user_variant}")
+            except Exception as variant_error:
+                logger.warning(f"⚠️ 用戶名格式 {user_variant} 失敗: {variant_error}")
+                continue
+        
+        if recommendations_df is None or len(recommendations_df) == 0:
+            logger.error(f"❌ 所有用戶名格式都無法獲取推薦")
             return None
+        
+        logger.info(f"✅ 推薦查詢成功，獲得 {len(recommendations_df)} 個結果")
         
         # 轉換為標準格式
         recommendations = []
@@ -2271,8 +2301,12 @@ def recommendations():
     from flask import request
     algorithm = request.args.get('algorithm', 'hybrid')
     
+    logger.info(f"🔍 開始獲取推薦 - 用戶: {username}, 算法: {algorithm}, 擁有遊戲: {len(owned_ids)}")
     recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
+    logger.info(f"📊 推薦結果: {len(recommendations) if recommendations else 0} 個推薦")
+    
     if not recommendations:
+        logger.warning(f"⚠️ 推薦為空 - 用戶: {username}, 算法: {algorithm}")
         flash('無法獲取推薦，請檢查模型是否正確訓練', 'error')
         return redirect(url_for('settings'))
     
