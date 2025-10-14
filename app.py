@@ -242,10 +242,11 @@ RG_API_KEY = os.getenv('RG_API_KEY')
 
 # Blueprint 註冊（逐步遷移路由）
 try:
-    from routes import health_bp, recommender_bp
+    from routes import health_bp, recommender_bp, admin_bp
     app.register_blueprint(health_bp)
     app.register_blueprint(recommender_bp)
-    logger.info("✅ 已註冊 blueprints: health, recommender")
+    app.register_blueprint(admin_bp)
+    logger.info("✅ 已註冊 blueprints: health, recommender, admin")
 except Exception as e:
     logger.warning(f"⚠️ 無法註冊部分 blueprints: {e}")
 # RG 推薦器路徑配置
@@ -4912,78 +4913,7 @@ def health_quick():
         'app': 'running'
     }
 
-@app.route('/api/init-database', methods=['POST'])
-def api_init_database():
-    """手動初始化資料庫端點"""
-    try:
-        # 檢查是否有授權 token
-        auth_header = request.headers.get('Authorization')
-        expected_token = os.getenv('CRON_SECRET_TOKEN', 'default-cron-secret')
-
-        if not auth_header or auth_header != f'Bearer {expected_token}':
-            return jsonify({
-                'success': False,
-                'message': '未授權訪問',
-                'timestamp': datetime.now().isoformat()
-            }), 401
-
-        print("🗃️ [API] 開始手動資料庫初始化...")
-        print(f"🗃️ [API] 時間戳: {datetime.now().isoformat()}")
-
-        # 獲取資料庫配置
-        from database import get_database_config, init_database
-        config = get_database_config()
-        print(f"🗃️ [API] 資料庫類型: {config['type']}")
-
-        # 執行初始化
-        init_database()
-
-        # 驗證關鍵表是否存在
-        from database import get_db_connection
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-
-            # 檢查 users 表的 name 欄位
-            try:
-                cursor.execute("SELECT name FROM users LIMIT 1")
-                users_name_exists = True
-            except Exception as e:
-                users_name_exists = False
-                print(f"⚠️ [API] users.name 欄位檢查失敗: {e}")
-
-            # 檢查 verification_codes 表
-            try:
-                cursor.execute("SELECT COUNT(*) FROM verification_codes")
-                verification_codes_exists = True
-            except Exception as e:
-                verification_codes_exists = False
-                print(f"⚠️ [API] verification_codes 表檢查失敗: {e}")
-
-        result = {
-            'success': True,
-            'message': '資料庫初始化完成',
-            'timestamp': datetime.now().isoformat(),
-            'database_type': config['type'],
-            'tables_verified': {
-                'users_name_column': users_name_exists,
-                'verification_codes_table': verification_codes_exists
-            }
-        }
-
-        print(f"✅ [API] 資料庫初始化結果: {result}")
-        return jsonify(result)
-
-    except Exception as e:
-        error_msg = f"資料庫初始化失敗: {str(e)}"
-        print(f"❌ [API] {error_msg}")
-        import traceback
-        traceback.print_exc()
-
-        return jsonify({
-            'success': False,
-            'message': error_msg,
-            'timestamp': datetime.now().isoformat()
-        }), 500
+## 已遷移至 routes/admin.py 的 admin_bp
 
 # 設計師/繪師追蹤相關路由
 @app.route('/creator-tracker')
