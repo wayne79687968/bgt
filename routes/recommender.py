@@ -19,7 +19,7 @@ def rg_recommender():
     return redirect(url_for('recommender.recommendations'))
 
 
-@recommender_bp.route('/recommendations')
+@recommender_bp.route('/recommendations', endpoint='recommendations')
 @login_required
 def recommendations():
     username = _get_bgg_username()

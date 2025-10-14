@@ -611,7 +611,7 @@ def main(force: bool = False, skip_llm: bool = False):
                                 translated = comment  # 英文直接使用原文
                             else:
                                 # 使用 GPT 翻譯單個評論
-                                res = client.chat.completions.create(
+                                res = openai.ChatCompletion.create(
                                     model=OPENAI_MODEL,
                                     messages=[
                                         {"role": "system", "content": "你是一位專業的桌遊評論翻譯師，請將以下英文評論翻譯成繁體中文，保持原意和語調。"},
@@ -619,7 +619,7 @@ def main(force: bool = False, skip_llm: bool = False):
                                     ],
                                     temperature=0.3
                                 )
-                                translated = res.choices[0].message.content.strip()
+                                translated = res["choices"][0]["message"]["content"].strip()
 
                             # 儲存翻譯
                             if config['type'] == 'postgresql':
