@@ -34,10 +34,13 @@ def health():
 
 @health_bp.route('/health/quick')
 def health_quick():
-    return {
-        'status': 'ok',
-        'timestamp': datetime.now().isoformat(),
-        'app': 'running'
-    }
+    try:
+        return {
+            'status': 'ok',
+            'timestamp': datetime.now().isoformat(),
+            'app': 'running'
+        }
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
 
 

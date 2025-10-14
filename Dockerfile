@@ -31,4 +31,4 @@ RUN mkdir -p /app/data /app/frontend/public/outputs
 EXPOSE $PORT
 
 # 啟動命令 - 使用完整的主應用
-CMD gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 1 --access-logfile - --error-logfile - start_simple:app
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} --timeout 120 --workers 1 --access-logfile - --error-logfile - start_simple:app
