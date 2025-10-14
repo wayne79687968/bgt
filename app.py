@@ -2998,13 +2998,138 @@ def train_bgg_model(username):
         # 保存模型到用戶特定目錄
         model_dir = os.path.join(user_dir, 'rg_model')
         os.makedirs(model_dir, exist_ok=True)
+        
+        # 檢查目錄是否可寫入
+        if not os.access(user_dir, os.W_OK):
+            logger.error(f"❌ 目錄不可寫入: {user_dir}")
+            # 嘗試創建備用目錄
+            backup_dir = f'/tmp/rg_users/{username}'
+            os.makedirs(backup_dir, exist_ok=True)
+            logger.warning(f"⚠️ 使用備用目錄: {backup_dir}")
+            model_dir = os.path.join(backup_dir, 'rg_model')
+            os.makedirs(model_dir, exist_ok=True)
+        
+        logger.info(f"💾 開始保存模型到: {model_dir}")
         recommender.save(model_dir)
-        logger.info(f"模型已保存到 {model_dir}")
+        
+        # 驗證模型是否成功保存
+        if os.path.exists(model_dir) and os.listdir(model_dir):
+            logger.info(f"✅ 模型已成功保存到 {model_dir}")
+            logger.info(f"📁 模型目錄內容: {os.listdir(model_dir)}")
+            
+            # 同時保存到資料庫作為備份
+            try:
+                save_model_to_database(username, model_dir)
+            except Exception as db_error:
+                logger.warning(f"⚠️ 資料庫備份失敗: {db_error}")
+        else:
+            logger.error(f"❌ 模型保存失敗: {model_dir}")
+            raise Exception("模型保存失敗")
         return True
 
     except Exception as e:
         logger.error(f"訓練 BGG 模型失敗: {e}")
         return False
+
+def save_model_to_database(username, model_dir):
+    """將模型資訊保存到資料庫作為備份"""
+    try:
+        import os
+        import json
+        from datetime import datetime
+        
+        # 收集模型資訊
+        model_info = {
+            'username': username,
+            'model_path': model_dir,
+            'created_at': datetime.now().isoformat(),
+            'files': []
+        }
+        
+        # 列出模型檔案
+        if os.path.exists(model_dir):
+            for file in os.listdir(model_dir):
+                file_path = os.path.join(model_dir, file)
+                if os.path.isfile(file_path):
+                    model_info['files'].append({
+                        'name': file,
+                        'size': os.path.getsize(file_path),
+                        'modified': os.path.getmtime(file_path)
+                    })
+        
+        # 保存到資料庫
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 創建模型備份表（如果不存在）
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS model_backups (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(255) NOT NULL,
+                    model_info JSONB NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # 插入模型資訊
+            cursor.execute("""
+                INSERT INTO model_backups (username, model_info)
+                VALUES (%s, %s)
+            """, (username, json.dumps(model_info)))
+            
+            conn.commit()
+            logger.info(f"✅ 模型資訊已備份到資料庫: {username}")
+            
+    except Exception as e:
+        logger.error(f"❌ 資料庫備份失敗: {e}")
+        raise
+
+@app.route('/api/volume-status', methods=['GET'])
+@login_required
+def api_volume_status():
+    """檢查 Volume 掛載狀態"""
+    try:
+        import os
+        import stat
+        
+        # 檢查 data 目錄
+        data_dir = '/app/data'
+        volume_info = {
+            'data_dir_exists': os.path.exists(data_dir),
+            'data_dir_writable': os.access(data_dir, os.W_OK) if os.path.exists(data_dir) else False,
+            'data_dir_contents': [],
+            'volume_mounted': False
+        }
+        
+        if os.path.exists(data_dir):
+            try:
+                data_dir_contents = os.listdir(data_dir)
+                volume_info['data_dir_contents'] = data_dir_contents
+                
+                # 檢查是否有 rg_users 目錄
+                rg_users_dir = os.path.join(data_dir, 'rg_users')
+                if os.path.exists(rg_users_dir):
+                    volume_info['rg_users_exists'] = True
+                    volume_info['rg_users_contents'] = os.listdir(rg_users_dir)
+                else:
+                    volume_info['rg_users_exists'] = False
+                
+                # 檢查目錄權限
+                stat_info = os.stat(data_dir)
+                volume_info['data_dir_permissions'] = oct(stat_info.st_mode)[-3:]
+                volume_info['volume_mounted'] = True
+                
+            except Exception as e:
+                volume_info['error'] = str(e)
+        
+        return jsonify({
+            'success': True,
+            'volume_status': volume_info
+        })
+        
+    except Exception as e:
+        logger.error(f"檢查 Volume 狀態失敗: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/rg/model-status', methods=['GET'])
 @login_required
