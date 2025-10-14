@@ -1050,25 +1050,28 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             )
             logger.info(f"🧪 測試推薦（不排除已知）: {len(test_recs)} 個結果")
             
-            # 檢查訓練資料中的實際用戶名
-            try:
-                # 嘗試獲取所有用戶的推薦來查看實際的用戶名格式
-                all_recs = recommender.recommend(
-                    users=None,  # 獲取所有用戶
-                    num_games=1,
-                    exclude_known=False
-                )
-                if len(all_recs) > 0:
-                    # 轉換為 pandas 查看用戶名
-                    import pandas as pd
-                    all_recs_pd = all_recs.to_dataframe()
-                    if 'user' in all_recs_pd.columns:
-                        unique_users = all_recs_pd['user'].unique()
-                        logger.info(f"🔍 訓練資料中的用戶名範例: {list(unique_users[:5])}")
+            # 如果沒有結果，嘗試獲取所有用戶的推薦
+            if len(test_recs) == 0:
+                logger.info("🔍 嘗試獲取所有用戶的推薦...")
+                try:
+                    all_recs = recommender.recommend(
+                        users=None,  # 獲取所有用戶
+                        num_games=1,
+                        exclude_known=False
+                    )
+                    if len(all_recs) > 0:
+                        # 轉換為 pandas 查看用戶名
+                        import pandas as pd
+                        all_recs_pd = all_recs.to_dataframe()
+                        if 'user' in all_recs_pd.columns:
+                            unique_users = all_recs_pd['user'].unique()
+                            logger.info(f"🔍 訓練資料中的用戶名範例: {list(unique_users[:5])}")
+                        else:
+                            logger.info(f"🔍 推薦結果欄位: {list(all_recs_pd.columns)}")
                     else:
-                        logger.info(f"🔍 推薦結果欄位: {list(all_recs_pd.columns)}")
-            except Exception as debug_error:
-                logger.warning(f"⚠️ 調試用戶名失敗: {debug_error}")
+                        logger.warning("⚠️ 模型無法為任何用戶生成推薦")
+                except Exception as debug_error:
+                    logger.warning(f"⚠️ 調試用戶名失敗: {debug_error}")
                 
         except Exception as test_error:
             logger.warning(f"⚠️ 測試推薦失敗: {test_error}")
