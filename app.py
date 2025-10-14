@@ -985,15 +985,36 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
             return None
         
         logger.info(f"📂 載入模型: {model_path}")
-        recommender = BGGRecommender.load(model_path)
+        try:
+            # 檢查模型目錄結構
+            import os
+            model_files = os.listdir(model_path) if os.path.exists(model_path) else []
+            logger.info(f"📁 模型目錄內容: {model_files}")
+            
+            # 嘗試載入模型，可能需要指定子目錄
+            if 'recommender' in model_files:
+                recommender = BGGRecommender.load(model_path, dir_model='recommender')
+            else:
+                recommender = BGGRecommender.load(model_path)
+            logger.info("✅ 模型載入成功")
+        except Exception as load_error:
+            logger.error(f"❌ 模型載入失敗: {load_error}")
+            import traceback
+            logger.error(f"詳細錯誤: {traceback.format_exc()}")
+            return None
         
         # 獲取推薦
         logger.info(f"🎯 執行推薦算法，限制 {limit} 個結果...")
-        recommendations_df = recommender.recommend(
-            users=[username],
-            num_games=limit,
-            exclude_known=True
-        )
+        try:
+            recommendations_df = recommender.recommend(
+                users=[username],
+                num_games=limit,
+                exclude_known=True
+            )
+            logger.info(f"✅ 推薦查詢成功，獲得 {len(recommendations_df)} 個結果")
+        except Exception as rec_error:
+            logger.error(f"❌ 推薦查詢失敗: {rec_error}")
+            return None
         
         # 轉換為標準格式
         recommendations = []
@@ -4825,12 +4846,26 @@ def api_get_recommendations_by_games():
         if len(selected_games) > 10:
             return jsonify({'success': False, 'message': '最多只能選擇10款遊戲'})
         
-        from game_recommendation_service import GameRecommendationService
-        service = GameRecommendationService()
+        # 使用 board-game-recommender 進行推薦
+        username = get_app_setting('bgg_username', '')
+        if not username:
+            return jsonify({'success': False, 'message': '請先設定 BGG 用戶名'})
         
-        result = service.get_game_recommendations_by_selection(selected_games, num_recommendations)
+        # 檢查模型是否存在
+        model_path = f'data/rg_users/{username}/rg_model'
+        if not os.path.exists(model_path):
+            return jsonify({'success': False, 'message': '推薦模型尚未訓練，請先到設定頁重新訓練'})
         
-        return jsonify(result)
+        # 使用 board-game-recommender 獲取推薦
+        recommendations = get_advanced_recommendations(username, selected_games, algorithm='hybrid', limit=num_recommendations)
+        
+        if not recommendations:
+            return jsonify({'success': False, 'message': '無法獲取推薦，請檢查模型是否正確訓練'})
+        
+        return jsonify({
+            'success': True,
+            'recommendations': recommendations
+        })
         
     except Exception as e:
         logger.error(f"獲取遊戲推薦失敗: {e}")
