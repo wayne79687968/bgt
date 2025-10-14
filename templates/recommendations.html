@@ -283,7 +283,7 @@ async function getRecommendations() {
         const data = await response.json();
         
         if (data.success) {
-            displayRecommendations(data.recommendations, data.metadata);
+            displayRecommendations(data.recommendations, data.metadata || {});
         } else {
             recommendationsContent.innerHTML = `
                 <div class="alert alert-danger">
@@ -322,7 +322,7 @@ function displayRecommendations(recommendations, metadata) {
         <div class="alert alert-info mb-4">
             <h5 class="alert-heading">📊 推薦分析</h5>
             <p class="mb-0">
-                基於您選擇的 ${selectedGames.length} 款遊戲，使用 ${metadata.methods_used.join(' + ')} 方法，
+                基於您選擇的 ${selectedGames.length} 款遊戲${metadata.methods_used ? `，使用 ${metadata.methods_used.join(' + ')} 方法` : ''}，
                 為您推薦 ${recommendations.length} 款高品質桌遊
             </p>
         </div>

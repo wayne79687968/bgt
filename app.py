@@ -5024,7 +5024,13 @@ def api_get_recommendations_by_games():
         
         return jsonify({
             'success': True,
-            'recommendations': recommendations
+            'recommendations': recommendations,
+            'metadata': {
+                'methods_used': ['board-game-recommender'],
+                'algorithm': 'hybrid',
+                'total_recommendations': len(recommendations),
+                'selected_games_count': len(selected_games)
+            }
         })
         
     except Exception as e:
