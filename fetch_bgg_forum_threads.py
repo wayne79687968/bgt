@@ -299,7 +299,7 @@ def delete_all_threads_and_i18n(objectid):
 def fetch_and_save_threads(objectid, name):
     """實際抓取並儲存討論串內容"""
     print(f"🔍 正在抓取 {name} ({objectid}) 的討論串...")
-    
+
     # 使用台北時區獲取當前日期
     taipei_tz = pytz.timezone('Asia/Taipei')
     today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
@@ -415,7 +415,7 @@ def delete_all_threads_and_i18n_with_cursor(cursor, conn, objectid, config):
 def fetch_and_save_threads_with_cursor(cursor, conn, objectid, name, config):
     """實際抓取並儲存討論串內容"""
     print(f"🔍 [{name}] 正在抓取討論串...")
-    
+
     # 使用台北時區獲取當前日期
     taipei_tz = pytz.timezone('Asia/Taipei')
     today = datetime.now(taipei_tz).strftime("%Y-%m-%d")

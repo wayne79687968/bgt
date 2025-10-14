@@ -189,12 +189,12 @@ def is_i18n_fresh(comment_id, lang, days=7):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         if config['type'] == 'postgresql':
             cursor.execute("SELECT updated_at FROM game_comments_i18n WHERE comment_id = %s AND lang = %s", (comment_id, lang))
         else:
             cursor.execute("SELECT updated_at FROM game_comments_i18n WHERE comment_id = ? AND lang = ?", (comment_id, lang))
-        
+
         row = cursor.fetchone()
         if row and row[0]:
             try:
@@ -314,11 +314,11 @@ def parse_gpt_output(output):
 
 def analyze_with_gpt(objectid, low, mid, high):
     prompt = build_prompt(low, mid, high)
-    
+
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         try:
             if lang == 'en':
                 # 只 summary 用 LLM，評論翻譯直接用原文
@@ -468,12 +468,12 @@ def is_comments_expired(objectid, days=7):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         if config['type'] == 'postgresql':
             cursor.execute("SELECT MAX(created_at) FROM game_comments WHERE objectid = %s", (objectid,))
         else:
             cursor.execute("SELECT MAX(created_at) FROM game_comments WHERE objectid = ?", (objectid,))
-        
+
         row = cursor.fetchone()
         if not row or not row[0]:
             return True
@@ -487,25 +487,25 @@ def delete_all_comments_and_i18n(objectid):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         # 先找出所有 comment_id
         if config['type'] == 'postgresql':
             cursor.execute("SELECT id FROM game_comments WHERE objectid = %s", (objectid,))
         else:
             cursor.execute("SELECT id FROM game_comments WHERE objectid = ?", (objectid,))
-        
+
         ids = [r[0] for r in cursor.fetchall()]
         if ids:
             if config['type'] == 'postgresql':
                 cursor.executemany("DELETE FROM game_comments_i18n WHERE comment_id = %s", [(cid,) for cid in ids])
             else:
                 cursor.executemany("DELETE FROM game_comments_i18n WHERE comment_id = ?", [(cid,) for cid in ids])
-        
+
         if config['type'] == 'postgresql':
             cursor.execute("DELETE FROM game_comments WHERE objectid = %s", (objectid,))
         else:
             cursor.execute("DELETE FROM game_comments WHERE objectid = ?", (objectid,))
-        
+
         conn.commit()
 
 def fetch_and_save_comments(objectid):
@@ -517,22 +517,22 @@ def get_comments_by_objectid(objectid):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         if config['type'] == 'postgresql':
             cursor.execute("SELECT id, comment, rating, sentiment FROM game_comments WHERE objectid = %s", (objectid,))
         else:
             cursor.execute("SELECT id, comment, rating, sentiment FROM game_comments WHERE objectid = ?", (objectid,))
-        
+
         return cursor.fetchall()
 
 def main(force: bool = False, skip_llm: bool = False):
     with get_db_connection() as conn:
         cursor = conn.cursor()
         config = get_database_config()
-        
+
         cursor.execute("SELECT DISTINCT objectid FROM hot_games WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM hot_games)")
         new_ids = [row[0] for row in cursor.fetchall()]
-        
+
         for objectid in new_ids:
             print(f"📌 分析遊戲 {objectid} 的有評分留言 ({lang})")
 
@@ -541,7 +541,7 @@ def main(force: bool = False, skip_llm: bool = False):
                 cursor.execute("SELECT id FROM game_comments WHERE objectid = %s AND sentiment = 'summary' ORDER BY id DESC LIMIT 1", (objectid,))
             else:
                 cursor.execute("SELECT id FROM game_comments WHERE objectid = ? AND sentiment = 'summary' ORDER BY id DESC LIMIT 1", (objectid,))
-            
+
             row = cursor.fetchone()
             summary_comment_id = row[0] if row else None
             summary_exists = False
