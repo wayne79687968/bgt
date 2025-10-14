@@ -106,6 +106,23 @@ def get_advanced_recommendations(username: str, owned_ids, algorithm: str = 'hyb
                 logger.warning(f"⚠️ 用戶名格式 {user_variant} 失敗: {variant_error}")
                 continue
 
+        # 若第一輪為空，再放寬 exclude_known 嘗試一次
+        if (recommendations_df is None or len(recommendations_df) == 0):
+            for user_variant in user_variants:
+                try:
+                    rec_df = recommender.recommend(users=[user_variant], num_games=limit, exclude_known=False)
+                    if len(rec_df) > 0:
+                        if owned_ids:
+                            rec_pd = rec_df.to_dataframe()
+                            rec_pd = rec_pd[~rec_pd['bgg_id'].isin(owned_ids)]
+                            import turicreate as tc
+                            rec_df = tc.SFrame(rec_pd)
+                        recommendations_df = rec_df
+                        break
+                except Exception as variant_error:
+                    logger.warning(f"⚠️ 放寬 exclude_known 後用戶名格式 {user_variant} 仍失敗: {variant_error}")
+                    continue
+
         if recommendations_df is None or len(recommendations_df) == 0:
             logger.error("❌ 無推薦結果，改用熱門度後備推薦")
             return _fallback_popularity_recommendations(username, owned_ids, limit)
@@ -178,12 +195,13 @@ def _fallback_popularity_recommendations(username: str, owned_ids, limit: int):
 
         df = pd.DataFrame(records)
         df = df[df['bgg_id'] > 0]
+        original_df = df
         if owned_ids:
             df = df[~df['bgg_id'].isin(set(owned_ids))]
-
         if df.empty:
-            logger.warning("⚠️ 後備推薦：過濾後無遊戲可推薦")
-            return []
+            # 若排除已擁有後沒有可推薦，放寬規則：允許包含已擁有的，至少提供一組人氣清單
+            logger.warning("⚠️ 後備推薦：過濾後無遊戲可推薦，改為包含已擁有的熱門清單")
+            df = original_df
 
         global_mean = df['avg_rating'].replace(0, pd.NA).dropna().mean()
         if not isinstance(global_mean, float) or math.isnan(global_mean):
