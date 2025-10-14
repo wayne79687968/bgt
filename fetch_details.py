@@ -1,6 +1,7 @@
 import requests
 import xml.etree.ElementTree as ET
 import os
+from utils.common import setup_logging
 import time
 from datetime import datetime
 import pytz
@@ -18,6 +19,7 @@ taipei_tz = pytz.timezone('Asia/Taipei')
 today = datetime.now(taipei_tz).strftime("%Y-%m-%d")
 
 # 開啟資料庫連線
+setup_logging()
 print("🔗 開始處理遊戲詳細資料...")
 with get_db_connection() as conn:
     cursor = conn.cursor()

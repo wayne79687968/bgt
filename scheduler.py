@@ -16,11 +16,9 @@ from database import init_database
 # 載入環境變數
 load_dotenv()
 
-# 設定日誌
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+# 統一日誌設定
+from utils.common import setup_logging
+setup_logging(logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def fetch_and_generate_report(detail_mode='all', lang='zh-tw', force=False, force_llm_analysis=False):

@@ -3,6 +3,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import pytz
 import os
+from utils.common import ensure_paths, setup_logging
 from database import get_db_connection, get_database_config, init_database
 
 # 數據庫初始化由 scheduler.py 負責，這裡不需要重複調用以避免並發問題
@@ -20,9 +21,9 @@ print(f"📅 快照日期: {snapshot_date}")
 print(f"🌐 BGG API URL: {url}")
 
 # 建立資料夾
+setup_logging()
 print("📁 創建必要目錄...")
-os.makedirs("data", exist_ok=True)
-os.makedirs("data/cache", exist_ok=True)
+ensure_paths(["data", "data/cache"])
 print("✅ 目錄創建完成")
 
 # 抓取熱門榜單
