@@ -2869,18 +2869,12 @@ def run_full_retrain_task(username):
 
         # 步驟 2: 抓取 BGG 遊戲資料
         update_task_status('抓取 BGG 資料', 30, '正在抓取最新的 BGG 遊戲和評分資料...')
-        success = scrape_bgg_data()
+        success = scrape_bgg_data(username)
         if not success:
             raise Exception("抓取 BGG 資料失敗")
 
-        # 步驟 3: 準備訓練資料
-        update_task_status('準備訓練資料', 60, '正在整理和準備協同過濾訓練資料...')
-        success = prepare_training_data(username)
-        if not success:
-            raise Exception("準備訓練資料失敗")
-
-        # 步驟 4: 訓練模型
-        update_task_status('訓練推薦模型', 80, '正在使用 board-game-recommender 訓練協同過濾模型...')
+        # 步驟 3: 訓練模型
+        update_task_status('訓練推薦模型', 60, '正在使用 board-game-recommender 訓練協同過濾模型...')
         success = train_bgg_model(username)
         if not success:
             raise Exception("訓練模型失敗")
@@ -2966,21 +2960,16 @@ def sync_user_collection(username):
         logger.error(f"同步用戶收藏失敗: {e}")
         return False
 
-def scrape_bgg_data():
+def scrape_bgg_data(username):
     """抓取 BGG 資料"""
     try:
-        logger.info("開始抓取 BGG 資料")
+        logger.info(f"開始為用戶 {username} 抓取 BGG 資料")
         
         # 使用 BGG scraper 抓取真實的用戶資料
         from bgg_scraper_extractor import BGGScraperExtractor
         extractor = BGGScraperExtractor()
         
-        # 獲取當前用戶名
-        username = get_app_setting('bgg_username', '')
-        if not username:
-            raise Exception("BGG 用戶名未設定")
-        
-        # 抓取用戶收藏資料並生成 .jl 檔案
+        # 抓取用戶收藏資料並生成 .jl 檔案到用戶特定目錄
         success = extractor.export_to_jsonl(username, 'data')
         if not success:
             raise Exception("抓取用戶收藏資料失敗")
@@ -3018,9 +3007,10 @@ def train_bgg_model(username):
         # 使用 board-game-recommender 的正確方式
         from board_game_recommender.recommend import BGGRecommender
         
-        # 檢查必要的檔案是否存在
-        games_file = 'data/bgg_GameItem.jl'
-        ratings_file = 'data/bgg_RatingItem.jl'
+        # 使用用戶特定的檔案路徑
+        user_dir = f'data/rg_users/{username}'
+        games_file = os.path.join(user_dir, 'bgg_GameItem.jl')
+        ratings_file = os.path.join(user_dir, 'bgg_RatingItem.jl')
         
         if not os.path.exists(games_file):
             raise Exception(f"遊戲資料檔案不存在: {games_file}")
@@ -3037,8 +3027,8 @@ def train_bgg_model(username):
             max_iterations=100
         )
         
-        # 保存模型到檔案
-        model_dir = f'data/bgg_models/{username}'
+        # 保存模型到用戶特定目錄
+        model_dir = os.path.join(user_dir, 'rg_model')
         os.makedirs(model_dir, exist_ok=True)
         recommender.save(model_dir)
         logger.info(f"模型已保存到 {model_dir}")
