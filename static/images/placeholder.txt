@@ -9,4 +9,6 @@ For default-avatar.png, you can:
 3. Download from a stock photo site
 4. Use a solid color placeholder
 
+Note: default-game.png is intentionally absent. Frontend should reference /static/images/default-game.png if provided; otherwise handle onerror.
+
 The image should be 128x128px or similar square dimensions.

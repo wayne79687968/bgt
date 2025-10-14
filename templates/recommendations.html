@@ -178,10 +178,10 @@ function displaySearchResults(games) {
                      year: game.year,
                      objectid: game.id  // 為了相容性
                  }).replace(/"/g, '&quot;')})`}">
-                <img src="/static/default-game.png" 
+                <img src="/static/images/default-game.png" 
                      alt="${game.name}" class="me-2 rounded"
                      style="width: 40px; height: 40px; object-fit: cover;"
-                     onerror="this.src='/static/default-game.png'">
+                     onerror="this.src='/static/images/default-game.png'">
                 <div class="flex-grow-1">
                     <h6 class="mb-1">${game.name}</h6>
                     <small class="text-muted">
