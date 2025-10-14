@@ -409,14 +409,13 @@ def _try_load_light_recommender(user_paths, username):
         return None, {'type': 'error', 'reason': str(e)}
 
 def load_fallback_recommender():
-    """載入降級推薦器（優先使用 AdvancedBoardGameRecommender，否則使用最簡化推薦器）"""
+    """載入降級推薦器（使用 board-game-recommender）"""
     try:
-        from advanced_recommender import AdvancedBoardGameRecommender
-        recommender = AdvancedBoardGameRecommender()
-        logger.info("✅ 成功載入降級推薦器 (AdvancedBoardGameRecommender)")
-        return recommender
+        from board_game_recommender.recommend import BGGRecommender
+        logger.info("✅ 成功載入降級推薦器 (BGGRecommender)")
+        return BGGRecommender
     except Exception as e:
-        logger.warning(f"⚠️ 載入 AdvancedBoardGameRecommender 失敗: {e}")
+        logger.warning(f"⚠️ 載入 BGGRecommender 失敗: {e}")
         logger.info("🔄 使用最簡化推薦器")
         return MinimalRecommender()
 
@@ -1043,90 +1042,47 @@ def build_recommendations_from_collection(limit=20):
     return topk
 
 def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=10):
-    """使用進階推薦算法"""
+    """使用 board-game-recommender 進行推薦"""
     try:
-        logger.info(f"🔍 開始進階推薦 - 用戶: {username}, 擁有遊戲: {len(owned_ids) if owned_ids else 0}, 算法: {algorithm}")
+        logger.info(f"🔍 開始 board-game-recommender 推薦 - 用戶: {username}, 擁有遊戲: {len(owned_ids) if owned_ids else 0}")
         
-        from advanced_recommender import AdvancedBoardGameRecommender
+        from board_game_recommender.recommend import BGGRecommender
         
-        recommender = AdvancedBoardGameRecommender()
-        
-        # 檢查資料庫狀態
-        logger.info("🔧 檢查資料庫狀態...")
-        if not recommender.check_database_connection():
-            logger.error("❌ 資料庫檔案不存在，請先執行資料收集")
-            return None
-            
-        if not recommender.check_tables_exist():
-            logger.error("❌ 資料庫中缺少必要的資料表，請先執行資料收集")
+        # 載入已訓練的模型
+        model_path = f'data/rg_users/{username}/rg_model'
+        if not os.path.exists(model_path):
+            logger.error(f"❌ 模型不存在: {model_path}")
             return None
         
-        logger.info("📊 載入推薦資料...")
-        if not recommender.load_data():
-            logger.error("❌ 無法載入資料庫資料")
-            return None
+        logger.info(f"📂 載入模型: {model_path}")
+        recommender = BGGRecommender.load(model_path)
         
-        # 檢查是否有足夠的資料
-        logger.info(f"📈 資料統計 - 遊戲: {len(recommender.games_df)}, 評分: {len(recommender.ratings_df)}")
-        if len(recommender.games_df) == 0:
-            logger.error("❌ 沒有遊戲資料可用於推薦")
-            return None
+        # 獲取推薦
+        logger.info(f"🎯 執行推薦算法，限制 {limit} 個結果...")
+        recommendations_df = recommender.recommend(
+            users=[username],
+            num_games=limit,
+            exclude_known=True
+        )
         
-        logger.info("🧠 準備推薦模型...")
-        recommender.prepare_user_item_matrix()
-        recommender.prepare_content_features()
-        recommender.train_all_models()
+        # 轉換為標準格式
+        recommendations = []
+        for row in recommendations_df:
+            recommendations.append({
+                'game_id': int(row['bgg_id']),
+                'name': str(row['name']),
+                'year': int(row.get('year', 0)),
+                'rating': float(row.get('avg_rating', 0.0)),
+                'rank': int(row.get('rank', 0)),
+                'rec_score': float(row.get('score', 0.0)),
+                'source': 'board_game_recommender'
+            })
         
-        logger.info(f"🎯 執行 {algorithm} 推薦算法...")
-        if algorithm == 'popularity':
-            recommendations = recommender.recommend_popularity(owned_ids, limit)
-        elif algorithm == 'content':
-            recommendations = recommender.recommend_content_based(owned_ids, limit)
-        elif algorithm == 'hybrid':
-            recommendations = recommender.recommend_hybrid(owned_ids, limit)
-        else:
-            recommendations = recommender.recommend_hybrid(owned_ids, limit)
-        
-        logger.info(f"📋 推薦算法返回了 {len(recommendations) if recommendations else 0} 個結果")
-        
-        # 檢查是否有推薦結果
-        if not recommendations:
-            logger.warning(f"⚠️ 進階推薦器 ({algorithm}) 沒有產生任何推薦結果")
-            logger.info("🔍 調試信息：")
-            logger.info(f"  - 擁有遊戲數量: {len(owned_ids) if owned_ids else 0}")
-            logger.info(f"  - 資料庫遊戲數量: {len(recommender.games_df)}")
-            logger.info(f"  - 用戶-物品矩陣大小: {recommender.user_item_matrix.shape if recommender.user_item_matrix is not None else 'None'}")
-            return None
-        
-        # 轉換格式以符合現有介面
-        logger.info("🔄 轉換推薦結果格式...")
-        formatted_recs = []
-        for i, rec in enumerate(recommendations):
-            try:
-                formatted_rec = {
-                    'game_id': rec['game_id'],
-                    'name': rec['name'],
-                    'year': rec['year'],
-                    'rating': rec['rating'],
-                    'rank': rec.get('rank', 0),
-                    'weight': rec.get('weight', 0),
-                    'min_players': rec.get('min_players', 1),
-                    'max_players': rec.get('max_players', 1),
-                    'rec_score': rec['rec_score'],
-                    'source': f'advanced_{algorithm}'
-                }
-                formatted_recs.append(formatted_rec)
-                if i < 3:  # 只記錄前3個推薦的詳細信息
-                    logger.info(f"  推薦 {i+1}: {rec['name']} (分數: {rec['rec_score']})")
-            except Exception as format_error:
-                logger.error(f"格式化推薦結果時發生錯誤: {format_error}, 推薦內容: {rec}")
-                continue
-        
-        logger.info(f"✅ 進階推薦器 ({algorithm}) 成功產生了 {len(formatted_recs)} 個推薦")
-        return formatted_recs
+        logger.info(f"✅ board-game-recommender 成功產生 {len(recommendations)} 個推薦")
+        return recommendations
         
     except Exception as e:
-        logger.error(f"❌ 進階推薦器發生錯誤: {e}")
+        logger.error(f"❌ board-game-recommender 發生錯誤: {e}")
         import traceback
         logger.error(f"詳細錯誤堆疊: {traceback.format_exc()}")
         return None
@@ -3127,7 +3083,7 @@ def api_rg_model_status():
             pass
         
         try:
-            from advanced_recommender import AdvancedBoardGameRecommender
+            from board_game_recommender.recommend import BGGRecommender
             fallback_available = True
         except ImportError:
             pass
@@ -3665,28 +3621,29 @@ def get_production_recommendation_score(username, owned_ids, game_id):
     try:
         logger.info(f"🏭 使用生產環境推薦器計算遊戲 {game_id} 的推薦分數")
         
-        from advanced_recommender import AdvancedBoardGameRecommender
+        from board_game_recommender.recommend import BGGRecommender
         
-        # 使用本地的進階推薦器（不依賴 turicreate）
-        recommender = AdvancedBoardGameRecommender()
+        # 載入已訓練的模型
+        model_path = f'data/rg_users/{username}/rg_model'
+        if not os.path.exists(model_path):
+            logger.error(f"❌ 模型不存在: {model_path}")
+            return 0.0
         
-        if not recommender.load_data():
-            logger.warning("無法載入推薦器資料")
-            return None
+        recommender = BGGRecommender.load(model_path)
         
-        if not recommender.train_all_models():
-            logger.warning("無法訓練推薦器模型")
-            return None
-        
-        # 取得混合推薦
-        recommendations = recommender.recommend_hybrid(owned_ids, num_recs=100)
+        # 獲取推薦
+        recommendations_df = recommender.recommend(
+            users=[username],
+            num_games=100,
+            exclude_known=True
+        )
         
         # 查找目標遊戲的分數
-        for rec in recommendations:
-            if rec.get('objectid') == game_id:
-                score = rec.get('rec_score', 0)
+        for row in recommendations_df:
+            if int(row['bgg_id']) == game_id:
+                score = float(row.get('score', 0))
                 logger.info(f"✅ 生產環境推薦分數: {score:.4f}")
-                return float(score)
+                return score
         
         # 如果沒找到，計算基於內容的相似度分數
         try:
@@ -4330,44 +4287,35 @@ def api_diagnose_recommendations():
         except Exception as e:
             diagnosis['collection_error'] = str(e)
         
-        # 檢查進階推薦器
+        # 檢查 board-game-recommender
         try:
-            from advanced_recommender import AdvancedBoardGameRecommender
-            recommender = AdvancedBoardGameRecommender()
+            from board_game_recommender.recommend import BGGRecommender
             
-            diagnosis['database_exists'] = recommender.check_database_connection()
-            diagnosis['tables_exist'] = recommender.check_tables_exist()
+            # 檢查模型是否存在
+            model_path = f'data/rg_users/{username}/rg_model'
+            diagnosis['model_exists'] = os.path.exists(model_path)
             
-            if recommender.load_data():
-                diagnosis['games_count'] = len(recommender.games_df)
-                diagnosis['ratings_count'] = len(recommender.ratings_df)
-                
-                # 嘗試簡單的熱門度推薦
-                recommender.prepare_user_item_matrix()
-                recommender.prepare_content_features()
-                recommender.train_popularity_recommender()
-                
-                pop_recs = recommender.recommend_popularity([], 3)
-                diagnosis['sample_popularity_recommendations'] = [
-                    {'name': rec['name'], 'score': rec['rec_score']} 
-                    for rec in pop_recs[:3]
-                ] if pop_recs else []
-                
-                # 嘗試混合推薦
-                recommender.train_all_models()
-                hybrid_recs = recommender.recommend_hybrid(owned_ids[:5], 3)
-                diagnosis['sample_hybrid_recommendations'] = [
-                    {'name': rec['name'], 'score': rec['rec_score']} 
-                    for rec in hybrid_recs[:3]
-                ] if hybrid_recs else []
-                
+            if diagnosis['model_exists']:
+                try:
+                    recommender = BGGRecommender.load(model_path)
+                    diagnosis['model_load_success'] = True
+                    
+                    # 測試推薦功能
+                    test_recs = recommender.recommend(users=[username], num_games=3)
+                    diagnosis['sample_recommendations'] = [
+                        {'name': rec['name'], 'score': rec.get('score', 0)} 
+                        for rec in test_recs[:3]
+                    ] if test_recs else []
+                    
+                except Exception as rec_error:
+                    diagnosis['model_load_error'] = str(rec_error)
             else:
-                diagnosis['data_load_failed'] = True
+                diagnosis['model_missing'] = True
                 
         except Exception as e:
-            diagnosis['advanced_recommender_error'] = str(e)
+            diagnosis['board_game_recommender_error'] = str(e)
             import traceback
-            diagnosis['advanced_recommender_traceback'] = traceback.format_exc()
+            diagnosis['board_game_recommender_traceback'] = traceback.format_exc()
         
         # 測試完整推薦流程
         try:

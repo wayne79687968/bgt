@@ -263,8 +263,9 @@ class BGGScraperExtractor:
     def export_to_jsonl(self, username: str, output_dir: str = 'data') -> bool:
         """抓取用戶資料並輸出為 JSONL 格式"""
         try:
-            # 創建輸出目錄
-            os.makedirs(output_dir, exist_ok=True)
+            # 創建用戶特定的輸出目錄
+            user_dir = os.path.join(output_dir, 'rg_users', username)
+            os.makedirs(user_dir, exist_ok=True)
             
             # 抓取用戶收藏
             collection = self.fetch_user_collection(username)
@@ -273,7 +274,7 @@ class BGGScraperExtractor:
                 return False
             
             # 從收藏資料生成簡化的遊戲資料（如果 BGG API 限制太嚴格）
-            games_file = os.path.join(output_dir, 'bgg_GameItem.jl')
+            games_file = os.path.join(user_dir, 'bgg_GameItem.jl')
             with open(games_file, 'w', encoding='utf-8') as f:
                 processed_games = set()
                 for item in collection:
@@ -306,7 +307,7 @@ class BGGScraperExtractor:
                     f.write(json.dumps(game_data, ensure_ascii=False) + '\n')
             
             # 生成 RatingItem.jl
-            ratings_file = os.path.join(output_dir, 'bgg_RatingItem.jl')
+            ratings_file = os.path.join(user_dir, 'bgg_RatingItem.jl')
             with open(ratings_file, 'w', encoding='utf-8') as f:
                 for item in collection:
                     # 計算評分（如果用戶沒有評分，根據收藏狀態推算）
