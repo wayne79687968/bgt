@@ -242,6 +242,14 @@ RG_API_KEY = os.getenv('RG_API_KEY')
 
 # Blueprint 註冊（逐步遷移路由）
 try:
+    # 確保載入各子模組以註冊其路由到對應 Blueprint
+    import routes.health  # noqa: F401
+    import routes.recommender  # noqa: F401
+    import routes.admin  # noqa: F401
+    import routes.auth  # noqa: F401
+    import routes.report  # noqa: F401
+    import routes.creator  # noqa: F401
+
     from routes import health_bp, recommender_bp, admin_bp, auth_bp, report_bp
     app.register_blueprint(health_bp)
     app.register_blueprint(recommender_bp)
@@ -260,6 +268,19 @@ def _login_alias():
 @app.route('/logout', endpoint='logout')
 def _logout_alias():
     return redirect(url_for('auth.logout'))
+
+# 舊端點相容：bgg_times / recommendations / creator_tracker
+@app.route('/bgg_times', endpoint='bgg_times')
+def _bgg_times_alias():
+    return redirect(url_for('report.bgg_times'))
+
+@app.route('/recommendations', endpoint='recommendations')
+def _recommendations_alias():
+    return redirect(url_for('recommender.recommendations'))
+
+@app.route('/creator-tracker', endpoint='creator_tracker')
+def _creator_tracker_alias():
+    return redirect(url_for('admin.creator_tracker'))
 # RG 推薦器路徑配置
 def get_user_rg_paths(username=None):
     """已轉發至 services.recommender_service.get_user_rg_paths"""

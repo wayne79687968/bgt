@@ -7,7 +7,7 @@ from email_auth import full_access_required
 from database import get_db_connection
 
 
-@admin_bp.route('/creator-tracker')
+@admin_bp.route('/creator-tracker', endpoint='creator_tracker')
 @full_access_required
 def creator_tracker():
     user = session.get('user', {})
