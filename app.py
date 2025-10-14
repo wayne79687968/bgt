@@ -2403,62 +2403,7 @@ def api_sync_collection():
         logger.error(f"同步收藏失敗: {e}")
         return jsonify({'success': False, 'message': f'同步失敗：{e}'}), 500
 
-@app.route('/recommendations')
-@login_required
-def recommendations():
-    # 使用 session['user'] 作為登入依據
-    username = get_app_setting('bgg_username', '')
-    if not username:
-        flash('請先在設定頁設定 BGG 使用者名稱並同步收藏', 'info')
-        return redirect(url_for('settings'))
-
-    # 檢查模型是否存在（使用統一路徑工具）
-    user_paths = get_user_rg_paths(username)
-    model_path = user_paths['model_dir']
-    if not os.path.exists(model_path):
-        flash('推薦模型尚未訓練，請先到設定頁點擊「🚀 一鍵重新訓練」。', 'warning')
-        return redirect(url_for('settings'))
-
-    # 讀取已收藏的 objectid 清單
-    owned_ids = []
-    try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT objectid FROM collection")
-            owned_ids = [row[0] for row in cursor.fetchall()]
-    except Exception:
-        pass
-
-    # 使用 board-game-recommender 獲取推薦
-    from flask import request
-    algorithm = request.args.get('algorithm', 'hybrid')
-
-    logger.info(f"🔍 開始獲取推薦 - 用戶: {username}, 算法: {algorithm}, 擁有遊戲: {len(owned_ids)}")
-    recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
-    logger.info(f"📊 推薦結果: {len(recommendations) if recommendations else 0} 個推薦")
-
-    if not recommendations:
-        logger.warning(f"⚠️ 推薦為空 - 用戶: {username}, 算法: {algorithm}")
-        flash('無法獲取推薦，請檢查模型是否正確訓練', 'error')
-        return redirect(url_for('settings'))
-
-    # 傳遞可用的算法選項
-    available_algorithms = [
-        {'value': 'hybrid', 'name': '混合推薦 (Hybrid)', 'description': '結合多種算法的推薦'},
-        {'value': 'popularity', 'name': '熱門推薦 (Popularity)', 'description': '基於遊戲熱門度的推薦'},
-        {'value': 'content', 'name': '內容推薦 (Content-based)', 'description': '基於遊戲特徵相似性的推薦'}
-    ]
-
-    current_algorithm = algorithm
-    current_view = request.args.get('view', 'search')  # 'search' 或 'grid'
-
-    return render_template('recommendations.html',
-                         recommendations=recommendations,
-                         bgg_username=username,
-                         available_algorithms=available_algorithms,
-                         current_algorithm=current_algorithm,
-                         current_view=current_view,
-                         last_updated=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+# 已遷移至 routes/recommender.py，保留上方別名 /recommendations → recommender.recommendations
 
 ## 已遷移至 routes/recommender.py 的 recommender_bp: /rg-recommender
 
