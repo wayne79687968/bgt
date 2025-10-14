@@ -5,7 +5,7 @@ requests==2.27.1
 python-dotenv==0.19.2
 
 # 資料庫
-psycopg2-binary==2.8.6
+psycopg2-binary==2.9.9
 
 # 排程器
 APScheduler==3.8.1
