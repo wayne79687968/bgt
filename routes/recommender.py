@@ -27,20 +27,19 @@ def recommendations():
         flash('請先在設定頁設定 BGG 使用者名稱並同步收藏', 'info')
         return redirect(url_for('settings'))
 
-    # 檢查模型是否存在
+    # 檢查模型是否存在（不存在時仍嘗試後備推薦，不再 302）
     user_paths = get_user_rg_paths(username)
     model_path = user_paths['model_dir']
     if not os.path.exists(model_path):
-        flash('推薦模型尚未訓練，請先到設定頁點擊「🚀 一鍵重新訓練」。', 'warning')
-        return redirect(url_for('settings'))
+        flash('推薦模型尚未訓練：將先提供熱門度後備推薦。', 'warning')
 
     owned_ids = _load_owned_object_ids()
 
     algorithm = request.args.get('algorithm', 'hybrid')
     recommendations = get_advanced_recommendations(username, owned_ids, algorithm=algorithm, limit=30)
     if not recommendations:
-        flash('無法獲取推薦，請檢查模型是否正確訓練', 'error')
-        return redirect(url_for('settings'))
+        flash('目前無推薦結果，請先嘗試於設定頁「🚀 一鍵重新訓練」。', 'info')
+        recommendations = []
 
     available_algorithms = [
         {'value': 'hybrid', 'name': '混合推薦 (Hybrid)', 'description': '結合多種算法的推薦'},
