@@ -245,10 +245,23 @@ def get_user_rg_paths(username=None):
     if not username:
         username = get_app_setting('bgg_username', 'default')
     
-    # 使用 Zeabur 的持久化目錄
-    # 在 Zeabur 環境中，data 目錄掛載在 /app/data
-    base_dir = '/app/data/rg_users' if os.path.exists('/app/data') else 'data/rg_users'
-    user_dir = os.path.join(base_dir, username)
+    # 動態選擇最佳可用的資料目錄
+    possible_dirs = ['/app/data', 'data', '/tmp/data']
+    base_dir = None
+    
+    for data_dir in possible_dirs:
+        if os.path.exists(data_dir) and os.access(data_dir, os.W_OK):
+            base_dir = data_dir
+            logger.info(f"📁 使用資料目錄: {base_dir}")
+            break
+    
+    if not base_dir:
+        # 如果沒有可用的目錄，創建一個
+        base_dir = 'data'
+        os.makedirs(base_dir, exist_ok=True)
+        logger.warning(f"⚠️ 沒有找到可用的資料目錄，使用預設: {base_dir}")
+    
+    user_dir = os.path.join(base_dir, 'rg_users', username)
     
     # 確保目錄存在
     os.makedirs(user_dir, exist_ok=True)
@@ -1012,7 +1025,9 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         
         # 載入已訓練的模型
         import os
-        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
+        # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        model_path = paths['model_dir']
         if not os.path.exists(model_path):
             logger.warning(f"⚠️ 模型不存在: {model_path}")
             logger.info("💡 提示：模型可能因容器重啟而丟失，請重新訓練")
@@ -1094,7 +1109,9 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         try:
             import os
             import json
-            ratings_file = f'/app/data/rg_users/{username}/bgg_RatingItem.jl' if os.path.exists('/app/data') else f'data/rg_users/{username}/bgg_RatingItem.jl'
+            # 使用動態路徑選擇
+            paths = get_user_rg_paths(username)
+            ratings_file = paths['ratings_file']
             if os.path.exists(ratings_file):
                 with open(ratings_file, 'r', encoding='utf-8') as f:
                     first_line = f.readline().strip()
@@ -2793,7 +2810,9 @@ def api_rg_recommend_score():
             from board_game_recommender.recommend import BGGRecommender
             
             # 檢查是否有訓練的模型
-            model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
+            # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        model_path = paths['model_dir']
             if not os.path.exists(model_path):
                 return jsonify({
                     'success': False,
@@ -3085,7 +3104,9 @@ def train_bgg_model(username):
         from board_game_recommender.recommend import BGGRecommender
         
         # 使用用戶特定的檔案路徑
-        user_dir = f'/app/data/rg_users/{username}' if os.path.exists('/app/data') else f'data/rg_users/{username}'
+        # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        user_dir = paths['user_dir']
         games_file = os.path.join(user_dir, 'bgg_GameItem.jl')
         ratings_file = os.path.join(user_dir, 'bgg_RatingItem.jl')
         
@@ -3201,44 +3222,67 @@ def api_volume_status():
         import os
         import stat
         
-        # 檢查 data 目錄
-        data_dir = '/app/data'
+        # 檢查多個可能的資料目錄
+        possible_dirs = ['/app/data', 'data', '/tmp/data']
         volume_info = {
-            'data_dir_exists': os.path.exists(data_dir),
-            'data_dir_writable': os.access(data_dir, os.W_OK) if os.path.exists(data_dir) else False,
-            'data_dir_contents': [],
+            'success': True,
+            'checked_dirs': {},
+            'recommended_dir': None,
             'volume_mounted': False
         }
         
-        if os.path.exists(data_dir):
-            try:
-                data_dir_contents = os.listdir(data_dir)
-                volume_info['data_dir_contents'] = data_dir_contents
-                
-                # 檢查是否有 rg_users 目錄
-                rg_users_dir = os.path.join(data_dir, 'rg_users')
-                if os.path.exists(rg_users_dir):
-                    volume_info['rg_users_exists'] = True
-                    volume_info['rg_users_contents'] = os.listdir(rg_users_dir)
-                else:
-                    volume_info['rg_users_exists'] = False
-                
-                # 檢查目錄權限
-                stat_info = os.stat(data_dir)
-                volume_info['data_dir_permissions'] = oct(stat_info.st_mode)[-3:]
-                volume_info['volume_mounted'] = True
-                
-            except Exception as e:
-                volume_info['error'] = str(e)
+        for data_dir in possible_dirs:
+            dir_info = {
+                'exists': os.path.exists(data_dir),
+                'writable': False,
+                'contents': [],
+                'permissions': None,
+                'is_mount': False,
+                'rg_users_exists': False,
+                'rg_users_contents': []
+            }
+            
+            if os.path.exists(data_dir):
+                try:
+                    dir_info['writable'] = os.access(data_dir, os.W_OK)
+                    dir_info['contents'] = os.listdir(data_dir)
+                    
+                    # 檢查權限
+                    stat_info = os.stat(data_dir)
+                    dir_info['permissions'] = {
+                        'mode': oct(stat_info.st_mode)[-3:],
+                        'uid': stat_info.st_uid,
+                        'gid': stat_info.st_gid
+                    }
+                    
+                    # 檢查是否為掛載點（簡單檢查）
+                    try:
+                        mount_info = os.statvfs(data_dir)
+                        dir_info['is_mount'] = mount_info.f_blocks > 0
+                    except:
+                        pass
+                    
+                    # 檢查 rg_users 目錄
+                    rg_users_dir = os.path.join(data_dir, 'rg_users')
+                    if os.path.exists(rg_users_dir):
+                        dir_info['rg_users_exists'] = True
+                        dir_info['rg_users_contents'] = os.listdir(rg_users_dir)
+                    
+                    # 如果這個目錄可用且可寫，推薦使用
+                    if dir_info['writable'] and not volume_info['recommended_dir']:
+                        volume_info['recommended_dir'] = data_dir
+                        volume_info['volume_mounted'] = True
+                        
+                except Exception as e:
+                    dir_info['error'] = str(e)
+            
+            volume_info['checked_dirs'][data_dir] = dir_info
         
-        return jsonify({
-            'success': True,
-            'volume_status': volume_info
-        })
+        return jsonify(volume_info)
         
     except Exception as e:
         logger.error(f"檢查 Volume 狀態失敗: {e}")
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': str(e), 'traceback': traceback.format_exc()})
 
 @app.route('/api/rg/model-status', methods=['GET'])
 @login_required
@@ -3816,7 +3860,9 @@ def get_production_recommendation_score(username, owned_ids, game_id):
         from board_game_recommender.recommend import BGGRecommender
         
         # 載入已訓練的模型
-        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
+        # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        model_path = paths['model_dir']
         if not os.path.exists(model_path):
             logger.error(f"❌ 模型不存在: {model_path}")
             return 0.0
@@ -4484,7 +4530,9 @@ def api_diagnose_recommendations():
             from board_game_recommender.recommend import BGGRecommender
             
             # 檢查模型是否存在
-            model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
+            # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        model_path = paths['model_dir']
             diagnosis['model_exists'] = os.path.exists(model_path)
             
             if diagnosis['model_exists']:
@@ -5121,7 +5169,9 @@ def api_get_recommendations_by_games():
             return jsonify({'success': False, 'message': '請先設定 BGG 用戶名'})
         
         # 檢查模型是否存在
-        model_path = f'/app/data/rg_users/{username}/rg_model' if os.path.exists('/app/data') else f'data/rg_users/{username}/rg_model'
+        # 使用動態路徑選擇
+        paths = get_user_rg_paths(username)
+        model_path = paths['model_dir']
         if not os.path.exists(model_path):
             return jsonify({'success': False, 'message': '推薦模型尚未訓練，請先到設定頁重新訓練'})
         

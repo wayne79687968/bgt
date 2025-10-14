@@ -22,8 +22,8 @@ COPY . .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# 創建必要目錄
-RUN mkdir -p data frontend/public/outputs
+# 創建必要目錄（卷掛載會覆蓋這些目錄）
+RUN mkdir -p /app/data /app/frontend/public/outputs
 
 # 暴露端口（動態）
 EXPOSE $PORT

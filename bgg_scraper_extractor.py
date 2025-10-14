@@ -263,12 +263,19 @@ class BGGScraperExtractor:
     def export_to_jsonl(self, username: str, output_dir: str = 'data') -> bool:
         """抓取用戶資料並輸出為 JSONL 格式"""
         try:
-            # 在 Zeabur 環境中，data 目錄掛載在 /app/data
-            if output_dir == 'data' and os.path.exists('/app/data'):
-                output_dir = '/app/data'
+            # 動態選擇最佳可用的資料目錄
+            possible_dirs = ['/app/data', 'data', '/tmp/data']
+            best_dir = output_dir
+            
+            if output_dir == 'data':
+                for data_dir in possible_dirs:
+                    if os.path.exists(data_dir) and os.access(data_dir, os.W_OK):
+                        best_dir = data_dir
+                        logger.info(f"📁 使用資料目錄: {best_dir}")
+                        break
             
             # 創建用戶特定的輸出目錄
-            user_dir = os.path.join(output_dir, 'rg_users', username)
+            user_dir = os.path.join(best_dir, 'rg_users', username)
             os.makedirs(user_dir, exist_ok=True)
             
             # 抓取用戶收藏
