@@ -979,6 +979,7 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         from board_game_recommender.recommend import BGGRecommender
         
         # 載入已訓練的模型
+        import os
         model_path = f'data/rg_users/{username}/rg_model'
         if not os.path.exists(model_path):
             logger.error(f"❌ 模型不存在: {model_path}")
@@ -987,7 +988,6 @@ def get_advanced_recommendations(username, owned_ids, algorithm='hybrid', limit=
         logger.info(f"📂 載入模型: {model_path}")
         try:
             # 檢查模型目錄結構
-            import os
             model_files = os.listdir(model_path) if os.path.exists(model_path) else []
             logger.info(f"📁 模型目錄內容: {model_files}")
             
