@@ -427,10 +427,8 @@ function trainRgModel() {
 }
 
 function retrainBGGModel() {
-    // 顯示確認對話框
-    if (!confirm('一鍵重新訓練會執行完整流程：\n\n1. 抓取最新 BGG 資料\n2. 處理用戶收藏資料\n3. 訓練協同過濾模型\n\n這個過程可能需要 10-30 分鐘，確定要開始嗎？')) {
-        return;
-    }
+    // 直接啟動（避免某些瀏覽器阻擋 confirm/alert 導致無反應）
+    try { console.log('retrain: start clicked'); } catch (e) {}
 
     // 顯示訓練狀態
     const statusDiv = document.getElementById('training-status');
@@ -460,15 +458,18 @@ function retrainBGGModel() {
             // 開始輪詢狀態
             pollTrainingStatus(startTime);
             showAlert('success', data.message || '一鍵訓練已啟動');
+            try { console.log('retrain: started'); } catch (e) {}
         } else {
             statusDiv.style.display = 'none';
             showAlert('danger', (data && data.message) ? data.message : '啟動訓練失敗');
+            try { console.log('retrain: failed', data); } catch (e) {}
         }
     })
     .catch(err => {
         console.error(err);
         statusDiv.style.display = 'none';
         showAlert('danger', '啟動訓練失敗');
+        try { console.log('retrain: network error', err); } catch (e) {}
     });
 }
 
