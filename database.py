@@ -59,7 +59,7 @@ def execute_query(cursor, query, params=(), db_type='postgresql'):
 def get_db_connection():
     """取得 PostgreSQL 資料庫連接的 context manager"""
     config = get_database_config()
-    
+
     # PostgreSQL 連接
     try:
         import psycopg2
@@ -72,7 +72,7 @@ def get_db_connection():
     initial_delay = 1
     max_delay = 16
     conn = None
-    
+
     try:
         for attempt in range(max_retries):
             try:
@@ -83,10 +83,10 @@ def get_db_connection():
                     wait_s = round(delay + jitter, 2)
                     print(f"⏳ 等待 {wait_s} 秒後重試...")
                     time.sleep(wait_s)
-                
+
                 print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
                 print(f"📡 連接目標: {config['host']}:{config['port']}")
-                
+
                 # 增加更多連接參數以提高穩定性
                 conn = psycopg2.connect(
                     config['url'],
@@ -98,13 +98,13 @@ def get_db_connection():
                     keepalives_count=5,
                     options='-c default_transaction_isolation=read\\ committed -c log_min_messages=error'
                 )
-                
+
                 # 處理 collation version 警告
                 try:
                     cursor = conn.cursor()
                     cursor.execute("SELECT version()")
                     print("🔍 PostgreSQL 版本檢查完成")
-                    
+
                     # 設置會話級別參數來抑制 collation version 警告
                     try:
                         cursor.execute("SET log_min_messages = 'error'")
@@ -112,13 +112,13 @@ def get_db_connection():
                         print("✅ 已設置會話級別參數抑制警告")
                     except Exception as log_error:
                         print(f"⚠️ 設置會話參數失敗（可忽略）: {log_error}")
-                    
+
                     # 嘗試修復 collation version mismatch 警告
                     try:
                         # 檢查是否有權限執行 ALTER DATABASE 命令
                         cursor.execute("SELECT has_database_privilege(current_user, 'zeabur', 'CREATE')")
                         has_privilege = cursor.fetchone()[0]
-                        
+
                         if has_privilege:
                             cursor.execute("ALTER DATABASE zeabur REFRESH COLLATION VERSION")
                             print("✅ PostgreSQL collation version 已更新")
@@ -135,14 +135,14 @@ def get_db_connection():
                 return
             except psycopg2.OperationalError as e:
                 print(f"❌ PostgreSQL 連接失敗 (嘗試 {attempt + 1}/{max_retries}): {e}")
-                
+
                 # 檢查是否是連接拒絕錯誤
                 if "Connection refused" in str(e):
                     print("🔍 檢測到連接被拒絕，可能是 PostgreSQL 服務尚未就緒")
                     print("🔍 Zeabur PostgreSQL 服務可能需要更多時間啟動")
                 if "timeout" in str(e).lower():
                     print("🔍 連接超時：可能為冷啟或暫時性網路抖動，將快速退避重試")
-                
+
                 if attempt == max_retries - 1:
                     # PostgreSQL 連接完全失敗，直接拋出錯誤
                     print("🚨 在 Zeabur 環境中 PostgreSQL 連接完全失敗")
@@ -396,9 +396,9 @@ def tables_sql(autoincrement_type, text_type, timestamp_type):
 def _migrate_existing_schema(cursor, config_type):
     """遷移現有的資料庫 schema"""
     print("🔄 [MIGRATE_SCHEMA] 檢查並遷移現有資料庫 schema...")
-    
+
     migrations = []
-    
+
     if config_type == 'postgresql':
         # 先檢查 users 表是否存在
         try:
@@ -406,11 +406,11 @@ def _migrate_existing_schema(cursor, config_type):
             users_table_exists = cursor.fetchone()[0] is not None
         except Exception:
             users_table_exists = False
-        
+
         if not users_table_exists:
             print("✓ [MIGRATE_SCHEMA] 新資料庫，跳過 schema 遷移")
             return
-            
+
         # PostgreSQL 特有的遷移 - 只在表存在時執行
         migrations = [
             # 檢查 users 表是否缺少 name 欄位
@@ -419,7 +419,7 @@ def _migrate_existing_schema(cursor, config_type):
                 'migrate': "ALTER TABLE users ADD COLUMN name TEXT",
                 'description': '添加 users.name 欄位'
             },
-            # 檢查 users 表是否缺少 password_hash 欄位  
+            # 檢查 users 表是否缺少 password_hash 欄位
             {
                 'check': "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash'",
                 'migrate': "ALTER TABLE users ADD COLUMN password_hash TEXT",
@@ -469,9 +469,9 @@ def _migrate_existing_schema(cursor, config_type):
                     BEGIN
                         -- 檢查是否已經是 SERIAL 類型
                         IF NOT EXISTS (
-                            SELECT 1 FROM information_schema.columns 
-                            WHERE table_name = 'creators' 
-                            AND column_name = 'id' 
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'creators'
+                            AND column_name = 'id'
                             AND column_default LIKE 'nextval%'
                         ) THEN
                             -- 創建序列
@@ -488,7 +488,7 @@ def _migrate_existing_schema(cursor, config_type):
                 'description': '修復 creators 表 id 欄位自動遞增'
             }
         ]
-        
+
         # 檢查並創建缺失的關鍵表
         critical_tables = [
             {
@@ -507,28 +507,28 @@ def _migrate_existing_schema(cursor, config_type):
                 'description': '創建 verification_codes 表'
             }
         ]
-        
+
         # 執行關鍵表檢查
         for table_check in critical_tables:
             try:
                 print(f"🔍 [MIGRATE_SCHEMA] 檢查: {table_check['description']}")
                 cursor.execute(table_check['check'])
                 result = cursor.fetchone()
-                
+
                 if not result or result[0] is None:
                     print(f"📝 [MIGRATE_SCHEMA] 執行創建: {table_check['description']}")
                     cursor.execute(table_check['migrate'])
                     print(f"✅ [MIGRATE_SCHEMA] 創建完成: {table_check['description']}")
                 else:
                     print(f"✓ [MIGRATE_SCHEMA] 已存在: {table_check['description']}")
-                    
+
             except Exception as e:
                 print(f"⚠️ [MIGRATE_SCHEMA] 創建警告 {table_check['description']}: {e}")
                 # PostgreSQL 事務出錯時需要回滾
                 if config_type == 'postgresql':
                     cursor.execute("ROLLBACK")
                     cursor.execute("BEGIN")
-        
+
         # 用戶表結構遷移 - 從 user_email 轉換為 user_id
         user_table_migrations = [
             {
@@ -545,10 +545,10 @@ def _migrate_existing_schema(cursor, config_type):
                     )""",
                     # 2. 遷移資料 (將 user_email 轉換為 user_id)
                     """INSERT INTO user_follows_new (user_id, creator_id, followed_at)
-                       SELECT u.id, uf.creator_id, uf.followed_at 
-                       FROM user_follows uf 
+                       SELECT u.id, uf.creator_id, uf.followed_at
+                       FROM user_follows uf
                        JOIN users u ON u.email = uf.user_email
-                       WHERE EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE EXISTS (SELECT 1 FROM information_schema.columns
                                    WHERE table_name = 'user_follows' AND column_name = 'user_email')""",
                     # 3. 刪除舊表
                     "DROP TABLE IF EXISTS user_follows",
@@ -567,13 +567,13 @@ def _migrate_existing_schema(cursor, config_type):
                 ]
             }
         ]
-        
+
         for migration in user_table_migrations:
             try:
                 print(f"🔍 [MIGRATE_SCHEMA] 檢查: {migration['description']}")
                 cursor.execute(migration['check'])
                 result = cursor.fetchone()
-                
+
                 if not result:
                     print(f"📝 [MIGRATE_SCHEMA] 執行遷移: {migration['description']}")
                     for sql in migration['migrate_sql']:
@@ -587,26 +587,26 @@ def _migrate_existing_schema(cursor, config_type):
                     print(f"✅ [MIGRATE_SCHEMA] 遷移完成: {migration['description']}")
                 else:
                     print(f"✓ [MIGRATE_SCHEMA] 已遷移: {migration['description']}")
-                    
+
             except Exception as e:
                 print(f"⚠️ [MIGRATE_SCHEMA] 遷移警告 {migration['description']}: {e}")
                 if config_type == 'postgresql':
                     cursor.execute("ROLLBACK")
                     cursor.execute("BEGIN")
-    
+
     for migration in migrations:
         try:
             print(f"🔍 [MIGRATE_SCHEMA] 檢查: {migration['description']}")
             cursor.execute(migration['check'])
             result = cursor.fetchone()
-            
+
             if not result:
                 print(f"📝 [MIGRATE_SCHEMA] 執行遷移: {migration['description']}")
                 cursor.execute(migration['migrate'])
                 print(f"✅ [MIGRATE_SCHEMA] 遷移完成: {migration['description']}")
             else:
                 print(f"✓ [MIGRATE_SCHEMA] 已存在: {migration['description']}")
-                
+
         except Exception as e:
             print(f"⚠️ [MIGRATE_SCHEMA] 遷移警告 {migration['description']}: {e}")
             # PostgreSQL 事務出錯時需要回滾
@@ -614,17 +614,17 @@ def _migrate_existing_schema(cursor, config_type):
                 cursor.execute("ROLLBACK")
                 cursor.execute("BEGIN")
             # 不阻止其他遷移繼續
-    
+
     print("✅ [MIGRATE_SCHEMA] Schema 遷移檢查完成")
 
 def _create_tables_and_constraints(cursor, tables, config_type):
     """創建資料表和約束的 helper 函數"""
     print("🗃️ [INIT_DATABASE] 開始創建資料表...")
     table_start_time = time.time()
-    
+
     # 先執行 schema 遷移
     _migrate_existing_schema(cursor, config_type)
-    
+
     print(f"🗃️ [INIT_DATABASE] 準備創建 {len(tables)} 個資料表...")
 
     for i, table_sql in enumerate(tables, 1):
@@ -725,7 +725,7 @@ def init_database():
 
             # 創建資料表和處理 PostgreSQL 特有約束
             _create_tables_and_constraints(cursor, tables_sql(autoincrement_type, text_type, timestamp_type), config['type'])
-            
+
             print("🗃️ [INIT_DATABASE] 開始提交事務...")
             commit_start_time = time.time()
             try:

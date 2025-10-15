@@ -114,10 +114,17 @@ async function searchGames(query) {
         }
 
         if (data && data.success) {
-            displaySearchResults(data.results || []);
+            const list = Array.isArray(data.results) ? data.results : [];
+            if (list.length === 0) {
+                resultsDiv.innerHTML = '<div class="p-3 text-center text-muted">沒有符合的結果</div>';
+                resultsDiv.style.display = 'block';
+            } else {
+                displaySearchResults(list);
+            }
         } else {
             console.error('搜尋失敗:', data && data.message);
             resultsDiv.innerHTML = '<div class="p-3 text-center text-danger">搜尋失敗，稍後再試</div>';
+            resultsDiv.style.display = 'block';
         }
     } catch (error) {
         console.error('搜尋錯誤:', error);
@@ -130,7 +137,7 @@ async function searchGames(query) {
 function displaySearchResults(games) {
     const resultsDiv = document.getElementById('search-results');
 
-    if (games.length === 0) {
+    if (!Array.isArray(games) || games.length === 0) {
         resultsDiv.innerHTML = '<div class="p-3 text-center text-muted">找不到相關遊戲</div>';
         resultsDiv.style.display = 'block';
         return;
@@ -148,7 +155,6 @@ function displaySearchResults(games) {
                         年份: ${game.year || 'N/A'}
                     </small>
                 </div>
-                ${isSelected ? '<span class="text-success">✓ 已選擇</span>' : ''}
             </div>
         `;
     }).join('');
