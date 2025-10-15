@@ -61,22 +61,24 @@
 <script>
 let selectedGames = [];
 let searchTimeout = null;
+let isComposing = false;
 
 // 搜尋遊戲
-document.getElementById('game-search-input').addEventListener('input', function(e) {
+const searchInputEl = document.getElementById('game-search-input');
+searchInputEl.addEventListener('compositionstart', () => { isComposing = true; });
+searchInputEl.addEventListener('compositionend', (e) => { isComposing = false; triggerSearch(e.target.value.trim()); });
+
+searchInputEl.addEventListener('input', function(e) {
     const query = e.target.value.trim();
-
-    clearTimeout(searchTimeout);
-
-    if (query.length < 2) {
-        hideSearchResults();
-        return;
-    }
-
-    searchTimeout = setTimeout(() => {
-        searchGames(query);
-    }, 300);
+    if (isComposing) return;
+    triggerSearch(query);
 });
+
+function triggerSearch(query) {
+    clearTimeout(searchTimeout);
+    if (!query || query.length < 1) { hideSearchResults(); return; }
+    searchTimeout = setTimeout(() => { searchGames(query); }, 250);
+}
 
 // 點擊外部隱藏搜尋結果
 document.addEventListener('click', function(e) {
@@ -87,7 +89,11 @@ document.addEventListener('click', function(e) {
 
 async function searchGames(query) {
     try {
-        // 使用真正的 BGG API 搜尋
+        // 顯示搜尋中
+        const resultsDiv = document.getElementById('search-results');
+        resultsDiv.innerHTML = '<div class="p-3 text-center text-muted">搜尋中...</div>';
+        resultsDiv.style.display = 'block';
+
         const response = await fetch('/api/bgg/search', {
             method: 'POST',
             headers: {
@@ -96,15 +102,28 @@ async function searchGames(query) {
             body: JSON.stringify({ query: query })
         });
 
-        const data = await response.json();
-
-        if (data.success) {
-            displaySearchResults(data.results);
+        let data = null;
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+            data = await response.json();
         } else {
-            console.error('搜尋失敗:', data.message);
+            const txt = await response.text();
+            console.error('搜尋回傳非 JSON', txt.slice(0, 200));
+            resultsDiv.innerHTML = '<div class="p-3 text-center text-danger">搜尋失敗（非 JSON 回應）</div>';
+            return;
+        }
+
+        if (data && data.success) {
+            displaySearchResults(data.results || []);
+        } else {
+            console.error('搜尋失敗:', data && data.message);
+            resultsDiv.innerHTML = '<div class="p-3 text-center text-danger">搜尋失敗，稍後再試</div>';
         }
     } catch (error) {
         console.error('搜尋錯誤:', error);
+        const resultsDiv = document.getElementById('search-results');
+        resultsDiv.innerHTML = '<div class="p-3 text-center text-danger">搜尋錯誤</div>';
+        resultsDiv.style.display = 'block';
     }
 }
 
