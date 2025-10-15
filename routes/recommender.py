@@ -199,6 +199,24 @@ def api_bgg_training_status():
         st['ended_at'] = st['ended_at'].isoformat()
     return jsonify({'success': True, 'status': st})
 
+
+@recommender_bp.route('/api/bgg/training-reset', methods=['POST'])
+@login_required
+def api_bgg_training_reset():
+    # 強制重置訓練狀態（用於異常卡住時）
+    bgg_training_status.update({
+        'is_running': False,
+        'current_step': '待機',
+        'progress': 0,
+        'message': '已重置',
+        'started_at': None,
+        'ended_at': None,
+        'completed': False,
+        'error': False,
+        'error_message': ''
+    })
+    return jsonify({'success': True, 'message': '訓練狀態已重置'})
+
 # 簡化的 RG 抓取任務狀態（維持原有接口語意）
 rg_task_status = {'is_running': False, 'start_time': None, 'progress': 0, 'message': '', 'stdout_tail': [], 'stderr_tail': [], 'last_update': None}
 

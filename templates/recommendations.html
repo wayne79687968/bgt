@@ -15,7 +15,7 @@
                 <label class="form-label"><strong>推薦算法：</strong></label>
                 <div class="btn-group" role="group">
                     {% for algo in available_algorithms %}
-                    <a href="{{ url_for('recommendations', algorithm=algo.value) }}" 
+                    <a href="{{ url_for('recommendations', algorithm=algo.value) }}"
                        class="btn {% if current_algorithm == algo.value %}btn-primary{% else %}btn-outline-primary{% endif %}">
                         {{ algo.name }}
                     </a>
@@ -28,7 +28,7 @@
                 </small>
             </div>
             {% endif %}
-            
+
             <!-- 顯示現有推薦 -->
             {% if recommendations %}
             <div class="mb-4">
@@ -68,30 +68,30 @@
                 </div>
             </div>
             {% endif %}
-            
+
             <!-- 遊戲搜尋 -->
             <div class="mb-3" style="position: relative;">
-                <input type="text" id="game-search-input" class="form-control" 
+                <input type="text" id="game-search-input" class="form-control"
                        placeholder="搜尋桌遊名稱..." autocomplete="off">
-                <div id="search-results" class="border rounded shadow-sm bg-white" 
+                <div id="search-results" class="border rounded shadow-sm bg-white"
                      style="position: absolute; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; z-index: 1000; display: none;">
                 </div>
             </div>
-            
+
             <!-- 已選擇的遊戲 -->
             <div id="selected-games" class="mb-3 p-3 border-2 border-dashed rounded bg-light" style="min-height: 60px;">
                 <div class="text-center text-muted">
                     請搜尋並選擇您喜歡的桌遊（最多10款）
                 </div>
             </div>
-            
+
             <!-- 推薦按鈕 -->
             <button id="recommend-btn" class="btn btn-primary btn-lg w-100" onclick="getRecommendations()" disabled>
                 獲得推薦
             </button>
         </div>
     </div>
-    
+
     <!-- 推薦結果 -->
     <div class="card" id="recommendations-section" style="display: none;">
         <div class="card-header bg-success text-white">
@@ -110,14 +110,14 @@ let searchTimeout = null;
 // 搜尋遊戲
 document.getElementById('game-search-input').addEventListener('input', function(e) {
     const query = e.target.value.trim();
-    
+
     clearTimeout(searchTimeout);
-    
+
     if (query.length < 2) {
         hideSearchResults();
         return;
     }
-    
+
     searchTimeout = setTimeout(() => {
         searchGames(query);
     }, 300);
@@ -138,14 +138,14 @@ async function searchGames(query) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                query: query, 
-                exact: false 
+            body: JSON.stringify({
+                query: query,
+                exact: false
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             displaySearchResults(data.results);
         } else {
@@ -158,19 +158,19 @@ async function searchGames(query) {
 
 function displaySearchResults(games) {
     const resultsDiv = document.getElementById('search-results');
-    
+
     if (games.length === 0) {
         resultsDiv.innerHTML = '<div class="p-3 text-center text-muted">找不到相關遊戲</div>';
         resultsDiv.style.display = 'block';
         return;
     }
-    
+
     const selectedIds = selectedGames.map(game => game.id);
-    
+
     resultsDiv.innerHTML = games.map(game => {
         const isSelected = selectedIds.includes(game.id);
         return `
-            <div class="p-2 border-bottom d-flex align-items-center ${isSelected ? 'bg-light' : ''}" 
+            <div class="p-2 border-bottom d-flex align-items-center ${isSelected ? 'bg-light' : ''}"
                  style="cursor: ${isSelected ? 'default' : 'pointer'};"
                  onclick="${isSelected ? '' : `selectGame(${JSON.stringify({
                      id: game.id,
@@ -178,14 +178,14 @@ function displaySearchResults(games) {
                      year: game.year,
                      objectid: game.id  // 為了相容性
                  }).replace(/"/g, '&quot;')})`}">
-                <img src="/static/images/default-game.png" 
+                <img src="/static/images/default-game.png"
                      alt="${game.name}" class="me-2 rounded"
                      style="width: 40px; height: 40px; object-fit: cover;"
                      onerror="this.src='/static/images/default-game.png'">
                 <div class="flex-grow-1">
                     <h6 class="mb-1">${game.name}</h6>
                     <small class="text-muted">
-                        BGG ID: ${game.id} | 
+                        BGG ID: ${game.id} |
                         年份: ${game.year || 'N/A'}
                     </small>
                 </div>
@@ -193,7 +193,7 @@ function displaySearchResults(games) {
             </div>
         `;
     }).join('');
-    
+
     resultsDiv.style.display = 'block';
 }
 
@@ -206,16 +206,16 @@ function selectGame(game) {
         alert('最多只能選擇10款遊戲');
         return;
     }
-    
+
     if (selectedGames.find(g => g.objectid === game.objectid)) {
         return; // 已經選擇過
     }
-    
+
     selectedGames.push(game);
     updateSelectedGamesDisplay();
     hideSearchResults();
     document.getElementById('game-search-input').value = '';
-    
+
     // 隱藏歡迎頁面
     document.getElementById('welcome-state').style.display = 'none';
 }
@@ -223,7 +223,7 @@ function selectGame(game) {
 function removeGame(objectid) {
     selectedGames = selectedGames.filter(game => game.objectid !== objectid);
     updateSelectedGamesDisplay();
-    
+
     if (selectedGames.length === 0) {
         document.getElementById('welcome-state').style.display = 'block';
     }
@@ -232,7 +232,7 @@ function removeGame(objectid) {
 function updateSelectedGamesDisplay() {
     const container = document.getElementById('selected-games');
     const recommendBtn = document.getElementById('recommend-btn');
-    
+
     if (selectedGames.length === 0) {
         container.innerHTML = `
             <div class="text-center text-muted">
@@ -244,7 +244,7 @@ function updateSelectedGamesDisplay() {
         container.innerHTML = selectedGames.map(game => `
             <span class="badge bg-primary me-2 mb-2" style="font-size: 14px;">
                 ${game.name}
-                <button class="btn-close btn-close-white ms-2" style="font-size: 10px;" 
+                <button class="btn-close btn-close-white ms-2" style="font-size: 10px;"
                         onclick="removeGame(${game.objectid})" title="移除"></button>
             </span>
         `).join('');
@@ -256,16 +256,16 @@ async function getRecommendations() {
     const recommendBtn = document.getElementById('recommend-btn');
     const recommendationsSection = document.getElementById('recommendations-section');
     const recommendationsContent = document.getElementById('recommendations-content');
-    
+
     if (selectedGames.length === 0) {
         alert('請先選擇至少一款遊戲');
         return;
     }
-    
+
     // 顯示載入狀態
     recommendBtn.disabled = true;
     recommendBtn.textContent = '分析中...';
-    
+
     recommendationsSection.style.display = 'block';
     recommendationsContent.innerHTML = `
         <div class="text-center py-4">
@@ -275,7 +275,7 @@ async function getRecommendations() {
             <p class="mt-2">正在分析您的偏好並生成推薦...</p>
         </div>
     `;
-    
+
     try {
         const response = await fetch('/api/recommendations/by-games', {
             method: 'POST',
@@ -287,9 +287,9 @@ async function getRecommendations() {
                 num_recommendations: 10
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             displayRecommendations(data.recommendations, data.metadata || {});
         } else {
@@ -314,7 +314,7 @@ async function getRecommendations() {
 
 function displayRecommendations(recommendations, metadata) {
     const content = document.getElementById('recommendations-content');
-    
+
     if (recommendations.length === 0) {
         content.innerHTML = `
             <div class="text-center py-4">
@@ -325,7 +325,7 @@ function displayRecommendations(recommendations, metadata) {
         `;
         return;
     }
-    
+
     content.innerHTML = `
         <div class="alert alert-info mb-4">
             <h5 class="alert-heading">📊 推薦分析</h5>
@@ -334,7 +334,7 @@ function displayRecommendations(recommendations, metadata) {
                 為您推薦 ${recommendations.length} 款高品質桌遊
             </p>
         </div>
-        
+
         ${recommendations.map((rec, index) => `
             <div class="card mb-3">
                 <div class="card-body">
@@ -344,15 +344,15 @@ function displayRecommendations(recommendations, metadata) {
                     </div>
                     <div class="card-text">
                         <p class="mb-2">
-                            <strong>BGG 評分:</strong> ${rec.rating ? rec.rating.toFixed(1) : 'N/A'} | 
-                            <strong>排名:</strong> ${rec.rank || 'N/A'} | 
+                            <strong>BGG 評分:</strong> ${rec.rating ? rec.rating.toFixed(1) : 'N/A'} |
+                            <strong>排名:</strong> ${rec.rank || 'N/A'} |
                             <strong>推薦方法:</strong> ${rec.method || rec.source}
                         </p>
                         ${rec.similarity ? `<p class="mb-2"><strong>相似度:</strong> ${(rec.similarity * 100).toFixed(1)}%</p>` : ''}
                         <div class="progress" style="height: 6px;">
-                            <div class="progress-bar" role="progressbar" 
+                            <div class="progress-bar" role="progressbar"
                                  style="width: ${(rec.confidence * 100).toFixed(1)}%"
-                                 aria-valuenow="${(rec.confidence * 100).toFixed(1)}" 
+                                 aria-valuenow="${(rec.confidence * 100).toFixed(1)}"
                                  aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                         <small class="text-muted">置信度: ${(rec.confidence * 100).toFixed(1)}%</small>
@@ -360,7 +360,7 @@ function displayRecommendations(recommendations, metadata) {
                 </div>
             </div>
         `).join('')}
-        
+
         <div class="alert alert-light mt-4">
             <p class="mb-0">
                 <strong>說明:</strong> 推薦分數基於遊戲相似性、BGG評分和排名計算。
@@ -382,7 +382,7 @@ async function getGameRecommendation(gameId, gameName) {
                 <p class="mt-2">正在計算推薦分數...</p>
             </div>
         `;
-        
+
         // 創建或更新推薦結果區域
         let resultDiv = document.getElementById('game-recommendation-result');
         if (!resultDiv) {
@@ -391,7 +391,7 @@ async function getGameRecommendation(gameId, gameName) {
             resultDiv.className = 'card mt-4';
             document.querySelector('.container').appendChild(resultDiv);
         }
-        
+
         resultDiv.innerHTML = loadingHtml;
 
         const response = await fetch('/api/rg/recommend-score', {
@@ -441,7 +441,7 @@ async function getGameRecommendation(gameId, gameName) {
 // 顯示遊戲推薦分數結果
 function displayGameRecommendationResult(result, gameName) {
     const resultDiv = document.getElementById('game-recommendation-result');
-    
+
     resultDiv.innerHTML = `
         <div class="card-header bg-success text-white">
             <h5 class="mb-0">🎯 ${gameName} 推薦分數</h5>
@@ -463,14 +463,14 @@ function displayGameRecommendationResult(result, gameName) {
                     </ul>
                 </div>
             </div>
-            
+
             <div class="mt-3">
                 <h6>分數說明</h6>
                 <div class="progress mb-2" style="height: 20px;">
-                    <div class="progress-bar" role="progressbar" 
-                         style="width: ${(result.score / 10 * 100)}%" 
-                         aria-valuenow="${result.score}" 
-                         aria-valuemin="0" 
+                    <div class="progress-bar" role="progressbar"
+                         style="width: ${(result.score / 10 * 100)}%"
+                         aria-valuenow="${result.score}"
+                         aria-valuemin="0"
                          aria-valuemax="10">
                         ${result.score.toFixed(2)}
                     </div>
@@ -479,7 +479,7 @@ function displayGameRecommendationResult(result, gameName) {
                     推薦分數基於您的收藏偏好、遊戲特徵相似性和 BGG 評分計算
                 </small>
             </div>
-            
+
             <div class="mt-3">
                 <button class="btn btn-outline-primary" onclick="searchGames(document.getElementById('game-search-input').value)">
                     搜尋其他遊戲
