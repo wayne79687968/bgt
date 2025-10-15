@@ -29,45 +29,10 @@
             </div>
             {% endif %}
 
-            <!-- 顯示現有推薦 -->
-            {% if recommendations %}
-            <div class="mb-4">
-                <h4>🎯 為您推薦的遊戲</h4>
-                <div class="row">
-                    {% for rec in recommendations %}
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h6 class="card-title">{{ rec.name }}</h6>
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        {% if rec.year %}年份: {{ rec.year }}<br>{% endif %}
-                                        {% if rec.rating %}評分: {{ "%.1f"|format(rec.rating) }}/10<br>{% endif %}
-                                        {% if rec.rank %}排名: #{{ rec.rank }}<br>{% endif %}
-                                        {% if rec.rec_score %}推薦分數: {{ "%.2f"|format(rec.rec_score) }}{% endif %}
-                                    </small>
-                                </p>
-                            </div>
-                            <div class="card-footer">
-                                <button class="btn btn-sm btn-outline-primary" onclick="getGameRecommendation({{ rec.game_id }}, '{{ rec.name }}')">
-                                    查看推薦分數
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+            <!-- 單一遊戲打分說明 -->
+            <div id="welcome-state" class="alert alert-info">
+                先在下方搜尋一款桌遊，點選結果後，系統會用您的模型計算「該遊戲」的個人化推薦分數。
             </div>
-            {% else %}
-            <div id="welcome-state" class="text-center py-4">
-                <div style="font-size: 48px; margin-bottom: 16px;">🎲</div>
-                <h3>歡迎使用個人化推薦系統</h3>
-                <p>基於您的收藏和評分，為您推薦優質的桌遊</p>
-                <div class="alert alert-info mt-3">
-                    <strong>💡 提示：</strong> 如果這是您第一次使用或剛完成部署，請先到設定頁面執行「一鍵重新訓練」來建立您的個人化推薦模型。
-                </div>
-            </div>
-            {% endif %}
 
             <!-- 遊戲搜尋 -->
             <div class="mb-3" style="position: relative;">
@@ -78,17 +43,7 @@
                 </div>
             </div>
 
-            <!-- 已選擇的遊戲 -->
-            <div id="selected-games" class="mb-3 p-3 border-2 border-dashed rounded bg-light" style="min-height: 60px;">
-                <div class="text-center text-muted">
-                    請搜尋並選擇您喜歡的桌遊（最多10款）
-                </div>
-            </div>
-
-            <!-- 推薦按鈕 -->
-            <button id="recommend-btn" class="btn btn-primary btn-lg w-100" onclick="getRecommendations()" disabled>
-                獲得推薦
-            </button>
+            <!-- 不再顯示多遊戲清單或產生總表 -->
         </div>
     </div>
 
@@ -165,19 +120,10 @@ function displaySearchResults(games) {
         return;
     }
 
-    const selectedIds = selectedGames.map(game => game.id);
-
     resultsDiv.innerHTML = games.map(game => {
-        const isSelected = selectedIds.includes(game.id);
         return `
-            <div class="p-2 border-bottom d-flex align-items-center ${isSelected ? 'bg-light' : ''}"
-                 style="cursor: ${isSelected ? 'default' : 'pointer'};"
-                 onclick="${isSelected ? '' : `selectGame(${JSON.stringify({
-                     id: game.id,
-                     name: game.name,
-                     year: game.year,
-                     objectid: game.id  // 為了相容性
-                 }).replace(/"/g, '&quot;')})`}">
+            <div class="p-2 border-bottom d-flex align-items-center" style="cursor: pointer;"
+                 onclick="getGameRecommendation(${game.id}, '${game.name.replace(/'/g, "\'")}')">
                 <img src="/static/images/default-game.png"
                      alt="${game.name}" class="me-2 rounded"
                      style="width: 40px; height: 40px; object-fit: cover;"
@@ -201,24 +147,7 @@ function hideSearchResults() {
     document.getElementById('search-results').style.display = 'none';
 }
 
-function selectGame(game) {
-    if (selectedGames.length >= 10) {
-        alert('最多只能選擇10款遊戲');
-        return;
-    }
-
-    if (selectedGames.find(g => g.objectid === game.objectid)) {
-        return; // 已經選擇過
-    }
-
-    selectedGames.push(game);
-    updateSelectedGamesDisplay();
-    hideSearchResults();
-    document.getElementById('game-search-input').value = '';
-
-    // 隱藏歡迎頁面
-    document.getElementById('welcome-state').style.display = 'none';
-}
+// 取消多選邏輯，改由點擊即計分
 
 function removeGame(objectid) {
     selectedGames = selectedGames.filter(game => game.objectid !== objectid);
