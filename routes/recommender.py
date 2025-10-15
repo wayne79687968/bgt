@@ -58,6 +58,18 @@ def api_bgg_search():
     try:
         data = request.get_json()
         query = data.get('query', '').strip()
+        # 可選的回傳數量上限（不指定則不限制）
+        limit = None
+        try:
+            raw_limit = data.get('limit')
+            if isinstance(raw_limit, (int, float)):
+                limit = int(raw_limit)
+            elif isinstance(raw_limit, str) and raw_limit.isdigit():
+                limit = int(raw_limit)
+            if limit is not None and limit <= 0:
+                limit = None
+        except Exception:
+            limit = None
         if not query:
             return jsonify({'success': False, 'message': '搜尋關鍵字不能為空'})
         import xml.etree.ElementTree as ET
@@ -69,12 +81,16 @@ def api_bgg_search():
         response.raise_for_status()
         root = ET.fromstring(response.text)
         results = []
-        for item in root.findall('item')[:10]:
+        items = root.findall('item')
+        # 逐步累積，若有指定 limit 則提早停止
+        for item in items:
             game_id = item.get('id')
             name_element = item.find('name')
             year_element = item.find('yearpublished')
             if game_id and name_element is not None:
                 results.append({'id': game_id, 'name': name_element.get('value', ''), 'year': year_element.get('value') if year_element is not None else None})
+            if limit is not None and len(results) >= limit:
+                break
         return jsonify({'success': True, 'results': results, 'query': query})
     except Exception as e:
         return jsonify({'success': False, 'message': f'搜尋失敗: {str(e)}'})
