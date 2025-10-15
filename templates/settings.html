@@ -454,12 +454,13 @@ function retrainBGGModel() {
     })
     .then(r => r.json())
     .then(data => {
-        if (data.success) {
+        if (data && data.success) {
             // 開始輪詢狀態
             pollTrainingStatus(startTime);
+            showAlert('success', data.message || '一鍵訓練已啟動');
         } else {
             statusDiv.style.display = 'none';
-            showAlert('danger', data.message || '啟動訓練失敗');
+            showAlert('danger', (data && data.message) ? data.message : '啟動訓練失敗');
         }
     })
     .catch(err => {
@@ -484,7 +485,7 @@ function pollTrainingStatus(startTime) {
         fetch('/api/bgg/training-status')
         .then(r => r.json())
         .then(data => {
-            if (data.success) {
+            if (data && data.success && data.status) {
                 const status = data.status;
 
                 if (status.is_running) {
@@ -503,6 +504,8 @@ function pollTrainingStatus(startTime) {
                     statusDiv.style.display = 'none';
                     showAlert('danger', '訓練失敗: ' + (status.error_message || '未知錯誤'));
                 }
+            } else {
+                showAlert('warning', '無法取得訓練狀態，稍後重試');
             }
         })
         .catch(err => {
@@ -817,16 +820,24 @@ function showAlert(type, message) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
 
-    // 插入到頁面頂部
+    // 插入到頁面頂部（容錯：若找不到容器，改掛到 body 右上角）
     const container = document.querySelector('.container-fluid');
-    container.insertBefore(alertDiv, container.firstChild);
+    if (container) {
+        container.insertBefore(alertDiv, container.firstChild);
+    } else {
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '1080';
+        document.body.appendChild(alertDiv);
+    }
 
-    // 3秒後自動消失
+    // 4秒後自動消失
     setTimeout(() => {
         if (alertDiv.parentNode) {
             alertDiv.remove();
         }
-    }, 3000);
+    }, 4000);
 }
 
 
