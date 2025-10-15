@@ -58,18 +58,35 @@ def api_bgg_search():
     try:
         data = request.get_json()
         query = data.get('query', '').strip()
-        exact = data.get('exact', False)
+        exact_param = data.get('exact', False)
+        # exact 兼容：
+        #  - 若傳布林值，作為 BGG exact 參數
+        #  - 若傳數字（或數字字串），用作回傳上限（limit），BGG exact 則為 0
+        limit = 10
+        exact_flag = False
+        try:
+            if isinstance(exact_param, bool):
+                exact_flag = exact_param
+            elif isinstance(exact_param, int):
+                limit = max(1, int(exact_param))
+            elif isinstance(exact_param, str) and exact_param.isdigit():
+                limit = max(1, int(exact_param))
+            else:
+                exact_flag = bool(exact_param)
+        except Exception:
+            exact_flag = False
+            limit = 10
         if not query:
             return jsonify({'success': False, 'message': '搜尋關鍵字不能為空'})
         import xml.etree.ElementTree as ET
         import urllib.parse
-        url = f"https://boardgamegeek.com/xmlapi2/search?{urllib.parse.urlencode({'query': query, 'type': 'boardgame', 'exact': '1' if exact else '0'})}"
+        url = f"https://boardgamegeek.com/xmlapi2/search?{urllib.parse.urlencode({'query': query, 'type': 'boardgame', 'exact': '1' if exact_flag else '0'})}"
         import requests
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         root = ET.fromstring(response.text)
         results = []
-        for item in root.findall('item')[:10]:
+        for item in root.findall('item')[:limit]:
             game_id = item.get('id')
             name_element = item.find('name')
             year_element = item.find('yearpublished')
