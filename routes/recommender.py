@@ -58,12 +58,12 @@ def api_bgg_search():
     try:
         data = request.get_json()
         query = data.get('query', '').strip()
-        exact = data.get('exact', False)
         if not query:
             return jsonify({'success': False, 'message': '搜尋關鍵字不能為空'})
         import xml.etree.ElementTree as ET
         import urllib.parse
-        url = f"https://boardgamegeek.com/xmlapi2/search?{urllib.parse.urlencode({'query': query, 'type': 'boardgame', 'exact': '1' if exact else '0'})}"
+        # 不使用 exact 參數，維持 BGG 預設模糊搜尋
+        url = f"https://boardgamegeek.com/xmlapi2/search?{urllib.parse.urlencode({'query': query, 'type': 'boardgame'})}"
         import requests
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -75,7 +75,7 @@ def api_bgg_search():
             year_element = item.find('yearpublished')
             if game_id and name_element is not None:
                 results.append({'id': game_id, 'name': name_element.get('value', ''), 'year': year_element.get('value') if year_element is not None else None})
-        return jsonify({'success': True, 'results': results, 'query': query, 'exact': exact})
+        return jsonify({'success': True, 'results': results, 'query': query})
     except Exception as e:
         return jsonify({'success': False, 'message': f'搜尋失敗: {str(e)}'})
 

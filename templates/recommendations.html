@@ -93,10 +93,7 @@ async function searchGames(query) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                query: query,
-                exact: 10
-            })
+            body: JSON.stringify({ query: query })
         });
 
         const data = await response.json();
