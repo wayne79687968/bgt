@@ -7,6 +7,7 @@
 import os
 from urllib.parse import urlparse
 from contextlib import contextmanager
+import random
 import time
 from datetime import datetime
 
@@ -66,21 +67,22 @@ def get_db_connection():
         # 在 Zeabur 環境中，PostgreSQL 套件必須可用
         raise ImportError("PostgreSQL 套件未安裝，但系統需要 PostgreSQL 連接")
 
-    # 添加連接重試邏輯 - 指數退避算法
-    max_retries = 10
-    initial_delay = 2
-    max_delay = 60
+    # 添加連接重試邏輯 - 指數退避算法（短超時＋jitter，避免卡死 worker）
+    max_retries = 12
+    initial_delay = 1
+    max_delay = 16
     conn = None
     
     try:
         for attempt in range(max_retries):
             try:
-                # 計算動態延遲時間 (指數退避)
-                delay = min(initial_delay * (2 ** attempt), max_delay)
-                
+                # 計算動態延遲時間 (指數退避 + jitter)
                 if attempt > 0:
-                    print(f"⏳ 等待 {delay} 秒後重試...")
-                    time.sleep(delay)
+                    delay = min(initial_delay * (2 ** (attempt - 1)), max_delay)
+                    jitter = random.uniform(0, min(1.0, 0.3 * delay))
+                    wait_s = round(delay + jitter, 2)
+                    print(f"⏳ 等待 {wait_s} 秒後重試...")
+                    time.sleep(wait_s)
                 
                 print(f"🔗 正在建立 PostgreSQL 連接... (嘗試 {attempt + 1}/{max_retries})")
                 print(f"📡 連接目標: {config['host']}:{config['port']}")
@@ -88,11 +90,12 @@ def get_db_connection():
                 # 增加更多連接參數以提高穩定性
                 conn = psycopg2.connect(
                     config['url'],
-                    connect_timeout=30,  # 連接超時
-                    application_name='bgg_rag_app',  # 應用標識
-                    keepalives_idle=600,     # TCP keepalive idle time
-                    keepalives_interval=30,  # TCP keepalive interval
-                    keepalives_count=3,      # TCP keepalive count
+                    connect_timeout=5,           # 短超時，靠重試頂住冷啟/網路抖動
+                    application_name='bgg_rag_app',
+                    keepalives=1,
+                    keepalives_idle=30,
+                    keepalives_interval=10,
+                    keepalives_count=5,
                     options='-c default_transaction_isolation=read\\ committed -c log_min_messages=error'
                 )
                 
@@ -137,6 +140,8 @@ def get_db_connection():
                 if "Connection refused" in str(e):
                     print("🔍 檢測到連接被拒絕，可能是 PostgreSQL 服務尚未就緒")
                     print("🔍 Zeabur PostgreSQL 服務可能需要更多時間啟動")
+                if "timeout" in str(e).lower():
+                    print("🔍 連接超時：可能為冷啟或暫時性網路抖動，將快速退避重試")
                 
                 if attempt == max_retries - 1:
                     # PostgreSQL 連接完全失敗，直接拋出錯誤
